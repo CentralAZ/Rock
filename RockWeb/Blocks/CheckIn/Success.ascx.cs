@@ -20,6 +20,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
+using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Web.UI;
 using System.Web.UI.HtmlControls;
@@ -27,6 +28,8 @@ using Rock;
 using Rock.Attribute;
 using Rock.CheckIn;
 using Rock.Web.UI;
+
+using com.centralaz.CheckInLabels;
 
 namespace RockWeb.Blocks.CheckIn
 {
@@ -134,33 +137,41 @@ namespace RockWeb.Blocks.CheckIn
                                                     }
 
                                                     string printContent = labelCache.FileContent;
-                                                    foreach ( var mergeField in label.MergeFields )
+                                                    // TODO: Document this in our documentation!
+                                                    if ( printContent.StartsWith( "Assembly:" ) )
                                                     {
-                                                        if ( !string.IsNullOrWhiteSpace( mergeField.Value ) )
-                                                        {
-                                                            printContent = Regex.Replace( printContent, string.Format( @"(?<=\^FD){0}(?=\^FS)", mergeField.Key ), ZebraFormatString( mergeField.Value ) );
-                                                        }
-                                                        else
-                                                        {
-                                                            // Remove the box preceding merge field
-                                                            printContent = Regex.Replace( printContent, string.Format( @"\^FO.*\^FS\s*(?=\^FT.*\^FD{0}\^FS)", mergeField.Key ), string.Empty );
-                                                            // Remove the merge field
-                                                            printContent = Regex.Replace( printContent, string.Format( @"\^FD{0}\^FS", mergeField.Key ), "^FD^FS" );
-                                                        }
-                                                    }
-
-                                                    if ( socket.Connected )
-                                                    {
-                                                        var ns = new NetworkStream( socket );
-                                                        byte[] toSend = System.Text.Encoding.ASCII.GetBytes( printContent );
-                                                        ns.Write( toSend, 0, toSend.Length );
+                                                        LoadPrintLabelAndPrint( printContent, label, CurrentCheckInState, person, groupType );
                                                     }
                                                     else
                                                     {
-                                                        phResults.Controls.Add( new LiteralControl( "<br/>NOTE: Could not connect to printer!" ) );
+                                                        foreach ( var mergeField in label.MergeFields )
+                                                        {
+                                                            if ( !string.IsNullOrWhiteSpace( mergeField.Value ) )
+                                                            {
+                                                                printContent = Regex.Replace( printContent, string.Format( @"(?<=\^FD){0}(?=\^FS)", mergeField.Key ), ZebraFormatString( mergeField.Value ) );
+                                                            }
+                                                            else
+                                                            {
+                                                                // Remove the box preceding merge field
+                                                                printContent = Regex.Replace( printContent, string.Format( @"\^FO.*\^FS\s*(?=\^FT.*\^FD{0}\^FS)", mergeField.Key ), string.Empty );
+                                                                // Remove the merge field
+                                                                printContent = Regex.Replace( printContent, string.Format( @"\^FD{0}\^FS", mergeField.Key ), "^FD^FS" );
+                                                            }
+                                                        }
+
+                                                        if ( socket.Connected )
+                                                        {
+                                                            var ns = new NetworkStream( socket );
+                                                            byte[] toSend = System.Text.Encoding.ASCII.GetBytes( printContent );
+                                                            ns.Write( toSend, 0, toSend.Length );
+                                                        }
+                                                        else
+                                                        {
+                                                            phResults.Controls.Add( new LiteralControl( "<br/>NOTE: Could not connect to printer!" ) );
+                                                        }
                                                     }
                                                 }
-                                            }
+                                            } // labelCache != null
                                         }
 
                                         if ( socket != null && socket.Connected )
@@ -235,6 +246,20 @@ namespace RockWeb.Blocks.CheckIn
             }
         }
 
+        # region Helper Methods
+
+        private void LoadPrintLabelAndPrint( string assemblyString, CheckInLabel label, CheckInState checkInState, CheckInPerson person, CheckInGroupType groupType )
+        {
+            // Remove the "Assembly:" prefix.
+            var assemblyParts = assemblyString.ReplaceCaseInsensitive( "Assembly:","" ).Trim().Split( ',' );
+            var assemblyName = assemblyParts[0];
+            var assemblyClass = assemblyParts[1];
+
+            var printLabel = PrintLabelHelper.GetPrintLabelClass( assemblyName, assemblyClass );
+
+            printLabel.Print( label, person, checkInState, groupType );
+        }
+        
         /// <summary>
         /// Adds the label script.
         /// </summary>
@@ -287,5 +312,7 @@ namespace RockWeb.Blocks.CheckIn
             ScriptManager.RegisterStartupScript( this, this.GetType(), "addLabelScript", script, true );
         }
 
+        #endregion
     }
+
 }

@@ -134,7 +134,7 @@ namespace com.centralaz.CheckInLabels
 
                 if ( !string.IsNullOrWhiteSpace( printerAddress ) )
                 {
-                    InitLabel( person, checkInState, groupType );
+                    InitLabel( checkInLabel, person, checkInState, groupType );
                     label.PrintAllLabels( printerAddress );
                 }
             }
@@ -145,7 +145,7 @@ namespace com.centralaz.CheckInLabels
         /// Intialize a person's label set with the information from the given person, occurrence(s),
         /// and attendance record.
         /// </summary>
-        private void InitLabel( CheckInPerson attendee, CheckInState checkInState, CheckInGroupType groupType )
+        private void InitLabel( CheckInLabel checkInLabel, CheckInPerson attendee, CheckInState checkInState, CheckInGroupType groupType )
         {
             CheckInLocation firstLocation = null;
             label = new ChildrenLabelSet
@@ -153,13 +153,23 @@ namespace com.centralaz.CheckInLabels
                 FirstName = attendee.Person.NickName.Trim() != string.Empty ? attendee.Person.NickName : attendee.Person.FirstName,
                 LastName = attendee.Person.LastName,
                 FullName = string.Format( "{0} {1}", attendee.Person.NickName, attendee.Person.LastName ),
+                BirthdayDate = attendee.Person.BirthDate ?? DateTime.MinValue,
                 SecurityToken = attendee.SecurityCode,
-                CheckInDate = RockDateTime.Now
+                CheckInDate = RockDateTime.Now,
+                AttendanceLabelTitle = checkInLabel.MergeFields["CentralAZ.AttendanceLabelTitle"],
+                BirthdayImageFile = checkInLabel.MergeFields["CentralAZ.BirthdayImageFile"],
+                Footer = checkInLabel.MergeFields["CentralAZ.ClaimCardFooter"],
+                ClaimCardTitle = checkInLabel.MergeFields["CentralAZ.ClaimCardTitle"],
+                HealthNotesTitle = checkInLabel.MergeFields["CentralAZ.HealthNotesTitle"],
+                LogoImageFile = checkInLabel.MergeFields["CentralAZ.LogoImageFile"],
+                ParentsInitialsTitle = checkInLabel.MergeFields["CentralAZ.ParentsInitialsTitle"],
+                ServicesTitle = checkInLabel.MergeFields["CentralAZ.ServicesLabel"]
             };
 
-            // Get start times from any selected schedules:
+            // Get start times from any selected schedules...
+            // This section is only needed because we have a weird "Transfer: " chunk
+            // on the label that lists all the services the person is checked into.
             StringBuilder services = new StringBuilder();
-
             foreach ( var group in groupType.Groups.Where( g => g.Selected ) )
             {
                 foreach ( var location in group.Locations.Where( l => l.Selected ).OrderBy( e => e.Schedules.Min( s => s.StartTime ) ) )
@@ -177,34 +187,14 @@ namespace com.centralaz.CheckInLabels
                         {
                             services.Append( ", " );
                         }
-
                         services.Append( schedule.StartTime.Value.ToShortTimeString() );
                     }
                 }
             }
 
             label.Services = services.ToString();
-            label.BirthdayDate = attendee.Person.BirthDate ?? DateTime.MinValue;
             SetAgeGroup( attendee.Person );
             SetLabelFlags( attendee.Person );
-            LoadOrgSettings();
-        }
-
-        /// <summary>
-        /// Set these global label values based on the Org settings
-        /// </summary>
-        private void LoadOrgSettings()
-        {
-            var globalAttributes = GlobalAttributesCache.Read();
-
-            label.AttendanceLabelTitle = globalAttributes.GetValue( "CentralAZ.AttendanceLabelTitle" );
-            label.BirthdayImageFile = globalAttributes.GetValue( "CentralAZ.BirthdayImageFile" );
-            label.Footer = globalAttributes.GetValue( "CentralAZ.ClaimCardFooter" );
-            label.ClaimCardTitle = globalAttributes.GetValue( "CentralAZ.ClaimCardTitle" );
-            label.HealthNotesTitle = globalAttributes.GetValue( "CentralAZ.HealthNotesTitle" );
-            label.LogoImageFile = globalAttributes.GetValue( "CentralAZ.LogoImageFile" );
-            label.ParentsInitialsTitle = globalAttributes.GetValue( "CentralAZ.ParentsInitialsTitle" );
-            label.ServicesTitle = globalAttributes.GetValue( "CentralAZ.ServicesLabel" );
         }
 
         /// <summary>

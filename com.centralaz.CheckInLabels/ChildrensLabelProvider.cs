@@ -155,16 +155,17 @@ namespace com.centralaz.CheckInLabels
                 FullName = string.Format( "{0} {1}", attendee.Person.NickName, attendee.Person.LastName ),
                 BirthdayDate = attendee.Person.BirthDate ?? DateTime.MinValue,
                 SecurityToken = attendee.SecurityCode,
-                CheckInDate = RockDateTime.Now,
-                AttendanceLabelTitle = checkInLabel.MergeFields["CentralAZ.AttendanceLabelTitle"],
-                BirthdayImageFile = checkInLabel.MergeFields["CentralAZ.BirthdayImageFile"],
-                Footer = checkInLabel.MergeFields["CentralAZ.ClaimCardFooter"],
-                ClaimCardTitle = checkInLabel.MergeFields["CentralAZ.ClaimCardTitle"],
-                HealthNotesTitle = checkInLabel.MergeFields["CentralAZ.HealthNotesTitle"],
-                LogoImageFile = checkInLabel.MergeFields["CentralAZ.LogoImageFile"],
-                ParentsInitialsTitle = checkInLabel.MergeFields["CentralAZ.ParentsInitialsTitle"],
-                ServicesTitle = checkInLabel.MergeFields["CentralAZ.ServicesLabel"]
+                CheckInDate = RockDateTime.Now
             };
+
+            label.AttendanceLabelTitle = checkInLabel.MergeFields.ContainsKey( "CentralAZ.AttendanceLabelTitle" ) ? checkInLabel.MergeFields["CentralAZ.AttendanceLabelTitle"] : string.Empty;
+            label.BirthdayImageFile = checkInLabel.MergeFields.ContainsKey( "CentralAZ.BirthdayImageFile" ) ? checkInLabel.MergeFields["CentralAZ.BirthdayImageFile"] : string.Empty;
+            label.Footer = checkInLabel.MergeFields.ContainsKey( "CentralAZ.ClaimCardFooter" ) ? checkInLabel.MergeFields["CentralAZ.ClaimCardFooter"] : string.Empty;
+            label.ClaimCardTitle = checkInLabel.MergeFields.ContainsKey( "CentralAZ.ClaimCardTitle" ) ? checkInLabel.MergeFields["CentralAZ.ClaimCardTitle"] : string.Empty;
+            label.HealthNotesTitle = checkInLabel.MergeFields.ContainsKey( "CentralAZ.HealthNotesTitle" ) ? checkInLabel.MergeFields["CentralAZ.HealthNotesTitle"] : string.Empty;
+            label.LogoImageFile = checkInLabel.MergeFields.ContainsKey( "CentralAZ.LogoImageFile" ) ? checkInLabel.MergeFields["CentralAZ.LogoImageFile"] : string.Empty;
+            label.ParentsInitialsTitle = checkInLabel.MergeFields.ContainsKey( "CentralAZ.ParentsInitialsTitle" ) ? checkInLabel.MergeFields["CentralAZ.ParentsInitialsTitle"] : string.Empty;
+            label.ServicesTitle = checkInLabel.MergeFields.ContainsKey( "CentralAZ.ServicesLabel" ) ? checkInLabel.MergeFields["CentralAZ.ServicesLabel"] : string.Empty;
 
             // Get start times from any selected schedules...
             // This section is only needed because we have a weird "Transfer: " chunk

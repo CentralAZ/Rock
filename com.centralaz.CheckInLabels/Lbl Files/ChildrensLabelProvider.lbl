@@ -1,14 +1,9 @@
 Assembly:com.centralaz.CheckInLabels,ChildrensLabelProvider
 ^FDCentralAZ.AttendanceLabelTitle^FS
 ^FDCentralAZ.BirthdayImageFile^FS
-^FDCentralAZ.ClaimCardFooter^FS
 ^FDCentralAZ.ClaimCardTitle^FS
-^FDCentralAZ.EpiPenRelease^FS
-^FDCentralAZ.HealthNotes^FS
+^FDCentralAZ.ClaimCardFooter^FS
 ^FDCentralAZ.HealthNotesTitle^FS
 ^FDCentralAZ.LogoImageFile^FS
 ^FDCentralAZ.ParentsInitialsTitle^FS
-^FDCentralAZ.SelfCheckOut^FS
 ^FDCentralAZ.ServicesLabel^FS
-^FDCentralAZ.LogoImageFile^FS
-^FDLegalNotes^FS

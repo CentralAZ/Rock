@@ -250,8 +250,10 @@ namespace RockWeb.Blocks.CheckIn
 
         private void LoadPrintLabelAndPrint( string assemblyString, CheckInLabel label, CheckInState checkInState, CheckInPerson person, CheckInGroupType groupType )
         {
-            // Remove the "Assembly:" prefix.
-            var assemblyParts = assemblyString.ReplaceCaseInsensitive( "Assembly:","" ).Trim().Split( ',' );
+            // Use only the first line
+            string line1 = assemblyString.Split( new[] { '\r', '\n' } ).FirstOrDefault();
+            // Remove the "Assembly:" prefix
+            var assemblyParts = line1.ReplaceCaseInsensitive( "Assembly:", "" ).Trim().Split( ',' );
             var assemblyName = assemblyParts[0];
             var assemblyClass = assemblyParts[1];
 

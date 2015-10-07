@@ -37,7 +37,6 @@ namespace RockWeb.Plugins.com_centralaz.Baptism
     [Description( "Lists all baptism locations." )]
 
     [LinkedPage( "Detail Page", "", true, "", "", 0 )]
-    [BooleanField( "Display Member Count Column", "Should the Member Count column be displayed? Does not affect lists with a person context.", true, "", 7 )]
     public partial class BaptismLocationList : RockBlock
     {
         #region Control Methods
@@ -283,7 +282,7 @@ namespace RockWeb.Plugins.com_centralaz.Baptism
                 {
                     serviceTimes = new Category();
                     serviceTimes.IsSystem = false;
-                    serviceTimes.ParentCategoryId = blackoutParentCategoryId;
+                    serviceTimes.ParentCategoryId = serviceTimesParentCategoryId;
                     serviceTimes.EntityTypeId = scheduleEntityTypeId;
                     serviceTimes.Name = String.Format( "{0} Service Times", campus.Name );
                     serviceTimes.IconCssClass = "fa fa-bell";

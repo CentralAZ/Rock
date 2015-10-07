@@ -49,7 +49,11 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="StudentsLabelSet.cs" />
+    <Compile Include="IronmanLabelSet.cs" />
     <Compile Include="ChildrenLabelSet.cs" />
+    <Compile Include="StudentsLabelProvider.cs" />
+    <Compile Include="IronmanLabelProvider.cs" />
     <Compile Include="ChildrensLabelProvider.cs" />
     <Compile Include="IPrintLabel.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

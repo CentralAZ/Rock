@@ -64,34 +64,9 @@ namespace com.centralaz.CheckInLabels
                 FirstName = attendee.Person.NickName.Trim() != string.Empty ? attendee.Person.NickName : attendee.Person.FirstName,
                 LastName = attendee.Person.LastName,
                 FullName = string.Format( "{0} {1}", attendee.Person.NickName, attendee.Person.LastName ),
+                FirstTime = attendee.FirstTime,
                 LogoImageFile = checkInLabel.MergeFields["CentralAZ.LogoImageFile"],
             };
-
-            // Get start times from any selected schedules...
-            // This section is only needed because we have a weird "Transfer: " chunk
-            // on the label that lists all the services the person is checked into.
-            StringBuilder services = new StringBuilder();
-            foreach ( var group in groupType.Groups.Where( g => g.Selected ) )
-            {
-                foreach ( var location in group.Locations.Where( l => l.Selected ).OrderBy( e => e.Schedules.Min( s => s.StartTime ) ) )
-                {
-                    // Put the first location's name on the label
-                    if ( firstLocation == null )
-                    {
-                        firstLocation = location;
-                        label.RoomName = firstLocation.Location.Name;
-                    }
-
-                    foreach ( var schedule in location.Schedules.Where( s => s.Selected ) )
-                    {
-                        if ( services.Length > 0 )
-                        {
-                            services.Append( ", " );
-                        }
-                        services.Append( schedule.StartTime.Value.ToShortTimeString() );
-                    }
-                }
-            }
 
         }
     }

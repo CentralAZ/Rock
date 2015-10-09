@@ -58,7 +58,6 @@ namespace com.centralaz.CheckInLabels
         /// </summary>
         private void InitLabel( CheckInLabel checkInLabel, CheckInPerson attendee, CheckInState checkInState, CheckInGroupType groupType )
         {
-            CheckInLocation firstLocation = null;
             label = new IronmanLabelSet
             {
                 FirstName = attendee.Person.NickName.Trim() != string.Empty ? attendee.Person.NickName : attendee.Person.FirstName,

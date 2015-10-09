@@ -128,7 +128,7 @@ namespace com.centralaz.CheckInLabels
         private void pEvent_PrintLabel( object sender, PrintPageEventArgs e )
         {
 
-            int labelwidth = 216;  // 2.25 inches * 96dpi
+            int labelwidth = 384;  // 4 inches * 96dpi
             int labelheight = 220;//192;  // 2 inches * 96dpi
 
             //String format used to center text on label

@@ -24,6 +24,7 @@ using System.Text.RegularExpressions;
 using System.Web.UI;
 using System.Web.UI.WebControls;
 using System.Xml.Linq;
+using Microsoft.AspNet.SignalR;
 using Rock;
 using Rock.Attribute;
 using Rock.Data;
@@ -42,7 +43,7 @@ namespace RockWeb.Plugins.com_centralaz.Finance
     ///     - The Shelby PurCounter is added to a dictionary map (PurCounter -> FinancialAccount.Id)
     ///  - List of unique persons who contributed in Shelby is generated
     ///     - For each, a match is found or a new person/family record is created
-    ///     - the Shelby NameCounter is added to a dictionary map (NameCounter -> Person.Id)
+    ///     - the Shelby NameCounter is added to a dictionary map (NameCounter -> Person.PersonAliasId)
     ///  - For each distinct batch (related to a contribution; select distinct BatchNu from [Shelby].[CNHst]) in Shelby
     ///         SELECT * FROM [Shelby].[CNBat] WHERE BatchNu IN (SELECT distinct BatchNu from [Shelby].[CNHst])
     ///     - Find matching or add FinancialBatch in Rock; if found, skip to next batch; when adding:
@@ -76,30 +77,26 @@ namespace RockWeb.Plugins.com_centralaz.Finance
     ///     
     /// </summary>
     /*
-     * SELECT
-	H.Counter 
+     * 
+SELECT
+	H.[Counter]
 	,H.[Amount]
-      ,[BatchNu]
-      ,[CheckNu]
-      ,H.[CNDate]
-      ,H.[Counter]
-      ,H.[Memo]
-      ,H.[NameCounter]
-      ,[NonCash]
-      ,[NonTax]
-      ,[Posted]
-      ,H.[WhenSetup]
-      ,H.[WhenUpdated]
-      ,H.[WhoSetup]
-      ,H.[WhoUpdated]
-      ,H.[CheckType]
-      ,D.[PurCounter]
-	  ,P.[Descr]
-	  ,D.[Amount]
-  FROM [ShelbyDB].[Shelby].[CNHst] H
-  INNER JOIN [ShelbyDB].[Shelby].[CNHstDet] D ON D.HstCounter = H.Counter
-  INNER JOIN [ShelbyDB].[Shelby].[CNPur] P ON P.Counter = D.PurCounter
-  WHERE H.[BatchNu] = 48
+	,H.[BatchNu]
+	,H.[CheckNu]
+	,H.[CNDate]
+	,H.[Memo]
+	,H.[NameCounter]
+	,H.[WhenSetup]
+	,H.[WhenUpdated]
+	,H.[WhoSetup]
+	,H.[WhoUpdated]
+	,H.[CheckType]
+	,D.[PurCounter]
+	,P.[Descr]
+	,D.[Amount]
+  FROM [ShelbyDB].[Shelby].[CNHst] H WITH(NOLOCK)
+  INNER JOIN [ShelbyDB].[Shelby].[CNHstDet] D WITH(NOLOCK) ON D.[HstCounter] = H.[Counter]
+  INNER JOIN [ShelbyDB].[Shelby].[CNPur] P WITH(NOLOCK) ON P.[Counter]= D.[PurCounter]
      * */
     [DisplayName( "Shelby Import" )]
     [Category( "com_centralaz > Finance" )]
@@ -117,15 +114,37 @@ namespace RockWeb.Plugins.com_centralaz.Finance
     [LinkedPage( "Batch Detail Page", "The page used to display the contributions for a specific batch", true, "", "Linked Pages", 0 )]
     [LinkedPage( "Contribution Detail Page", "The page used to display the contribution transaction details", true, "",  "Linked Pages", 1 )]
     [EncryptedTextField("Shelby DB Password", "", true, "", "Remote Shelby DB", 0 )]
+    [TextField( "Fund Account Mappings", "The mapping between Shelby Funds and Rock Accounts. A comma delimited list of 'Shelby_value=Rock_value'.", false, "", "Data Mapping", 1 )]
+    [GroupLocationTypeField( Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY, "Address Type", "The location type to use for a new person's address.", false,
+        Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME, "", 11 )]
 
     public partial class ShelbyImport : Rock.Web.UI.RockBlock
     {
         #region Fields
+        /// <summary>
+        /// This holds the reference to the RockMessageHub SignalR Hub context.
+        /// </summary>
+        private IHubContext _hubContext = GlobalHost.ConnectionManager.GetHubContext<RockMessageHub>();
 
+        private static readonly string FUND_ACCOUNT_MAPPINGS = "FundAccountMappings";
         private int _anonymousPersonAliasId = 0;
         private FinancialBatch _financialBatch;
         private List<string> _errors = new List<string>();
         private List<XElement> _errorElements = new List<XElement>();
+        private int _personRecordTypeId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
+        private int _personStatusPending = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_PENDING.AsGuid() ).Id;
+
+        // Shelby Marital statuses: U, W, M, D, P, S
+        private DefinedTypeCache _maritalStatusDefinedType = DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.PERSON_MARITAL_STATUS.AsGuid() );
+
+        // Holds the Fund Account Mappings block attribute as a dictionary (Shelby Purpose Counter -> Rock Account Id)
+        private Dictionary<String, String> _fundAccountMappingDictionary = new Dictionary<string, string>();
+
+        // Holds the Shelby NameCounter to Rock PersonAliasId map
+        private Dictionary<int, int> _shelbyPersonMappingDictionary = new Dictionary<int, int>();
+
+        // Holds the Shelby Batch to Rock Batch map
+        private Dictionary<int, int> _shelbyBatchMappingDictionary = new Dictionary<int, int>();
 
         private Dictionary<int, FinancialAccount> _financialAccountCache = new Dictionary<int, FinancialAccount>();
         private Dictionary<string, DefinedValue> _tenderTypeDefinedValueCache = new Dictionary<string, DefinedValue>();
@@ -139,6 +158,7 @@ namespace RockWeb.Plugins.com_centralaz.Finance
                 if ( _accountNames == null )
                 {
                     _accountNames = new Dictionary<int, string>();
+                    _accountNames.Add( -1, "" );
                     new FinancialAccountService( new RockContext() ).Queryable()
                         .OrderBy( a => a.Order )
                         .Select( a => new { a.Id, a.Name } )
@@ -170,6 +190,12 @@ namespace RockWeb.Plugins.com_centralaz.Finance
 
             ScriptManager scriptManager = ScriptManager.GetCurrent( Page );
             scriptManager.RegisterPostBackControl( lbImport );
+
+            RockPage.AddScriptLink( "~/Scripts/jquery.signalR-2.2.0.min.js", fingerprint: false );
+
+            _fundAccountMappingDictionary = Regex.Matches( GetAttributeValue( FUND_ACCOUNT_MAPPINGS ), @"\s*(.*?)\s*=\s*(.*?)\s*(;|,|$)" )
+                .OfType<Match>()
+                .ToDictionary( m => m.Groups[1].Value, m => m.Groups[2].Value );
         }
 
         /// <summary>
@@ -179,6 +205,10 @@ namespace RockWeb.Plugins.com_centralaz.Finance
         protected override void OnLoad( EventArgs e )
         {
             base.OnLoad( e );
+
+            // Set timeout for up to 30 minutes (just like installer)
+            Server.ScriptTimeout = 1800;
+            ScriptManager.GetCurrent( Page ).AsyncPostBackTimeout = 1800;
 
             if ( !Page.IsPostBack )
             {
@@ -209,6 +239,25 @@ namespace RockWeb.Plugins.com_centralaz.Finance
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void lbImport_Click( object sender, EventArgs e )
         {
+            // clear any old errors:
+            _errors = new List<string>();
+            _errorElements = new List<XElement>();
+            nbMessage.Text = "";
+            pnlErrors.Visible = false;
+
+            try
+            {
+                _hubContext.Clients.All.showLog();
+                ProcessPeople();
+                ProcessBatches();
+                pnlConfiguration.Visible = false;
+            }
+            catch ( Exception ex )
+            {
+                nbMessage.Text = "Errors found.";
+                pnlErrors.Visible = true;
+            }
+
             //if ( fuImport.HasFile )
             //{
             //    // clear any old errors:
@@ -293,8 +342,6 @@ namespace RockWeb.Plugins.com_centralaz.Finance
             //    _financialAccountCache = null;
             //    _tenderTypeDefinedValueCache = null;
             //}
-
-
         }
 
         /// <summary>
@@ -452,13 +499,489 @@ namespace RockWeb.Plugins.com_centralaz.Finance
 
         #region Methods
 
+        /// <summary>
+        /// List of unique persons who contributed in Shelby is generated
+        ///     - For each, a match is found or a new person/family record is created
+        ///     - the Shelby NameCounter is added to a dictionary map (NameCounter -> Person.Id)
+        /// </summary>
+        private void ProcessPeople()
+        {
+            int totalCount = 0;
+            int counter = 0;
+            try
+            {
+                RockContext rockContext = new RockContext();
+                rockContext.Configuration.AutoDetectChangesEnabled = false;
+                PersonService personService = new PersonService( rockContext );
+                var connectionString = GetConnectionString();
+                using ( SqlConnection connection = new SqlConnection( connectionString ) )
+                {
+                    connection.Open();
+                    SqlCommand command = new SqlCommand();
+                    command.Connection = connection;
+
+                    // First count the total people
+                    command.CommandText = @"SELECT COUNT(1) as 'Count'
+FROM [Shelby].[NANames] N WITH(NOLOCK)
+LEFT JOIN [Shelby].[NAAddresses] A WITH(NOLOCK) ON A.AddressCounter = N.MainAddress
+WHERE N.NameCounter IN ( SELECT H.NameCounter FROM [Shelby].[CNHst] H WITH(NOLOCK) )";
+                    using ( SqlDataReader reader = command.ExecuteReader() )
+                    {
+                        if ( reader.HasRows )
+                        {
+                            while ( reader.Read() )
+                            {
+                                totalCount = ( int ) reader["Count"];
+                            }
+                        }
+                    }
+
+                    command.CommandText = @"SELECT N.[NameCounter], N.[EMailAddress], N.[Gender], N.[Salutation], N.[FirstMiddle], N.[LastName], N.[MaritalStatus], A.[Adr1], A.[Adr2], A.[City], A.[State], A.[PostalCode]
+FROM [Shelby].[NANames] N WITH(NOLOCK)
+LEFT JOIN [Shelby].[NAAddresses] A WITH(NOLOCK) ON A.[AddressCounter] = N.[MainAddress]
+WHERE N.[NameCounter] IN ( SELECT H.[NameCounter] FROM [Shelby].[CNHst] H WITH(NOLOCK) )";
+
+                    using ( SqlDataReader reader = command.ExecuteReader() )
+                    {
+                        if ( reader.HasRows )
+                        {
+                            while ( reader.Read() )
+                            {
+                                counter++;
+                                var shelbyPerson = new ShelbyPerson( reader );
+                                int nameCounter = shelbyPerson.NameCounter;
+
+                                int? personAliasId = FindOrCreateNewPerson( personService, shelbyPerson );
+                                NotifyClientProcessingUsers( counter, totalCount );
+                                //NotifyClient( "{0}", nameCounter );
+
+                                if ( personAliasId != null )
+                                {
+                                    _shelbyPersonMappingDictionary.AddOrReplace( nameCounter, personAliasId.Value );
+                                }
+
+#if DEBUG
+if (counter > 100) break;
+#endif
+                            }
+                        }
+
+                        reader.Close();
+                    }
+                }
+            }
+            catch ( Exception ex )
+            {
+                nbMessage.Text = string.Format( "Your database block settings are not valid or the remote database server is offline or mis-configured. {0}<br/><pre>{1}</pre>", ex.Message, ex.StackTrace );
+            }
+        }
+
+        /// <summary>
+        /// Process the batches from the remote Shelby DB.
+        /// 
+        ///  - For each distinct batch (related to a contribution; select distinct BatchNu from [Shelby].[CNHst]) in Shelby
+        ///         SELECT * FROM [Shelby].[CNBat] WHERE BatchNu IN (SELECT distinct BatchNu from [Shelby].[CNHst])
+        ///     - Find matching or add FinancialBatch in Rock; if found, skip to next batch; when adding:
+        ///         - Set the FinancialBatch.ForeignKey to the CNBat.BatchNu
+        ///         - Set the FinancialBatch.ControlAmount to the CNBat.Total
+        ///         - Set the FinancialBatch.Note to the CNBat.NuContr
+        ///         - Set the FinancialBatch.CreatedByPersonAliasId to the CNBat.WhoSetup
+        ///         - Set the FinancialBatch.CreatedDateTime to the CNBat.WhenSetup
+        ///     - TBD the Shelby BatchNu is added to a dictionary map (BatchNu -> FinancialBatch.Id)
+        ///     - commit batch transaction and move to next batch
+        /// </summary>
+        private void ProcessBatches()
+        {
+            int totalCount = 0;
+            int counter = 0;
+            try
+            {
+                RockContext rockContext = new RockContext();
+                rockContext.Configuration.AutoDetectChangesEnabled = false;
+                FinancialBatchService batchService = new FinancialBatchService( rockContext );
+                var connectionString = GetConnectionString();
+                using ( SqlConnection connection = new SqlConnection( connectionString ) )
+                {
+                    connection.Open();
+                    SqlCommand command = new SqlCommand();
+                    command.Connection = connection;
+
+                    // First count the total
+                    command.CommandText = @"SELECT COUNT(1) as 'Count' FROM [Shelby].[CNBat] WITH(NOLOCK) WHERE BatchNu IN (SELECT distinct BatchNu from [Shelby].[CNHst] WITH(NOLOCK))";
+                    using ( SqlDataReader reader = command.ExecuteReader() )
+                    {
+                        if ( reader.HasRows )
+                        {
+                            while ( reader.Read() )
+                            {
+                                totalCount = ( int ) reader["Count"];
+                            }
+                        }
+                    }
+
+                    command.CommandText = @"SELECT [BatchNu], [NuContr], [Total], [WhenPosted], [WhenSetup], [WhoSetup]  FROM [Shelby].[CNBat] WITH(NOLOCK) WHERE BatchNu IN (SELECT distinct BatchNu from [Shelby].[CNHst] WITH(NOLOCK))";
+
+                    using ( SqlDataReader reader = command.ExecuteReader() )
+                    {
+                        if ( reader.HasRows )
+                        {
+                            while ( reader.Read() )
+                            {
+                                counter++;
+                                var shelbyBatch = new ShelbyBatch( reader );
+
+                                int? rockBatchId = FindOrCreateNewBatch( batchService, shelbyBatch );
+                                NotifyClientProcessingBatches( counter, totalCount );
+
+                                if ( rockBatchId != null )
+                                {
+                                    _shelbyBatchMappingDictionary.AddOrReplace( shelbyBatch.BatchNu, rockBatchId.Value );
+                                }
+#if DEBUG
+if (counter > 300) break;
+#endif
+                            }
+                        }
+
+                        reader.Close();
+                    }
+                }
+            }
+            catch ( Exception ex )
+            {
+                nbMessage.Text = string.Format( "Your database block settings are not valid or the remote database server is offline or mis-configured. {0}<br/><pre>{1}</pre>", ex.Message, ex.StackTrace );
+            }
+        }
+
+        /// <summary>
+        /// Finds and returns the matching batchId or creates a new one and returns the batchId: 
+        ///   - Find matching or add FinancialBatch in Rock; if found, skip to next batch; when adding:
+        ///   - Set the FinancialBatch.ForeignKey to the CNBat.BatchNu
+        ///   - Set the FinancialBatch.ControlAmount to the CNBat.Total
+        ///   - Set the FinancialBatch.Note to the CNBat.NuContr
+        ///   - Set the FinancialBatch.CreatedByPersonAliasId to the CNBat.WhoSetup
+        ///   - Set the FinancialBatch.CreatedDateTime to the CNBat.WhenSetup
+        /// </summary>
+        private int? FindOrCreateNewBatch( FinancialBatchService batchService, ShelbyBatch shelbyBatch )
+        {
+            string batchNu = shelbyBatch.BatchNu.ToStringSafe();
+            var exactBatch = batchService.Queryable().Where( p => p.ForeignKey == batchNu ).FirstOrDefault();
+
+            if ( exactBatch != null )
+            {
+                return exactBatch.Id;
+            }
+
+            var financialBatch = new FinancialBatch();
+            financialBatch.Name = tbBatchName.Text;
+            financialBatch.BatchStartDateTime = shelbyBatch.WhenSetup; //TODO or WhenPosted?
+            financialBatch.ControlAmount = shelbyBatch.Total;
+            financialBatch.ForeignKey = batchNu;
+            financialBatch.Note = shelbyBatch.NuContr.ToStringSafe();
+            financialBatch.CreatedDateTime = shelbyBatch.WhenSetup;
+
+            int? campusId = cpCampus.SelectedCampusId;
+
+            if ( campusId != null )
+            {
+                financialBatch.CampusId = campusId;
+            }
+            else
+            {
+                var campuses = CampusCache.All();
+                financialBatch.CampusId = campuses.FirstOrDefault().Id;
+            }
+
+            batchService.Add( financialBatch );
+            RockContext rockContext = (RockContext) batchService.Context;
+            rockContext.ChangeTracker.DetectChanges();
+            rockContext.SaveChanges( disablePrePostProcessing: true );
+
+            return financialBatch.Id;
+        }
+
+
+        /// <summary>
+        /// Process transactions.
+        ///     - For each contribution in Shelby
+        ///         - If CNHst.Counter same as previous, use previous FinancialTransaction (don't create a new one)
+        ///         - else, create FinancialTransaction
+        ///             - Set the FinancialTransaction.TransactionTypeValueId = 53 (Contribution)
+        ///             - Set the FinancialTransaction.SourceTypeValueId = (10=Website, 511=Kiosk, 512=Mobile Application, 513=On-Site Collection, 593=Bank Checks)
+        ///             - Set the FinancialTransaction.Summary to the CNHst.Memo
+        ///             - Set the FinancialTransactionDetail.TransactionCode to the CNHst.CheckNu
+        ///         - Create FinancialTransactionDetail
+        ///             - Set Amount = [CNHstDet].Amount
+        ///             - Set AccountId = (lookup PurCounter AccountPurpose dictionary)
+        ///             
+        ///         - Create FinancialPaymentDetail 
+        ///             - Set CurrencyTypeValueId =  (6=Cash, 9=Check, 156=Credit Card, 157=ACH, 1493=Non-Cash, 1554=Debit)
+        ///                 - 6 if CheckNu="CASH"
+        ///                 - 1493 if CheckNu="ONLINE", "GIVING*CENTER", "ONLINEGIVING", "PAYPAL"
+        ///                 - 9 if CheckNu is all numbers (or "CHECK")
+        ///                 
+        ///         - Add FinancialPaymentDetail to FinancialTransaction.FinancialPaymentDetail
+        ///         - Add FinancialTransactionDetail to FinancialTransaction.TransactionDetails
+        ///         - Save
+        /// </summary>
+        private void ProcessTransactions()
+        {
+            int totalCount = 0;
+            int counter = 0;
+            try
+            {
+                RockContext rockContext = new RockContext();
+                rockContext.Configuration.AutoDetectChangesEnabled = false;
+                FinancialTransactionService transactionService = new FinancialTransactionService( rockContext );
+                var connectionString = GetConnectionString();
+                using ( SqlConnection connection = new SqlConnection( connectionString ) )
+                {
+                    connection.Open();
+                    SqlCommand command = new SqlCommand();
+                    command.Connection = connection;
+
+                    // First count the total
+                    command.CommandText = @"SELECT COUNT(1) as 'Count' FROM [ShelbyDB].[Shelby].[CNHst] H WITH(NOLOCK)";
+                    using ( SqlDataReader reader = command.ExecuteReader() )
+                    {
+                        if ( reader.HasRows )
+                        {
+                            while ( reader.Read() )
+                            {
+                                totalCount = ( int ) reader["Count"];
+                            }
+                        }
+                    }
+
+                    command.CommandText = @"SELECT
+	H.[Counter]
+	,H.[Amount]
+	,H.[BatchNu]
+	,H.[CheckNu]
+	,H.[CNDate]
+	,H.[Memo]
+	,H.[NameCounter]
+	,H.[WhenSetup]
+	,H.[WhenUpdated]
+	,H.[WhoSetup]
+	,H.[WhoUpdated]
+	,H.[CheckType]
+	,D.[PurCounter]
+	,P.[Descr]
+	,D.[Amount]
+  FROM [ShelbyDB].[Shelby].[CNHst] H WITH(NOLOCK)
+  INNER JOIN [ShelbyDB].[Shelby].[CNHstDet] D WITH(NOLOCK) ON D.[HstCounter] = H.[Counter]
+  INNER JOIN [ShelbyDB].[Shelby].[CNPur] P WITH(NOLOCK) ON P.[Counter]= D.[PurCounter]
+";
+
+                    using ( SqlDataReader reader = command.ExecuteReader() )
+                    {
+                        if ( reader.HasRows )
+                        {
+                            while ( reader.Read() )
+                            {
+                                counter++;
+                                var shelbyContribution = new ShelbyContribution( reader );
+
+                                int? rockTransactionId = CreateNewTransaction( transactionService, shelbyBatch );
+                                NotifyClientProcessingTransactions( counter, totalCount );
+
+                                if ( rockBatchId != null )
+                                {
+                                    _shelbyBatchMappingDictionary.AddOrReplace( shelbyBatch.BatchNu, rockBatchId.Value );
+                                }
+#if DEBUG
+if (counter > 300) break;
+#endif
+                            }
+                        }
+
+                        reader.Close();
+                    }
+                }
+            }
+            catch ( Exception ex )
+            {
+                nbMessage.Text = string.Format( "Your database block settings are not valid or the remote database server is offline or mis-configured. {0}<br/><pre>{1}</pre>", ex.Message, ex.StackTrace );
+            }
+        }
+
+        /// <summary>
+        /// Finds and returns the matching batchId or creates a new one and returns the batchId: 
+        ///   - Find matching or add FinancialBatch in Rock; if found, skip to next batch; when adding:
+        ///   - Set the FinancialBatch.ForeignKey to the CNBat.BatchNu
+        ///   - Set the FinancialBatch.ControlAmount to the CNBat.Total
+        ///   - Set the FinancialBatch.Note to the CNBat.NuContr
+        ///   - Set the FinancialBatch.CreatedByPersonAliasId to the CNBat.WhoSetup
+        ///   - Set the FinancialBatch.CreatedDateTime to the CNBat.WhenSetup
+        /// </summary>
+        private int? FindOrCreateTransaction( FinancialBatchService batchService, ShelbyBatch shelbyBatch )
+        {
+            string batchNu = shelbyBatch.BatchNu.ToStringSafe();
+            var exactBatch = batchService.Queryable().Where( p => p.ForeignKey == batchNu ).FirstOrDefault();
+
+            if ( exactBatch != null )
+            {
+                return exactBatch.Id;
+            }
+
+            var financialBatch = new FinancialBatch();
+            financialBatch.Name = tbBatchName.Text;
+            financialBatch.BatchStartDateTime = shelbyBatch.WhenSetup; //TODO or WhenPosted?
+            financialBatch.ControlAmount = shelbyBatch.Total;
+            financialBatch.ForeignKey = batchNu;
+            financialBatch.Note = shelbyBatch.NuContr.ToStringSafe();
+            financialBatch.CreatedDateTime = shelbyBatch.WhenSetup;
+
+            int? campusId = cpCampus.SelectedCampusId;
+
+            if ( campusId != null )
+            {
+                financialBatch.CampusId = campusId;
+            }
+            else
+            {
+                var campuses = CampusCache.All();
+                financialBatch.CampusId = campuses.FirstOrDefault().Id;
+            }
+
+            batchService.Add( financialBatch );
+            RockContext rockContext = ( RockContext ) batchService.Context;
+            rockContext.ChangeTracker.DetectChanges();
+            rockContext.SaveChanges( disablePrePostProcessing: true );
+
+            return financialBatch.Id;
+        }
+
+        /// <summary>
+        /// Finds a matching person or creates a new person in the db. When new people are created:
+        ///   - it will store the person's Shelby NameCounter to the Rock person's ForeignKey field
+        ///   - it will use the selected campus as the person's/family campus.
+        /// </summary>
+        /// <param name="personService">The person service.</param>
+        /// <param name="shelbyPerson">The shelby person.</param>
+        /// <returns>The person's PersonAliasId</returns>
+        private int? FindOrCreateNewPerson( PersonService personService, ShelbyPerson shelbyPerson )
+        {
+            int? personAliasId = null;
+            string firstName = ( shelbyPerson.Salutation != string.Empty ) ? shelbyPerson.Salutation : shelbyPerson.FirstMiddle;
+            string namecounter = shelbyPerson.NameCounter.ToStringSafe();
+
+            var exactPerson = personService.Queryable().Where( p => p.ForeignKey == namecounter ).FirstOrDefault();
+
+            if ( exactPerson != null )
+            {
+                personAliasId = exactPerson.PrimaryAliasId;
+            }
+
+            if ( personAliasId == null && firstName != string.Empty && shelbyPerson.LastName != string.Empty )
+            {
+                var people = personService.GetByFirstLastName( firstName, shelbyPerson.LastName, true, true );
+
+                // find any matches?
+                if ( people.Any() )
+                {
+                    // If there's only one match, use it...
+                    if ( people.Count() == 1 )
+                    {
+                        personAliasId = people.FirstOrDefault().PrimaryAliasId;
+                    }
+                    // otherwise, do any have the same email?
+                    else if ( shelbyPerson.EmailAddress != string.Empty )
+                    {
+                        var peopleWithEmail = people.Where( p => p.Email == ( string ) shelbyPerson.EmailAddress );
+                        if ( peopleWithEmail != null && peopleWithEmail.Count() == 1 )
+                        {
+                            var match = peopleWithEmail.FirstOrDefault();
+                            personAliasId = match.PrimaryAliasId;
+                        }
+                    }
+                }
+            }
+
+            // If no match was found, try matching just by email address
+            if ( personAliasId == null && shelbyPerson.EmailAddress != string.Empty )
+            {
+                var people = personService.GetByEmail( shelbyPerson.EmailAddress, true, true );
+                if ( people.Any() && people.Count() == 1 )
+                {
+                    personAliasId = people.FirstOrDefault().PrimaryAliasId;
+                }
+            }
+
+            // If no match was still found, add a new person/family
+            if ( personAliasId == null )
+            {
+                var person = new Person();
+                person.IsSystem = false;
+                person.IsEmailActive = true;
+
+                person.RecordTypeValueId = _personRecordTypeId;
+                person.RecordStatusValueId = _personStatusPending;
+
+                person.Email = shelbyPerson.EmailAddress;
+                person.EmailPreference = EmailPreference.EmailAllowed;
+
+                person.FirstName = firstName;
+                person.LastName = shelbyPerson.LastName;
+                switch ( shelbyPerson.Gender )
+                {
+                    case "M":
+                        person.Gender = Gender.Male;
+                        break;
+                    case "F":
+                        person.Gender = Gender.Female;
+                        break;
+                    default:
+                        person.Gender = Gender.Unknown;
+                        break;
+                }
+                person.MaritalStatusValueId = FindMatchingMaritalStatus( shelbyPerson.MaritalStatus );
+                person.ForeignKey = namecounter;
+
+                RockContext rockContext = (RockContext) personService.Context;
+                Rock.Model.Group familyGroup = PersonService.SaveNewPerson( person, rockContext );
+                rockContext.ChangeTracker.DetectChanges();
+                rockContext.SaveChanges( disablePrePostProcessing: true );
+                personAliasId = person.PrimaryAliasId;
+
+                if ( familyGroup != null )
+                {
+                    familyGroup.CampusId = cpCampus.SelectedCampusId;
+                    GroupService.AddNewGroupAddress(
+                        rockContext,
+                        familyGroup,
+                        GetAttributeValue( "AddressType" ),
+                        shelbyPerson.Address1, shelbyPerson.Address2, shelbyPerson.City, shelbyPerson.State, shelbyPerson.PostalCode, "US",
+                        true );
+                }
+            }
+
+            return personAliasId;
+        }
+
+        private int FindMatchingMaritalStatus( string theValue )
+        {
+            var theDefinedValue = _maritalStatusDefinedType.DefinedValues.FirstOrDefault( a => a.Value.StartsWith( theValue, StringComparison.CurrentCultureIgnoreCase ) );
+            // use the unknown value if we didn't find a match.
+            if ( theDefinedValue == null )
+            {
+                theDefinedValue = _maritalStatusDefinedType.DefinedValues.FirstOrDefault( a => String.Equals( a.Value, "Unknown", StringComparison.CurrentCultureIgnoreCase ) );
+            }
+
+            return theDefinedValue.Id;
+        }
+
+        /// <summary>
+        /// Connects to the remote Shelby db and generates a list of unique Funds (Id/Name) and binds
+        /// it to the AccountMap repeater.  That is then used to map Shelby Fund Ids to Rock Accounts.
+        /// </summary>
         private void VerifyOrSetAccountMappings()
         {
             var list = new ListItemCollection();
             try
             {
-                var pass = Encryption.DecryptString( GetAttributeValue( "ShelbyDBPassword" ) );
-                var connectionString = string.Format( @"Data Source=ACC02\Shelby;Initial Catalog=ShelbyDB; User Id=RockConversion; password={0};", pass );
+                var connectionString = GetConnectionString();
                 using ( SqlConnection connection = new SqlConnection( connectionString ) )
                 {
                     connection.Open();
@@ -482,10 +1005,20 @@ namespace RockWeb.Plugins.com_centralaz.Finance
                     reader.Close();
                 }
             }
-            catch
+            catch ( Exception ex )
             {
-                nbMessage.Text = "Your database block settings are not valid or the remote database server is offline or mis-configured.";
+                nbMessage.Text = string.Format( "Your database block settings are not valid or the remote database server is offline or mis-configured. {0}", ex.StackTrace ) ;
             }
+        }
+
+        /// <summary>
+        /// Gets the connection string.
+        /// </summary>
+        /// <returns></returns>
+        private string GetConnectionString()
+        {
+            var pass = Encryption.DecryptString( GetAttributeValue( "ShelbyDBPassword" ) );
+            return string.Format( @"Data Source=ACC02\Shelby;Initial Catalog=ShelbyDB; User Id=RockConversion; password={0};", pass );
         }
 
         /// <summary>
@@ -749,8 +1282,58 @@ namespace RockWeb.Plugins.com_centralaz.Finance
             }
         }
 
+        private void NotifyClientProcessingUsers( int count, int total )
+        {
+            //double percent = ( double ) count / total * 100;
+            //var x = string.Format( @"Processing {2} People...
+            //    <div class='progress'>
+            //      <div class='progress-bar' role='progressbar' aria-valuenow='{0:0}' aria-valuemin='0' aria-valuemax='100' style='width: {0:0}%;'>{1}</div>
+            //    </div>", percent,  count, total );
+            //_hubContext.Clients.All.receiveNotification( "shelbyImport-processingUsers", x );
+            NotifyClientProcessing( "People", "shelbyImport-processingUsers", string.Empty, count, total );
+        }
+
+        private void NotifyClientProcessingBatches( int count, int total )
+        {
+            //double percent = ( double ) count / total * 100;
+            //var x = string.Format( @"Processing {2} Batches...
+            //    <div class='progress'>
+            //      <div class='progress-bar progress-bar-info' role='progressbar' aria-valuenow='{0:0}' aria-valuemin='0' aria-valuemax='100' style='width: {0:0}%;'>{1}</div>
+            //    </div>", percent, count, total );
+            //_hubContext.Clients.All.receiveNotification( "shelbyImport-processingBatches", x );
+            NotifyClientProcessing( "Batches", "shelbyImport-processingBatches", "progress-bar-info", count, total );
+
+        }
+
+        private void NotifyClientProcessingTransactions( int count, int total )
+        {
+            //double percent = ( double ) count / total * 100;
+            //var x = string.Format( @"Processing {2} Transactions...
+            //    <div class='progress'>
+            //      <div class='progress-bar progress-bar-success' role='progressbar' aria-valuenow='{0:0}' aria-valuemin='0' aria-valuemax='100' style='width: {0:0}%;'>{1}</div>
+            //    </div>", percent, count, total );
+            //_hubContext.Clients.All.receiveNotification( "shelbyImport-processingTransactions", x );
+            NotifyClientProcessing( "Transactions", "shelbyImport-processingTransactions", "progress-bar-success", count, total );
+        }
+
+        private void NotifyClientProcessing( string itemTitle, string htmlId, string progressBarclass, int count, int total )
+        {
+            double percent = ( double ) count / total * 100;
+            var x = string.Format( @"Processing {2} {3}...
+                <div class='progress'>
+                  <div class='progress-bar {5}' role='progressbar' aria-valuenow='{0:0}' aria-valuemin='0' aria-valuemax='100' style='width: {0:0}%;'>{1}</div>
+                </div>", percent, count, total, itemTitle, progressBarclass );
+            _hubContext.Clients.All.receiveNotification( htmlId, x );
+        }
         #endregion
 
+        /// <summary>
+        /// Handles the ItemDataBound event of the rptAccountMap control which creates a DropDownList 
+        /// with the Rock Account as the selected value which has been matched to the corresponding
+        /// Shelby Fund.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RepeaterItemEventArgs"/> instance containing the event data.</param>
         protected void rptAccountMap_ItemDataBound( object sender, RepeaterItemEventArgs e )
         {
             if ( e.Item.ItemType == ListItemType.Item || e.Item.ItemType == ListItemType.AlternatingItem )
@@ -762,11 +1345,28 @@ namespace RockWeb.Plugins.com_centralaz.Finance
 
                 litFundName.Text = item.Text;
                 hfFundId.Value = item.Value;
+                string accountId = string.Empty;
 
                 RockDropDownList list = ( RockDropDownList ) e.Item.FindControl( "rdpAcccounts" );
                 if ( list != null )
                 {
+                    if ( _fundAccountMappingDictionary.ContainsKey( hfFundId.Value ) )
+                    {
+                        accountId = _fundAccountMappingDictionary[hfFundId.Value];
+                        // Make sure it's still in the list before we try to select it.
+                        if ( AllAccounts.ContainsKey( accountId.AsInteger() ) )
+                        {
+                            list.SelectedValue = accountId;
+                        }
+                    }
+                    else
+                    {
+                        list.SelectedIndex = -1;
+                    }
+
                     list.DataSource = AllAccounts;
+                    list.DataValueField = "Key";
+                    list.DataTextField = "Value";
                     list.DataBind();
                 }
             }
@@ -774,18 +1374,153 @@ namespace RockWeb.Plugins.com_centralaz.Finance
 
         protected void rdpAcccounts_SelectedIndexChanged( object sender, EventArgs e )
         {
-            Literal litFundName = ( Literal ) rptAccountMap.Items[GetControlIndex( ( ( ( RockDropDownList ) sender ).ClientID ) )].FindControl( "litFundName" );
+            // Get the selected Rock Account Id
+            RockDropDownList rdpAcccounts = ( RockDropDownList ) sender;
 
-            Literal litAccontSaveStatus = ( Literal ) rptAccountMap.Items[GetControlIndex( ( ( ( RockDropDownList ) sender ).ClientID ) )].FindControl( "litAccontSaveStatus" );
-            litAccontSaveStatus.Text = string.Format( "<span class='text-success'><i class='fa fa-check'></i> {0} saved.</span>", litFundName.Text );
+            var clientId = rdpAcccounts.ClientID;
+            int controlIndex = GetControlIndex( clientId );
+            int mapIndex = controlIndex - 1;
+
+            // Get the Shelby Fund name 
+            Literal litFundName = ( Literal ) rptAccountMap.Items[mapIndex].FindControl( "litFundName" );
+            
+            // Get the Shelby Fund Id
+            HiddenField hfFundId = ( HiddenField ) rptAccountMap.Items[mapIndex].FindControl( "hfFundId" );
+
+            // Save the value in the Dictonary and save it to the block's attribute
+            
+            // Add/Update the new value in the dictionary
+            _fundAccountMappingDictionary.AddOrReplace( hfFundId.Value, rdpAcccounts.SelectedValue );
+
+            // Turn the Dictionary back to a string and store it in the block's attribute value
+            var newValue = String.Join( ",", _fundAccountMappingDictionary.Select( kvp =>String.Format( "{0}={1}", kvp.Key, kvp.Value ) ) );
+            SetAttributeValue( FUND_ACCOUNT_MAPPINGS, newValue );
+            SaveAttributeValues();
+
+            // Update the onscreen status to show the user the value has been saved.
+            Literal litAccontSaveStatus = ( Literal ) rptAccountMap.Items[mapIndex].FindControl( "litAccontSaveStatus" );
+            litAccontSaveStatus.Text = string.Format( "<span class='text-success'><i class='fa fa-check'></i> saved</span>", litFundName.Text );
         }
 
         private int GetControlIndex( String controlID )
         {
-            Regex regex = new Regex( "([0-9.*])", RegexOptions.RightToLeft );
+            Regex regex = new Regex( "([0-9]+)", RegexOptions.RightToLeft );
             Match match = regex.Match( controlID );
 
             return Convert.ToInt32( match.Value );
         }
+
+        protected void tbBatchName_TextChanged( object sender, EventArgs e )
+        {
+            RockTextBox tbBatchName = ( RockTextBox ) sender;
+            SetAttributeValue( "BatchName", tbBatchName.Text );
+            SaveAttributeValues();
+        }
+
+        #region Helper Classes & Methods
+        class ShelbyPerson
+        {
+            public int NameCounter;
+            public string FirstMiddle;
+            public string Salutation;
+            public string LastName;
+            public string Gender;
+            public string MaritalStatus;
+            public string Address1;
+            public string Address2;
+            public string City;
+            public string State;
+            public string PostalCode;
+            public string EmailAddress;
+
+            public ShelbyPerson( SqlDataReader reader )
+            {
+                NameCounter = ( int ) reader["NameCounter"];
+
+                EmailAddress = reader["EMailAddress"].ToStringSafe();
+                if ( ! EmailAddress.IsValidEmail() )
+                {
+                    EmailAddress = string.Empty;
+                }
+
+                Gender = reader["Gender"].ToStringSafe();
+                Salutation = reader["Salutation"].ToStringSafe();
+                FirstMiddle = reader["FirstMiddle"].ToStringSafe();
+                LastName = reader["LastName"].ToStringSafe();
+                MaritalStatus = reader["MaritalStatus"].ToStringSafe();
+                Address1 =   reader["Adr1"].ToStringSafe();
+                Address2 =  reader["Adr2"].ToStringSafe();
+                City = reader["City"].ToStringSafe();
+                State = reader["State"].ToStringSafe();
+                PostalCode = reader["PostalCode"].ToStringSafe();
+            }
+        }
+
+
+        /// <summary>
+        /// Class that represents a Shelby Batch ([BatchNu], [NuContr], [Total], [WhenPosted], [WhenSetup], [WhoSetup] )
+        /// </summary>
+        class ShelbyBatch
+        {
+            public int BatchNu;
+            public int NuContr;
+            public Decimal Total;
+            public DateTime WhenPosted;
+            public DateTime WhenSetup;
+            public string WhoSetup;
+            public int RockBatchId;
+
+            public ShelbyBatch( SqlDataReader reader )
+            {
+                BatchNu = ( int ) reader["BatchNu"];
+                NuContr = ( Int16 ) reader["NuContr"];
+                Total = ( Decimal ) reader["Total"];
+                WhenSetup = ( DateTime ) reader["WhenSetup"];
+                WhenPosted = ( DateTime ) reader["WhenPosted"];
+                WhoSetup = reader["WhoSetup"].ToStringSafe();
+            }
+
+        }
+
+        /// <summary>
+        /// Represents a Shelby Contribution History record (	H.[Counter]
+        /*
+	,H.[Amount]
+	,H.[BatchNu]
+	,H.[CheckNu]
+	,H.[CNDate]
+	,H.[Memo]
+	,H.[NameCounter]
+	,H.[WhenSetup]
+	,H.[WhenUpdated]
+	,H.[WhoSetup]
+	,H.[WhoUpdated]
+	,H.[CheckType]
+	,D.[PurCounter]
+	,P.[Descr]
+	,D.[Amount])
+    */
+        /// </summary>
+        class ShelbyContribution
+        {
+            int Counter;
+            Decimal Amount;
+            int BatchNu;
+            string CheckNu;
+            DateTime CNDate;
+            string Memo;
+            string NameCounter;
+            string WhenSetup;
+            string WhenUpdated;
+            string WhoSetup;
+            string WhoUpdated;
+            string CheckType;
+            string PurCounter;
+            string Descr;
+            string Amount;
+
+
+        }
+        #endregion
     }
 }

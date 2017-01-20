@@ -1,5 +1,30 @@
 ﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="ShelbyImport.ascx.cs" Inherits="RockWeb.Plugins.com_centralaz.Finance.ShelbyImport" %>
 
+<script src="/SignalR/hubs"></script>
+<script type="text/javascript">
+    $(function () {
+        var proxy = $.connection.rockMessageHub;
+
+        proxy.client.showLog = function () {
+            $("div[id$='_messageContainer']").fadeIn();
+            $("div[id$='_pnlConfiguration']").fadeOut();
+        }
+
+        proxy.client.receiveNotification = function (name, message) {
+            if (name.startsWith("shelbyImport-"))
+            {
+                var fields = name.split("-");
+                $("#"+fields[1]).html(message);
+            }
+        }
+
+        $.connection.hub.start().done(function () {
+            // hub started... do stuff here if you want to let the user know something
+            console.log("SignalR hub started.");
+        });
+    })
+</script>
+
 <asp:UpdatePanel ID="upnlContent" runat="server">
     <ContentTemplate>
 
@@ -12,35 +37,45 @@
 
                 <Rock:NotificationBox ID="nbMessage" runat="server" NotificationBoxType="Danger" />
 
-                <h2>Configure Settings</h2>
-                <Rock:RockTextBox runat="server" ID="tbBatchName" Label="Batch Name" ToolTip="The name you wish to use for this batch import."></Rock:RockTextBox>
+                <asp:Panel ID="pnlConfiguration" runat="server">
+                    <h2>Settings</h2>
+                    <Rock:RockTextBox runat="server" ID="tbBatchName" Label="Batch Name" ToolTip="The name you wish to use for this batch import." OnTextChanged="tbBatchName_TextChanged" AutoPostBack="true"></Rock:RockTextBox>
 
-                <Rock:CampusPicker ID="cpCampus" runat="server" Label="Campus" Required="true" ToolTip="The campus you are assigning to the batch." />
+                    <Rock:CampusPicker ID="cpCampus" runat="server" Label="Campus" Required="true" ToolTip="The campus you are assigning to the batch." />
 
-                <h2>Verify/Set Account Mapping</h2>
-                <table class="table table-striped table-hover table-condensed">
-                <asp:Repeater ID="rptAccountMap" runat="server" OnItemDataBound="rptAccountMap_ItemDataBound">
-                    <HeaderTemplate></HeaderTemplate>
-                    <ItemTemplate>
-                        <tr>
-                            <td class="col-md-4">
-                                <asp:Literal ID="litFundName" runat="server"></asp:Literal>
-                                <asp:HiddenField ID="hfFundId" runat="server" />
-                            </td>
-                            <td class="col-md-8">
-                                <Rock:RockDropDownList ID="rdpAcccounts" runat="server" AutoPostBack="true" OnSelectedIndexChanged="rdpAcccounts_SelectedIndexChanged"></Rock:RockDropDownList>
-                                <asp:Literal ID="litAccontSaveStatus" runat="server"></asp:Literal>
-                            </td>
-                        </tr>
-                    </ItemTemplate>
-                </asp:Repeater>
-                </table>
+                    <h2>Verify/Set Account Mapping</h2>
+                    <table class="table table-striped table-hover table-condensed">
+                    <asp:Repeater ID="rptAccountMap" runat="server" OnItemDataBound="rptAccountMap_ItemDataBound">
+                        <HeaderTemplate></HeaderTemplate>
+                        <ItemTemplate>
+                            <tr>
+                                <td class="col-md-4">
+                                    <asp:Literal ID="litFundName" runat="server"></asp:Literal>
+                                    <asp:HiddenField ID="hfFundId" runat="server" />
+                                    <span class="pull-right"><asp:Literal ID="litAccontSaveStatus" runat="server"></asp:Literal></span>
+                                </td>
+                                <td class="col-md-8">
+                                    <Rock:RockDropDownList ID="rdpAcccounts" runat="server" AutoPostBack="true" OnSelectedIndexChanged="rdpAcccounts_SelectedIndexChanged"></Rock:RockDropDownList>
+                                </td>
+                            </tr>
+                        </ItemTemplate>
+                    </asp:Repeater>
+                    </table>
+
+                </asp:Panel>
 
                 <p>
                     <asp:LinkButton runat="server" ID="lbImport" CssClass="btn btn-primary" OnClick="lbImport_Click">
                         <i class="fa fa-arrow-up"></i> Import
                     </asp:LinkButton>
                 </p>
+
+                <!-- SignalR client notification area -->
+                <div class="well" id="messageContainer" runat="server" style="display:none;">
+                    <div id="processingUsers"></div>
+                    <div id="processingBatches"></div>
+                    <div id="processingTransactions"></div>
+                </div>
 
                 <asp:Panel ID="pnlErrors" runat="server" Visible="false" CssClass="alert alert-danger block-message error">
                     <Rock:Grid ID="gErrors" runat="server" AllowSorting="false" OnRowDataBound="gErrors_RowDataBound" RowItemText="error" AllowPaging="false" RowStyle-CssClass="danger" AlternatingRowStyle-CssClass="danger" ShowActionRow="false">

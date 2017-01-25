@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data.SqlClient;
+using System.Data.Entity;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -38,7 +39,7 @@ namespace RockWeb.Plugins.com_centralaz.Finance
     /// <summary>
     /// Block to import a system with Shelby contributions data into Rock.
     /// 
-    /// In a nutshell it works like this:
+    /// In a nutshell it essentially works like this:
     ///  - User is asked to create/confirm Shelby Fund matching to Rock Accounts
     ///     - The Shelby PurCounter is added to a dictionary map (PurCounter -> FinancialAccount.Id)
     ///  - List of unique persons who contributed in Shelby is generated
@@ -47,77 +48,32 @@ namespace RockWeb.Plugins.com_centralaz.Finance
     ///  - For each distinct batch (related to a contribution; select distinct BatchNu from [Shelby].[CNHst]) in Shelby
     ///         SELECT * FROM [Shelby].[CNBat] WHERE BatchNu IN (SELECT distinct BatchNu from [Shelby].[CNHst])
     ///     - Find matching or add FinancialBatch in Rock; if found, skip to next batch; when adding:
-    ///         - Set the FinancialBatch.ForeignKey to the CNBat.BatchNu
-    ///         - Set the FinancialBatch.ControlAmount to the CNBat.Total
-    ///         - Set the FinancialBatch.Note to the CNBat.NuContr
-    ///         - Set the FinancialBatch.CreatedByPersonAliasId to the CNBat.WhoSetup
-    ///         - Set the FinancialBatch.CreatedDateTime to the CNBat.WhenSetup
     ///     - TBD the Shelby BatchNu is added to a dictionary map (BatchNu -> FinancialBatch.Id)
     ///     - For each contribution in Shelby
     ///         - If CNHst.Counter same as previous, use previous FinancialTransaction (don't create a new one)
     ///         - else, create FinancialTransaction
-    ///             - Set the FinancialTransaction.TransactionTypeValueId = 53 (Contribution)
-    ///             - Set the FinancialTransaction.SourceTypeValueId = (10=Website, 511=Kiosk, 512=Mobile Application, 513=On-Site Collection, 593=Bank Checks)
-    ///             - Set the FinancialTransaction.Summary to the CNHst.Memo
-    ///             - Set the FinancialTransactionDetail.TransactionCode to the CNHst.CheckNu
     ///         - Create FinancialTransactionDetail
-    ///             - Set Amount = [CNHstDet].Amount
-    ///             - Set AccountId = (lookup PurCounter AccountPurpose dictionary)
-    ///             
     ///         - Create FinancialPaymentDetail 
-    ///             - Set CurrencyTypeValueId =  (6=Cash, 9=Check, 156=Credit Card, 157=ACH, 1493=Non-Cash, 1554=Debit)
-    ///                 - 6 if CheckNu="CASH"
-    ///                 - 1493 if CheckNu="ONLINE", "GIVING*CENTER", "ONLINEGIVING", "PAYPAL"
-    ///                 - 9 if CheckNu is all numbers (or "CHECK")
-    ///                 
     ///         - Add FinancialPaymentDetail to FinancialTransaction.FinancialPaymentDetail
     ///         - Add FinancialTransactionDetail to FinancialTransaction.TransactionDetails
     ///         - Save
-    ///     - commit batch transaction and move to next batch
-    ///     
+    ///     - commit transaction and move to next batch
     /// </summary>
-    /*
-     * 
-SELECT
-	H.[Counter]
-	,H.[Amount]
-	,H.[BatchNu]
-	,H.[CheckNu]
-	,H.[CNDate]
-	,H.[Memo]
-	,H.[NameCounter]
-	,H.[WhenSetup]
-	,H.[WhenUpdated]
-	,H.[WhoSetup]
-	,H.[WhoUpdated]
-	,H.[CheckType]
-	,D.[PurCounter]
-	,P.[Descr]
-	,D.[Amount]
-  FROM [ShelbyDB].[Shelby].[CNHst] H WITH(NOLOCK)
-  INNER JOIN [ShelbyDB].[Shelby].[CNHstDet] D WITH(NOLOCK) ON D.[HstCounter] = H.[Counter]
-  INNER JOIN [ShelbyDB].[Shelby].[CNPur] P WITH(NOLOCK) ON P.[Counter]= D.[PurCounter]
-     * */
     [DisplayName( "Shelby Import" )]
     [Category( "com_centralaz > Finance" )]
     [Description( "Finance block to import contribution data from a Shelby database. It will add new people if a match cannot be made, import the batches, and financial transactions." )]
 
-    [TextField( "Batch Name", "The name that should be used for the batches created", true, "Shelby Import", order: 0 )]
-    [IntegerField( "Anonymous Giver PersonAliasID", "PersonAliasId to use in case of anonymous giver", true, order: 1 )]
-    [DefinedValueField( Rock.SystemGuid.DefinedType.FINANCIAL_TRANSACTION_TYPE, "TransactionType", "The transaction type that designates a 'contribution' or donation.", true, order: 2 )]
-    [DefinedValueField( Rock.SystemGuid.DefinedType.FINANCIAL_SOURCE_TYPE, "Default Transaction Source", "The default transaction source to use if a match is not found (Website, Kiosk, etc.).", true, order:3 )]
-    [DefinedValueField( Rock.SystemGuid.DefinedType.FINANCIAL_CURRENCY_TYPE, "Default Tender Type Value", "The default tender type if a match is not found (Cash, Credit Card, etc.).", true, order: 4 )]
-    [BooleanField( "Use Negative Foreign Keys", "Indicates whether Rock uses the negative of the Shelby reference ID for the contribution record's foreign key", false, order: 5 )]
-    [TextField( "Source Mappings", "Held in Shelby's ContributionSource field, these correspond to Rock's TransactionSource (DefinedType). If you don't want to rename your current transaction source types, just map them here. Delimit them with commas or semicolons, and write them in the format 'Shelby_value=Rock_value'.", false, "", "Data Mapping", 1 )]
-    [TextField( "Tender Mappings", "Held in the Shelby's ContributionType field, these correspond to Rock's TenderTypes (DefinedType). If you don't want to clutter your tender types, just map them here. Delimit them with commas or semicolons, and write them in the format 'Shelby_value=Rock_value'.", false, "", "Data Mapping", 2 )]
-    [TextField( "Fund Code Mapping", "Held in the Shelby's FundCode field, these correspond to Rock's Account IDs (integer). Each FundCode should be mapped to a matching AccountId otherwise Rock will just use the same value. Delimit them with commas or semicolons, and write them in the format 'Shelby_value=Rock_value'.", false, "", "Data Mapping", 3 )]    
+    [TextField( "Batch Name Prefix", "The prefix that should be used for the name of the batches that are created. Note: the Shelby Batch Number will be appended to the name.", true, "Glendale Shelby", order: 0 )]
     [LinkedPage( "Batch Detail Page", "The page used to display the contributions for a specific batch", true, "", "Linked Pages", 0 )]
     [LinkedPage( "Contribution Detail Page", "The page used to display the contribution transaction details", true, "",  "Linked Pages", 1 )]
-    [EncryptedTextField("Shelby DB Password", "", true, "", "Remote Shelby DB", 0 )]
+    [TextField( "Who Mapping", "These map the names in the Shelby Who* columns to Rock personAliasIds. Delimit them with commas or semicolons, and write them in the format 'Shelby_who=Rock_value'.", false, "", "Data Mapping", 3 )]
     [TextField( "Fund Account Mappings", "The mapping between Shelby Funds and Rock Accounts. A comma delimited list of 'Shelby_value=Rock_value'.", false, "", "Data Mapping", 1 )]
     [GroupLocationTypeField( Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY, "Address Type", "The location type to use for a new person's address.", false,
         Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME, "", 11 )]
-
+    [EncryptedTextField( "Shelby DB DataSource", "", true, @"ACC02\Shelby", "Remote Shelby DB", 0 )]
+    [EncryptedTextField( "Shelby DB Catalog", "", true, "ShelbyDB", "Remote Shelby DB", 1 )]
+    [EncryptedTextField( "Shelby DB UserId", "", true, "RockConversion", "Remote Shelby DB", 2 )]
+    [EncryptedTextField( "Shelby DB Password", "", true, "", "Remote Shelby DB", 3 )]
     public partial class ShelbyImport : Rock.Web.UI.RockBlock
     {
         #region Fields
@@ -127,9 +83,8 @@ SELECT
         private IHubContext _hubContext = GlobalHost.ConnectionManager.GetHubContext<RockMessageHub>();
 
         private static readonly string FUND_ACCOUNT_MAPPINGS = "FundAccountMappings";
-        private int _anonymousPersonAliasId = 0;
-        private List<string> _errors = new List<string>();
-        private List<XElement> _errorElements = new List<XElement>();
+        private List<ShelbyContribution> _errorElements = new List<ShelbyContribution>();
+
         private int _personRecordTypeId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
         private int _personStatusPending = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_PENDING.AsGuid() ).Id;
         private int _transactionTypeIdContribution = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_CONTRIBUTION.AsGuid() ).Id;
@@ -148,10 +103,9 @@ SELECT
         // Holds the Shelby Batch to Rock Batch map
         private Dictionary<int, int> _shelbyBatchMappingDictionary = new Dictionary<int, int>();
 
-        private Dictionary<int, FinancialAccount> _financialAccountCache = new Dictionary<int, FinancialAccount>();
-        private Dictionary<string, DefinedValue> _tenderTypeDefinedValueCache = new Dictionary<string, DefinedValue>();
-        private Dictionary<string, DefinedValue> _transactionSourceTypeDefinedValueCache = new Dictionary<string, DefinedValue>();
-
+        // Holds the mapping between Shelby who and Rock PersonAliasIds
+        private Dictionary<string, int> _shelbyWhoMappingDictionary = new Dictionary<string, int>();
+        
         private Dictionary<int, string> _accountNames = null;
         private Dictionary<int, string> AllAccounts
         {
@@ -181,8 +135,8 @@ SELECT
         protected override void OnInit( EventArgs e )
         {
             base.OnInit( e );
-            gContributions.GridRebind += gContributions_GridRebind;
-            gContributions.RowDataBound += gContributions_RowDataBound;
+            gBatchList.GridRebind += gBatchList_GridRebind;
+            gBatchList.RowDataBound += gBatchList_RowDataBound;
             gErrors.GridRebind += gErrors_GridRebind;
             gErrors.RowDataBound += gErrors_RowDataBound;
 
@@ -215,15 +169,14 @@ SELECT
             if ( !Page.IsPostBack )
             {
                 VerifyOrSetAccountMappings();
-                var id = GetAttributeValue( "AnonymousGiverPersonAliasID" ).AsIntegerOrNull();
 
-                if ( id == null || string.IsNullOrEmpty( GetAttributeValue( "ContributionDetailPage" ) )  || string.IsNullOrEmpty( GetAttributeValue( "BatchDetailPage" ) ) )
+                if ( string.IsNullOrEmpty( GetAttributeValue( "ContributionDetailPage" ) )  || string.IsNullOrEmpty( GetAttributeValue( "BatchDetailPage" ) ) )
                 {
                     nbMessage.Text = "Invalid block settings.";
                     return;
                 }
 
-                tbBatchName.Text = GetAttributeValue( "BatchName" );
+                tbBatchName.Text = GetAttributeValue( "BatchNamePrefix" );
                 BindCampusPicker();
                 BindGrid();
                 BindErrorGrid();
@@ -242,126 +195,54 @@ SELECT
         protected void lbImport_Click( object sender, EventArgs e )
         {
             // clear any old errors:
-            _errors = new List<string>();
-            _errorElements = new List<XElement>();
+            _errorElements = new List<ShelbyContribution>();
             nbMessage.Text = "";
             pnlErrors.Visible = false;
+            int importedPeople = 0;
+            int importedBatches = 0;
+            int importedTransactions = 0;
 
             try
             {
+                _shelbyWhoMappingDictionary = Regex.Matches( GetAttributeValue( "WhoMapping" ), @"\s*(.*?)\s*=\s*(.*?)\s*(;|,|$)" )
+                .OfType<Match>()
+                .ToDictionary( m => m.Groups[1].Value, m => m.Groups[2].Value.AsInteger() );
+
                 _hubContext.Clients.All.showLog();
-                ProcessPeople();
-                ProcessBatches();
-                ProcessTransactions();
+                importedPeople = ProcessPeople();
+                importedBatches = ProcessBatches();
+                importedTransactions = ProcessTransactions();
 
                 BindGrid();
                 pnlConfiguration.Visible = false;
             }
             catch ( Exception ex )
             {
-                nbMessage.Text = "Errors found.";
+                nbMessage.Text = string.Format( "Error: {0}", ex.Message );
                 pnlErrors.Visible = true;
+                BindErrorGrid();
             }
 
             _shelbyBatchMappingDictionary.Clear();
             _fundAccountMappingDictionary.Clear();
             _shelbyPersonMappingDictionary.Clear();
+            _shelbyWhoMappingDictionary.Clear();
 
             _shelbyBatchMappingDictionary = null;
             _fundAccountMappingDictionary = null;
             _shelbyPersonMappingDictionary = null;
+            _shelbyWhoMappingDictionary = null;
 
-            if ( _errors.Count > 0 )
+            if ( _errorElements.Count > 0 )
             {
                 nbMessage.Text = "Errors found.";
                 pnlErrors.Visible = true;
                 BindErrorGrid();
             }
-
-            //if ( fuImport.HasFile )
-            //{
-            //    // clear any old errors:
-            //    _errors = new List<string>();
-            //    _errorElements = new List<XElement>();
-            //    nbMessage.Text = "";
-            //    pnlErrors.Visible = false;
-
-            //    RockContext rockContext = new RockContext();
-            //    FinancialBatchService financialBatchService = new FinancialBatchService( rockContext );
-            //    DefinedValueService definedValueService = new DefinedValueService( rockContext );
-            //    PersonAliasService personAliasService = new PersonAliasService( rockContext );
-
-            //    // Find/verify the anonymous person alias ID
-            //    var personAlias = personAliasService.GetByAliasId( GetAttributeValue( "AnonymousGiverPersonAliasID" ).AsInteger() );
-            //    if ( personAlias == null )
-            //    {
-            //        nbMessage.Text = "Invalid AnonymousGiverPersonAliasID block setting.";
-            //        return;
-            //    }
-            //    else
-            //    {
-            //        _anonymousPersonAliasId = personAlias.Id;
-            //    }
-
-            //    _financialBatch = new FinancialBatch();
-            //    _financialBatch.Name = tbBatchName.Text;
-            //    _financialBatch.BatchStartDateTime = Rock.RockDateTime.Now;
-
-            //    int? campusId = cpCampus.SelectedCampusId;
-
-            //    if ( campusId != null )
-            //    {
-            //        _financialBatch.CampusId = campusId;
-            //    }
-            //    else
-            //    {
-            //        var campuses = CampusCache.All();
-            //        _financialBatch.CampusId = campuses.FirstOrDefault().Id;
-            //    }
-
-            //    financialBatchService.Add( _financialBatch );
-            //    rockContext.SaveChanges();
-
-            //    Dictionary<string, string> dictionaryInfo = new Dictionary<string, string>();
-            //    dictionaryInfo.Add( "batchId", _financialBatch.Id.ToString() );
-            //    string url = LinkedPageUrl( "BatchDetailPage", dictionaryInfo );
-            //    String theString = String.Format( "Batch <a href=\"{0}\">{1}</a> was created.", url, _financialBatch.Id.ToString() );
-            //    nbBatch.Text = theString;
-            //    nbBatch.Visible = true;
-
-            //    var xdoc = XDocument.Load( System.Xml.XmlReader.Create( fuImport.FileContent ) );
-            //    var elemDonations = xdoc.Element( "Donation" );
-
-            //    Dictionary<String, String> tenderMappingDictionary = Regex.Matches( GetAttributeValue( "TenderMappings" ), @"\s*(.*?)\s*=\s*(.*?)\s*(;|,|$)" )
-            //        .OfType<Match>()
-            //        .ToDictionary( m => m.Groups[1].Value, m => m.Groups[2].Value );
-
-            //    Dictionary<String, String> sourceMappingDictionary = Regex.Matches( GetAttributeValue( "SourceMappings" ), @"\s*(.*?)\s*=\s*(.*?)\s*(;|,|$)" )
-            //        .OfType<Match>()
-            //        .ToDictionary( m => m.Groups[1].Value, m => m.Groups[2].Value );
-
-            //    Dictionary<int, int> fundCodeMappingDictionary = Regex.Matches( GetAttributeValue( "FundCodeMapping" ), @"\s*(.*?)\s*=\s*(.*?)\s*(;|,|$)" )
-            //        .OfType<Match>()
-            //        .ToDictionary( m => m.Groups[1].Value.AsInteger(), m => m.Groups[2].Value.AsInteger() );
-
-            //    foreach ( var elemGift in elemDonations.Elements( "Gift" ) )
-            //    {
-            //        ProcessGift( elemGift, tenderMappingDictionary, sourceMappingDictionary, fundCodeMappingDictionary, rockContext );
-            //    }
-
-            //    rockContext.SaveChanges();
-
-            //    BindGrid();
-
-            //    if ( _errors.Count > 0 )
-            //    {
-            //        nbMessage.Text = "Errors found.";
-            //        BindErrorGrid();
-            //    }
-
-            //    _financialAccountCache = null;
-            //    _tenderTypeDefinedValueCache = null;
-            //}
+            else
+            {
+                nbSuccessMessage.Text = string.Format( "Imported {0} people, {1} batches and {2} transactions.", importedPeople, importedBatches, importedTransactions );
+            }
         }
 
         /// <summary>
@@ -369,7 +250,7 @@ SELECT
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
-        private void gContributions_GridRebind( object sender, EventArgs e )
+        private void gBatchList_GridRebind( object sender, EventArgs e )
         {
             BindGrid();
         }
@@ -393,85 +274,20 @@ SELECT
         {
             if ( e.Row.RowType == DataControlRowType.DataRow )
             {
-                var elemError = e.Row.DataItem as XElement;
-                if ( elemError != null )
+                var errorItem = e.Row.DataItem as ShelbyContribution;
+                if ( errorItem != null )
                 {
-                    Literal lReferenceNumber = e.Row.FindControl( "lReferenceNumber" ) as Literal;
-                    if ( lReferenceNumber != null && elemError.Element( "ReferenceNumber" ) != null )
-                    {
-                        lReferenceNumber.Text = elemError.Element( "ReferenceNumber" ).Value.ToString();
-                    }
-
-                    Literal lChurchCode = e.Row.FindControl( "lChurchCode" ) as Literal;
-                    if ( lChurchCode != null && elemError.Element( "ChurchCode" ) != null )
-                    {
-                        lChurchCode.Text = elemError.Element( "ChurchCode" ).Value.ToString();
-                    }
-
-                    Literal lIndividualId = e.Row.FindControl( "lIndividualId" ) as Literal;
-                    if ( lIndividualId != null && elemError.Element( "IndividualID" ) != null )
-                    {
-                        lIndividualId.Text = elemError.Element( "IndividualID" ).Value.ToString();
-                    }
-
-                    Literal lContributorName = e.Row.FindControl( "lContributorName" ) as Literal;
-                    if ( lContributorName != null && elemError.Element( "ContributorName" ) != null )
-                    {
-                        lContributorName.Text = elemError.Element( "ContributorName" ).Value.ToString();
-                    }
-
-                    Literal lFundName = e.Row.FindControl( "lFundName" ) as Literal;
-                    if ( lFundName != null && elemError.Element( "FundName" ) != null )
-                    {
-                        lFundName.Text = elemError.Element( "FundName" ).Value.ToString();
-                    }
-
-                    Literal lFundCode = e.Row.FindControl( "lFundCode" ) as Literal;
-                    if ( lFundCode != null && elemError.Element( "FundCode" ) != null )
-                    {
-                        lFundCode.Text = elemError.Element( "FundCode" ).Value.ToString();
-                    }
-
-                    Literal lReceivedDate = e.Row.FindControl( "lReceivedDate" ) as Literal;
-                    if ( lReceivedDate != null && elemError.Element( "ReceivedDate" ) != null )
-                    {
-                        DateTime receivedDate = DateTime.Parse( elemError.Element( "ReceivedDate" ).Value );
-                        lReceivedDate.Text = receivedDate.ToString();
-                    }
-
-                    Literal lAmount = e.Row.FindControl( "lAmount" ) as Literal;
-                    if ( lAmount != null && elemError.Element( "Amount" ) != null )
-                    {
-                        lAmount.Text = elemError.Element( "Amount" ).Value.ToString();
-                    }
-
-                    Literal lTransactionId = e.Row.FindControl( "lTransactionId" ) as Literal;
-                    if ( lTransactionId != null && elemError.Element( "TransactionID" ) != null )
-                    {
-                        lTransactionId.Text = elemError.Element( "TransactionID" ).Value.ToString();
-                    }
-
-                    Literal lContributionType = e.Row.FindControl( "lContributionType" ) as Literal;
-                    if ( lContributionType != null && elemError.Element( "ContributionType" ) != null )
-                    {
-                        lContributionType.Text = elemError.Element( "ContributionType" ).Value.ToString();
-                    }
-
-                    Literal lError = e.Row.FindControl( "lError" ) as Literal;
-                    if ( lError != null && elemError.Element( "Error" ) != null )
-                    {
-                        lError.Text = elemError.Element( "Error" ).Value.ToString();
-                    }
+                    // TODO?
                 }
             }
         }
 
         /// <summary>
-        /// Handles the RowDataBound event of the gContributions control.
+        /// Handles the RowDataBound event of the gBatchList control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="GridViewRowEventArgs"/> instance containing the event data.</param>
-        protected void gContributions_RowDataBound( object sender, GridViewRowEventArgs e )
+        protected void gBatchList_RowDataBound( object sender, GridViewRowEventArgs e )
         {
             if ( e.Row.RowType == DataControlRowType.DataRow )
             {
@@ -507,8 +323,7 @@ SELECT
         protected void Block_BlockUpdated( object sender, EventArgs e )
         {
             nbMessage.Text = "";
-            var id = GetAttributeValue( "AnonymousGiverPersonAliasID" ).AsIntegerOrNull();
-            if ( id == null || string.IsNullOrEmpty( GetAttributeValue( "ContributionDetailPage" ) ) || string.IsNullOrEmpty( GetAttributeValue( "BatchDetailPage" ) ) )
+            if ( string.IsNullOrEmpty( GetAttributeValue( "ContributionDetailPage" ) ) || string.IsNullOrEmpty( GetAttributeValue( "BatchDetailPage" ) ) )
             {
                 nbMessage.Text = "Invalid block settings.";
                 return;
@@ -520,11 +335,21 @@ SELECT
         #region Methods
 
         /// <summary>
+        /// Formats the value as currency (called from markup)
+        /// </summary>
+        /// <param name="value">The value.</param>
+        /// <returns></returns>
+        public string FormatValueAsCurrency( decimal value )
+        {
+            return value.FormatAsCurrency();
+        }
+
+        /// <summary>
         /// List of unique persons who contributed in Shelby is generated
         ///     - For each, a match is found or a new person/family record is created
         ///     - the Shelby NameCounter is added to a dictionary map (NameCounter -> Person.Id)
         /// </summary>
-        private void ProcessPeople()
+        private int ProcessPeople()
         {
             int totalCount = 0;
             int counter = 0;
@@ -594,6 +419,8 @@ if (counter > 3000) break;
             {
                 nbMessage.Text = string.Format( "Your database block settings are not valid or the remote database server is offline or mis-configured. {0}<br/><pre>{1}</pre>", ex.Message, ex.StackTrace );
             }
+
+            return counter;
         }
 
         /// <summary>
@@ -610,7 +437,7 @@ if (counter > 3000) break;
         ///     - TBD the Shelby BatchNu is added to a dictionary map (BatchNu -> FinancialBatch.Id)
         ///     - commit batch transaction and move to next batch
         /// </summary>
-        private void ProcessBatches()
+        private int ProcessBatches()
         {
             int totalCount = 0;
             int counter = 0;
@@ -639,7 +466,7 @@ if (counter > 3000) break;
                         }
                     }
 
-                    command.CommandText = @"SELECT [BatchNu], [NuContr], [Total], [WhenPosted], [WhenSetup], [WhoSetup]  FROM [Shelby].[CNBat] WITH(NOLOCK) WHERE BatchNu IN (SELECT distinct BatchNu from [Shelby].[CNHst] WITH(NOLOCK))";
+                    command.CommandText = @"SELECT [BatchNu], [NuContr], [Total], [WhenPosted], [WhenSetup], [WhoSetup]  FROM [Shelby].[CNBat] WITH(NOLOCK) WHERE [BatchNu] IN (SELECT distinct [BatchNu] from [Shelby].[CNHst] WITH(NOLOCK)) ORDER BY [BatchNu]";
 
                     using ( SqlDataReader reader = command.ExecuteReader() )
                     {
@@ -658,7 +485,7 @@ if (counter > 3000) break;
                                     _shelbyBatchMappingDictionary.AddOrReplace( shelbyBatch.BatchNu, rockBatchId.Value );
                                 }
 #if DEBUG
-if (counter > 300) break;
+if (counter > 2000) break;
 #endif
                             }
                         }
@@ -671,6 +498,8 @@ if (counter > 300) break;
             {
                 nbMessage.Text = string.Format( "Your database block settings are not valid or the remote database server is offline or mis-configured. {0}<br/><pre>{1}</pre>", ex.Message, ex.StackTrace );
             }
+
+            return counter;
         }
 
         /// <summary>
@@ -693,12 +522,16 @@ if (counter > 300) break;
             }
 
             var financialBatch = new FinancialBatch();
-            financialBatch.Name = tbBatchName.Text;
+            financialBatch.Name = tbBatchName.Text + " " + batchNu;
             financialBatch.BatchStartDateTime = shelbyBatch.WhenSetup; // Confirmed by Michele A.
             financialBatch.ControlAmount = shelbyBatch.Total;
             financialBatch.ForeignKey = batchNu;
             financialBatch.Note = shelbyBatch.NuContr.ToStringSafe();
             financialBatch.CreatedDateTime = shelbyBatch.WhenSetup;
+            if ( _shelbyWhoMappingDictionary.ContainsKey( shelbyBatch.WhoSetup ) )
+            {
+                financialBatch.CreatedByPersonAliasId = _shelbyWhoMappingDictionary[ shelbyBatch.WhoSetup ];
+            }
 
             int? campusId = cpCampus.SelectedCampusId;
 
@@ -743,7 +576,7 @@ if (counter > 300) break;
         ///         - Add FinancialTransactionDetail to FinancialTransaction.TransactionDetails
         ///         - Save
         /// </summary>
-        private void ProcessTransactions()
+        private int ProcessTransactions()
         {
             int totalCount = 0;
             int counter = 0;
@@ -762,7 +595,7 @@ if (counter > 300) break;
                     command.Connection = connection;
 
                     // First count the total
-                    command.CommandText = @"SELECT COUNT(1) as 'Count' FROM [ShelbyDB].[Shelby].[CNHst] H WITH(NOLOCK)";
+                    command.CommandText = @"SELECT COUNT(1) as 'Count' FROM [ShelbyDB].[Shelby].[CNHst] H WITH(NOLOCK) INNER JOIN [ShelbyDB].[Shelby].[CNHstDet] D WITH(NOLOCK) ON D.[HstCounter] = H.[Counter]";
                     using ( SqlDataReader reader = command.ExecuteReader() )
                     {
                         if ( reader.HasRows )
@@ -806,34 +639,43 @@ if (counter > 300) break;
                                 counter++;
                                 var shelbyContribution = new ShelbyContribution( reader );
 
-                                // If we're on the first item, then the "previous" is this first one...
-                                if ( previousTransactionCounter == -1 )
+                                try
                                 {
-                                    previousTransactionCounter = shelbyContribution.Counter;
-                                }
+                                    // If we're on the first item, then the "previous" is this first one...
+                                    if ( previousTransactionCounter == -1 )
+                                    {
+                                        previousTransactionCounter = shelbyContribution.Counter;
+                                    }
 
-                                // Is the next item just another detail record for the same transaction?
-                                // If so, just add it to the set.
-                                if ( previousTransactionCounter == shelbyContribution.Counter )
-                                {
-                                    shelbyContributionsSet.Enqueue( shelbyContribution );
-                                }
-                                else
-                                {
-                                    // Otherwise we finish/write the previous set, and then clear the set and move to the next item
-                                    FindOrCreateTransaction( transactionService, shelbyContributionsSet );
-                                    shelbyContributionsSet.Enqueue( shelbyContribution );
-                                    previousTransactionCounter = shelbyContribution.Counter;
-                                }
+                                    // Is the next item just another detail record for the same transaction?
+                                    // If so, just add it to the set.
+                                    if ( previousTransactionCounter == shelbyContribution.Counter )
+                                    {
+                                        shelbyContributionsSet.Enqueue( shelbyContribution );
+                                    }
+                                    else
+                                    {
+                                        // Otherwise we finish/write the previous set, and then clear the set and move to the next item
+                                        FindOrCreateTransaction( transactionService, shelbyContributionsSet, counter );
+                                        shelbyContributionsSet.Enqueue( shelbyContribution );
+                                        previousTransactionCounter = shelbyContribution.Counter;
+                                    }
 
-                                NotifyClientProcessingTransactions( counter, totalCount );
+                                    NotifyClientProcessingTransactions( counter, totalCount );
 #if DEBUG
-if (counter > 900) break;
+//if (counter > 30000) break;
 #endif
+                                }
+                                catch ( Exception ex )
+                                {
+                                    shelbyContribution.ERROR = ex.Message;
+                                    _errorElements.Add( shelbyContribution );
+                                }
                             }
 
                             // Check the last set and finish/write it...
-                           FindOrCreateTransaction( transactionService, shelbyContributionsSet );
+                           FindOrCreateTransaction( transactionService, shelbyContributionsSet, counter );
+                           rockContext.SaveChanges( disablePrePostProcessing: true );
                         }
 
                         reader.Close();
@@ -844,6 +686,8 @@ if (counter > 900) break;
             {
                 nbMessage.Text = string.Format( "Your database block settings are not valid or the remote database server is offline or mis-configured. {0}<br/><pre>{1}</pre>", ex.Message, ex.StackTrace );
             }
+
+            return counter;
         }
 
         /// <summary>
@@ -869,99 +713,106 @@ if (counter > 900) break;
         ///         - Add FinancialTransactionDetail to FinancialTransaction.TransactionDetails
         ///         - Save
         /// </summary>
-        private void FindOrCreateTransaction( FinancialTransactionService transactionService, Queue<ShelbyContribution> shelbyContributionsSet )
+        private void FindOrCreateTransaction( FinancialTransactionService transactionService, Queue<ShelbyContribution> shelbyContributionsSet, int count )
         {
             var shelbyContribution = shelbyContributionsSet.Dequeue();
+            string counter = shelbyContribution.Counter.ToStringSafe();
+            FinancialTransaction financialTransaction = transactionService.Queryable().Where( p => p.ForeignKey == counter ).FirstOrDefault();
 
-            try
+            if ( financialTransaction == null )
             {
-                string counter = shelbyContribution.Counter.ToStringSafe();
-                FinancialTransaction financialTransaction = transactionService.Queryable().Where( p => p.ForeignKey == counter ).FirstOrDefault();
+                financialTransaction = new FinancialTransaction();
+                //financialTransaction.TotalAmount = shelbyContribution.Amount;
+                financialTransaction.TransactionTypeValueId = _transactionTypeIdContribution;
+                financialTransaction.Summary = shelbyContribution.Memo;
+                financialTransaction.TransactionCode = shelbyContribution.CheckNu;
+                financialTransaction.ProcessedDateTime = Rock.RockDateTime.Now;
+                financialTransaction.TransactionDateTime = shelbyContribution.WhenSetup;
+                financialTransaction.ForeignKey = shelbyContribution.Counter.ToStringSafe();
+                financialTransaction.AuthorizedPersonAliasId = _shelbyPersonMappingDictionary[shelbyContribution.NameCounter];
+                financialTransaction.BatchId = _shelbyBatchMappingDictionary[shelbyContribution.BatchNu];
 
-                if ( financialTransaction == null )
+                if ( _shelbyWhoMappingDictionary.ContainsKey( shelbyContribution.WhoSetup ) )
                 {
-                    financialTransaction = new FinancialTransaction();
-                    //financialTransaction.TotalAmount = shelbyContribution.Amount;
-                    financialTransaction.TransactionTypeValueId = _transactionTypeIdContribution;
-                    financialTransaction.Summary = shelbyContribution.Memo;
-                    financialTransaction.TransactionCode = shelbyContribution.CheckNu;
-                    financialTransaction.ProcessedDateTime = Rock.RockDateTime.Now;
-                    financialTransaction.TransactionDateTime = shelbyContribution.WhenSetup;
-                    financialTransaction.ForeignKey = shelbyContribution.Counter.ToStringSafe();
-                    financialTransaction.AuthorizedPersonAliasId = _shelbyPersonMappingDictionary[shelbyContribution.NameCounter];
-                    financialTransaction.BatchId = _shelbyBatchMappingDictionary[shelbyContribution.BatchNu];
+                    financialTransaction.CreatedByPersonAliasId = _shelbyWhoMappingDictionary[shelbyContribution.WhoSetup];
+                }
 
-                    if ( shelbyContribution.CheckNu.Contains( "cash" ) )
-                    {
-                        financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_ONSITE_COLLECTION.AsGuid() ).Id;
-                    }
-                    else if ( shelbyContribution.CheckNu.Contains( "kiosk" ) )
-                    {
-                        financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_KIOSK.AsGuid() ).Id;
-                    }
-                    else if ( shelbyContribution.CheckNu.StartsWith( "on" ) )
-                    {
-                        financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_WEBSITE.AsGuid() ).Id;
-                    }
-                    else
-                    {
-                        financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_ONSITE_COLLECTION.AsGuid() ).Id;
-                    }
+                if ( _shelbyWhoMappingDictionary.ContainsKey( shelbyContribution.WhoUpdated ) )
+                {
+                    financialTransaction.ModifiedByPersonAliasId = _shelbyWhoMappingDictionary[shelbyContribution.WhoUpdated];
+                }
 
-                    // set up the necessary Financial Payment Detail record
-                    if ( financialTransaction.FinancialPaymentDetail == null )
-                    {
-                        financialTransaction.FinancialPaymentDetail = new FinancialPaymentDetail();
-                        financialTransaction.FinancialPaymentDetail.ForeignKey = shelbyContribution.DetailCounter.ToStringSafe();
-                        financialTransaction.FinancialPaymentDetail.CreatedDateTime = shelbyContribution.WhenSetup;
-
-                        // Now find the matching tender type...
-                        // Get the tender type and put in cache if we've not encountered it before.
-                        if ( shelbyContribution.CheckNu.Contains( "cash" ) )
-                        {
-                            financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CASH.AsGuid() ).Id;
-                        }
-                        else if ( reOnlyDigits.IsMatch( shelbyContribution.CheckNu ) )
-                        {
-                            financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CHECK.AsGuid() ).Id;
-                        }
-                        else
-                        {
-                            financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_NONCASH.AsGuid() ).Id;
-                        }
-                    }
-
-                    FinancialTransactionDetail transactionDetail = new FinancialTransactionDetail();
-                    transactionDetail.AccountId = _fundAccountMappingDictionary[shelbyContribution.PurCounter.ToString()].AsInteger();
-                    transactionDetail.ForeignKey = shelbyContribution.DetailCounter.ToStringSafe();
-                    transactionDetail.Amount = shelbyContribution.PurAmount;
-                    financialTransaction.TransactionDetails.Add( transactionDetail );
+                // Hardcoded junk...
+                if ( shelbyContribution.CheckNu.Contains( "cash" ) )
+                {
+                    financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_ONSITE_COLLECTION.AsGuid() ).Id;
+                }
+                else if ( shelbyContribution.CheckNu.Contains( "kiosk" ) )
+                {
+                    financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_KIOSK.AsGuid() ).Id;
+                }
+                else if ( shelbyContribution.CheckNu.StartsWith( "on" ) )
+                {
+                    financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_WEBSITE.AsGuid() ).Id;
                 }
                 else
                 {
-                    // TODO: verify this should not happen because we're dealing with the whole set at once.
-                    _errors.Add( string.Format( "Transaction already existed!?? (Shelby CNHst.Counter: {0})", shelbyContribution.Counter ) );
+                    financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_ONSITE_COLLECTION.AsGuid() ).Id;
                 }
 
-                while ( shelbyContributionsSet.Count > 0 )
+                // set up the necessary Financial Payment Detail record
+                if ( financialTransaction.FinancialPaymentDetail == null )
                 {
-                    shelbyContribution = shelbyContributionsSet.Dequeue();
-                    FinancialTransactionDetail transactionDetail = new FinancialTransactionDetail();
-                    transactionDetail.AccountId = _fundAccountMappingDictionary[shelbyContribution.PurCounter.ToString()].AsInteger();
-                    transactionDetail.ForeignKey = shelbyContribution.DetailCounter.ToStringSafe();
-                    transactionDetail.Amount = shelbyContribution.PurAmount;
-                    financialTransaction.TransactionDetails.Add( transactionDetail );
+                    financialTransaction.FinancialPaymentDetail = new FinancialPaymentDetail();
+                    financialTransaction.FinancialPaymentDetail.ForeignKey = shelbyContribution.DetailCounter.ToStringSafe();
+                    financialTransaction.FinancialPaymentDetail.CreatedDateTime = shelbyContribution.WhenSetup;
+
+                    // Now find the matching tender type...
+                    // Get the tender type and put in cache if we've not encountered it before.
+                    if ( shelbyContribution.CheckNu.Contains( "cash" ) )
+                    {
+                        financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CASH.AsGuid() ).Id;
+                    }
+                    else if ( reOnlyDigits.IsMatch( shelbyContribution.CheckNu ) )
+                    {
+                        financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CHECK.AsGuid() ).Id;
+                    }
+                    else
+                    {
+                        financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_NONCASH.AsGuid() ).Id;
+                    }
                 }
 
-                // Now save/write the whole set...
-                transactionService.Add( financialTransaction );
-                RockContext rockContext = ( RockContext ) transactionService.Context;
-                rockContext.ChangeTracker.DetectChanges();
-                rockContext.SaveChanges( disablePrePostProcessing: true );
+                FinancialTransactionDetail transactionDetail = new FinancialTransactionDetail();
+                transactionDetail.AccountId = _fundAccountMappingDictionary[shelbyContribution.PurCounter.ToString()].AsInteger();
+                transactionDetail.ForeignKey = shelbyContribution.DetailCounter.ToStringSafe();
+                transactionDetail.Amount = shelbyContribution.PurAmount;
+                financialTransaction.TransactionDetails.Add( transactionDetail );
             }
-            catch ( Exception ex )
+            else
             {
-                _errors.Add( shelbyContribution.Counter.ToStringSafe() );
+                // this should not happen because we're dealing with the whole set at once.
+                shelbyContribution.ERROR = string.Format( "Transaction already existed!?? (Shelby CNHst.Counter: {0})", shelbyContribution.Counter );
+                _errorElements.Add( shelbyContribution );
+            }
+
+            while ( shelbyContributionsSet.Count > 0 )
+            {
+                shelbyContribution = shelbyContributionsSet.Dequeue();
+                FinancialTransactionDetail transactionDetail = new FinancialTransactionDetail();
+                transactionDetail.AccountId = _fundAccountMappingDictionary[shelbyContribution.PurCounter.ToString()].AsInteger();
+                transactionDetail.ForeignKey = shelbyContribution.DetailCounter.ToStringSafe();
+                transactionDetail.Amount = shelbyContribution.PurAmount;
+                financialTransaction.TransactionDetails.Add( transactionDetail );
+            }
+
+            // Now save/write the whole set...
+            transactionService.Add( financialTransaction );
+            RockContext rockContext = ( RockContext ) transactionService.Context;
+            //rockContext.ChangeTracker.DetectChanges();
+            if ( count % 200 == 0 )
+            {
+                rockContext.SaveChanges( disablePrePostProcessing: true );
             }
         }
 
@@ -1129,121 +980,13 @@ if (counter > 900) break;
         /// <returns></returns>
         private string GetConnectionString()
         {
+            var dataSource = Encryption.DecryptString( GetAttributeValue( "ShelbyDBDataSource" ) );
+            var catalog = Encryption.DecryptString( GetAttributeValue( "ShelbyDBCatalog" ) );
+            var userId = Encryption.DecryptString( GetAttributeValue( "ShelbyDBUserId" ) );
             var pass = Encryption.DecryptString( GetAttributeValue( "ShelbyDBPassword" ) );
-            return string.Format( @"Data Source=ACC02\Shelby;Initial Catalog=ShelbyDB; User Id=RockConversion; password={0};", pass );
+
+            return string.Format( @"Data Source={0};Initial Catalog={1}; User Id={2}; password={3};", dataSource, catalog, userId, pass );
         }
-
-        /// <summary>
-        /// Processes the gift.
-        /// </summary>
-        /// <param name="elemGift">The elem gift.</param>
-        /// <param name="tenderMappingDictionary">The tender type mapping dictionary.</param>
-        /// <param name="rockContext">The rock context.</param>
-        /// <exception cref="System.Exception">
-        /// </exception>
-        //private void ProcessGift( XElement elemGift, Dictionary<String, String> tenderMappingDictionary, Dictionary<String, String> sourceMappingDictionary, Dictionary<int, int> fundCodeMappingDictionary, RockContext rockContext )
-        //{
-        //    FinancialAccountService financialAccountService = new FinancialAccountService( rockContext );
-        //    DefinedValueService definedValueService = new DefinedValueService( rockContext );
-        //    PersonAliasService personAliasService = new PersonAliasService( rockContext );
-        //    PersonService personService = new PersonService( rockContext );
-
-        //    // ie, "Contribution"
-        //    var transactionType = DefinedValueCache.Read( GetAttributeValue( "TransactionType" ).AsGuid() );
-        //    var defaultTransactionSource = DefinedValueCache.Read( GetAttributeValue( "DefaultTransactionSource" ).AsGuid() );
-        //    var tenderDefinedType = DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.FINANCIAL_CURRENCY_TYPE.AsGuid() );
-        //    var sourceTypeDefinedType = DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.FINANCIAL_SOURCE_TYPE.AsGuid() );
-
-        //    try
-        //    {
-        //        FinancialTransaction financialTransaction = new FinancialTransaction()
-        //        {
-        //            TransactionTypeValueId = transactionType.Id,
-        //            SourceTypeValueId = defaultTransactionSource.Id
-        //        };
-
-        //        if ( elemGift.Element( "ReceivedDate" ) != null )
-        //        {
-        //            financialTransaction.ProcessedDateTime = Rock.RockDateTime.Now;
-        //            financialTransaction.TransactionDateTime = elemGift.Element( "ReceivedDate" ).Value.AsDateTime();
-        //        }
-
-
-        //        if ( elemGift.Element( "TransactionID" ) != null )
-        //        {
-        //            financialTransaction.TransactionCode = elemGift.Element( "TransactionID" ).Value.ToString();
-        //        }
-
-
-        //        string summary = string.Format( "{0} donated {1} on {2}",
-        //            elemGift.Element( "ContributorName" ).IsEmpty ? "Anonymous" : elemGift.Element( "ContributorName" ).Value,
-        //            elemGift.Element( "Amount" ).Value.AsDecimal().ToString( "C" )
-        //            , financialTransaction.TransactionDateTime.ToString() );
-        //        financialTransaction.Summary = summary;
-
-        //        FinancialAccount account = new FinancialAccount();
-
-        //        if ( elemGift.Element( "FundCode" ) != null )
-        //        {
-        //            int accountId = elemGift.Element( "FundCode" ).Value.AsInteger();
-
-        //            // Convert to mapped value if one exists...
-        //            if ( fundCodeMappingDictionary.ContainsKey( accountId ) )
-        //            {
-        //                accountId = fundCodeMappingDictionary[accountId];
-        //            }
-
-        //            // look in cache to see if we already fetched it
-        //            if ( !_financialAccountCache.ContainsKey( accountId ) )
-        //            {
-        //                account = financialAccountService.Queryable()
-        //                .Where( fa => fa.Id == accountId )
-        //                .FirstOrDefault();
-        //                if ( account != null )
-        //                {
-        //                    _financialAccountCache.Add( accountId, account );
-        //                }
-        //                else
-        //                {
-        //                    throw new Exception( "Fund Code (Rock Account) not found." );
-        //                }
-        //            }
-        //            account = _financialAccountCache[accountId];
-        //        }
-
-        //        FinancialTransactionDetail financialTransactionDetail = new FinancialTransactionDetail()
-        //        {
-        //            AccountId = account.Id
-        //        };
-
-        //        if ( elemGift.Element( "Amount" ) != null )
-        //        {
-        //            financialTransactionDetail.Amount = elemGift.Element( "Amount" ).Value.AsDecimal();
-        //        }
-
-        //        if ( elemGift.Element( "ReferenceNumber" ) != null )
-        //        {
-        //            if ( !GetAttributeValue( "UseNegativeForeignKeys" ).AsBoolean() )
-        //            {
-        //                financialTransactionDetail.Summary = elemGift.Element( "ReferenceNumber" ).Value.ToString();
-        //            }
-        //            else
-        //            {
-        //                financialTransactionDetail.Summary = ( elemGift.Element( "ReferenceNumber" ).Value.AsInteger() * -1 ).ToString();
-        //            }
-        //        }
-
-        //        financialTransaction.TransactionDetails.Add( financialTransactionDetail );
-        //        _financialBatch.Transactions.Add( financialTransaction );
-        //    }
-        //    catch ( Exception ex )
-        //    {
-        //        _errors.Add( elemGift.Element( "ReferenceNumber" ).Value.ToString() );
-        //        elemGift.Add( new XElement( "Error", ex.Message ) );
-        //        _errorElements.Add( elemGift );
-        //        return;
-        //    }
-        //}
 
         /// <summary>
         /// Binds the campus picker.
@@ -1261,17 +1004,53 @@ if (counter > 900) break;
         /// </summary>
         private void BindGrid()
         {
-            RockContext rockContext = new RockContext();
-            FinancialTransactionDetailService financialTransactionDetailService = new FinancialTransactionDetailService( rockContext );
+            try
+            {
+                RockContext rockContext = new RockContext();
+                FinancialBatchService financialBatchService = new FinancialBatchService( rockContext );
+                var qry = financialBatchService.Queryable()
+                                        .Where( fb => fb.ForeignKey != null ).AsNoTracking();
 
-            var qry = financialTransactionDetailService.Queryable()
-                                    .Where( ftd => ftd.Transaction.ForeignKey != null  )
-                                    .ToList();
-            gContributions.DataSource = qry;
-            gContributions.DataBind();
+                var batchRowQry = qry.Select( b => new BatchRow
+                {
+                    Id = b.Id,
+                    BatchStartDateTime = b.BatchStartDateTime.Value,
+                    Name = b.Name,
+                    AccountingSystemCode = b.AccountingSystemCode,
+                    TransactionCount = b.Transactions.Count(),
+                    TransactionAmount = b.Transactions.Sum( t => ( decimal? ) ( t.TransactionDetails.Sum( d => ( decimal? ) d.Amount ) ?? 0.0M ) ) ?? 0.0M,
+                    ControlAmount = b.ControlAmount,
+                    CampusName = b.Campus != null ? b.Campus.Name : "",
+                    Status = b.Status,
+                    UnMatchedTxns = b.Transactions.Any( t => !t.AuthorizedPersonAliasId.HasValue ),
+                    BatchNote = b.Note,
+                    AccountSummaryList = b.Transactions
+                                        .SelectMany( t => t.TransactionDetails )
+                                        .GroupBy( d => d.AccountId )
+                                        .Select( s => new BatchAccountSummary
+                                        {
+                                            AccountId = s.Key,
+                                            AccountOrder = s.Max( d => d.Account.Order ),
+                                            AccountName = s.Max( d => d.Account.Name ),
+                                            Amount = s.Sum( d => ( decimal? ) d.Amount ) ?? 0.0M
+                                        } )
+                                        .OrderBy( s => s.AccountOrder )
+                                        .ToList()
+                } );
 
-            gContributions.Actions.ShowExcelExport = false;
-            pnlGrid.Visible = gContributions.Rows.Count > 0;
+                gBatchList.SetLinqDataSource( batchRowQry.AsNoTracking() );
+                gBatchList.EntityTypeId = EntityTypeCache.Read<Rock.Model.FinancialBatch>().Id;
+                gBatchList.DataBind();
+
+                gBatchList.Actions.ShowExcelExport = false;
+                pnlGrid.Visible = gBatchList.Rows.Count > 0;
+
+            }
+            catch ( Exception ex )
+            {
+                nbWarningMessage.Text = ex.Message;
+            }
+
         }
 
         /// <summary>
@@ -1279,8 +1058,8 @@ if (counter > 900) break;
         /// </summary>
         private void BindErrorGrid()
         {
-            RockContext rockContext = new RockContext();
-            FinancialTransactionDetailService financialTransactionDetailService = new FinancialTransactionDetailService( rockContext );
+            //RockContext rockContext = new RockContext();
+            //FinancialTransactionDetailService financialTransactionDetailService = new FinancialTransactionDetailService( rockContext );
 
             if ( _errorElements.Count > 0 )
             {
@@ -1298,35 +1077,17 @@ if (counter > 900) break;
 
         private void NotifyClientProcessingUsers( int count, int total )
         {
-            //double percent = ( double ) count / total * 100;
-            //var x = string.Format( @"Processing {2} People...
-            //    <div class='progress'>
-            //      <div class='progress-bar' role='progressbar' aria-valuenow='{0:0}' aria-valuemin='0' aria-valuemax='100' style='width: {0:0}%;'>{1}</div>
-            //    </div>", percent,  count, total );
-            //_hubContext.Clients.All.receiveNotification( "shelbyImport-processingUsers", x );
             NotifyClientProcessing( "People", "shelbyImport-processingUsers", string.Empty, count, total );
         }
 
         private void NotifyClientProcessingBatches( int count, int total )
         {
-            //double percent = ( double ) count / total * 100;
-            //var x = string.Format( @"Processing {2} Batches...
-            //    <div class='progress'>
-            //      <div class='progress-bar progress-bar-info' role='progressbar' aria-valuenow='{0:0}' aria-valuemin='0' aria-valuemax='100' style='width: {0:0}%;'>{1}</div>
-            //    </div>", percent, count, total );
-            //_hubContext.Clients.All.receiveNotification( "shelbyImport-processingBatches", x );
             NotifyClientProcessing( "Batches", "shelbyImport-processingBatches", "progress-bar-info", count, total );
 
         }
 
         private void NotifyClientProcessingTransactions( int count, int total )
         {
-            //double percent = ( double ) count / total * 100;
-            //var x = string.Format( @"Processing {2} Transactions...
-            //    <div class='progress'>
-            //      <div class='progress-bar progress-bar-success' role='progressbar' aria-valuenow='{0:0}' aria-valuemin='0' aria-valuemax='100' style='width: {0:0}%;'>{1}</div>
-            //    </div>", percent, count, total );
-            //_hubContext.Clients.All.receiveNotification( "shelbyImport-processingTransactions", x );
             NotifyClientProcessing( "Transactions", "shelbyImport-processingTransactions", "progress-bar-success", count, total );
         }
 
@@ -1431,7 +1192,115 @@ if (counter > 900) break;
             SaveAttributeValues();
         }
 
-        #region Helper Classes & Methods
+        #region Helper Classes
+
+        public class BatchAccountSummary
+        {
+            public int AccountId { get; set; }
+            public int AccountOrder { get; set; }
+            public string AccountName { get; set; }
+            public decimal Amount { get; set; }
+            public override string ToString()
+            {
+                return string.Format( "{0}: {1}", AccountName, Amount.FormatAsCurrency() );
+            }
+        }
+
+        public class BatchRow
+        {
+            public int Id { get; set; }
+            public DateTime BatchStartDateTime { get; set; }
+            public string Name { get; set; }
+            public string AccountingSystemCode { get; set; }
+            public int TransactionCount { get; set; }
+            public decimal TransactionAmount { get; set; }
+            public decimal ControlAmount { get; set; }
+            public List<BatchAccountSummary> AccountSummaryList { get; set; }
+            public string CampusName { get; set; }
+            public BatchStatus Status { get; set; }
+            public bool UnMatchedTxns { get; set; }
+            public string BatchNote { get; set; }
+
+            public decimal Variance
+            {
+                get
+                {
+                    return TransactionAmount - ControlAmount;
+                }
+            }
+
+            public string AccountSummaryText
+            {
+                get
+                {
+                    var summary = new List<string>();
+                    AccountSummaryList.ForEach( a => summary.Add( a.ToString() ) );
+                    return summary.AsDelimited( Environment.NewLine );
+                }
+            }
+
+            public string AccountSummaryHtml
+            {
+                get
+                {
+                    var summary = new List<string>();
+                    AccountSummaryList.ForEach( a => summary.Add( a.ToString() ) );
+                    return "<small>" + summary.AsDelimited( "<br/>" ) + "</small>";
+                }
+            }
+
+            public string StatusText
+            {
+                get
+                {
+                    return Status.ConvertToString();
+                }
+            }
+
+
+            public string StatusLabelClass
+            {
+                get
+                {
+                    switch ( Status )
+                    {
+                        case BatchStatus.Closed:
+                            return "label label-default";
+                        case BatchStatus.Open:
+                            return "label label-info";
+                        case BatchStatus.Pending:
+                            return "label label-warning";
+                    }
+
+                    return string.Empty;
+                }
+            }
+
+            public string Notes
+            {
+                get
+                {
+                    var notes = new StringBuilder();
+
+                    switch ( Status )
+                    {
+                        case BatchStatus.Open:
+                            {
+                                if ( UnMatchedTxns )
+                                {
+                                    notes.Append( "<span class='label label-warning'>Unmatched Transactions</span><br/>" );
+                                }
+
+                                break;
+                            }
+                    }
+
+                    notes.Append( BatchNote );
+                    return notes.ToString();
+                }
+            }
+        }
+
         class ShelbyPerson
         {
             public int NameCounter;
@@ -1520,6 +1389,7 @@ if (counter > 900) break;
             public int PurCounter;
             public string Descr;
             public Decimal PurAmount;
+            public string ERROR;
 
             public ShelbyContribution( SqlDataReader reader )
             {

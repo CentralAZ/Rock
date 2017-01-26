@@ -73,7 +73,7 @@
                 </p>
 
                 <!-- SignalR client notification area -->
-                <div class="well" id="messageContainer" runat="server" style="display:none;">
+                <div class="well" id="messageContainer" runat="server" style="">
                     <div id="processingUsers"></div>
                     <div id="processingBatches"></div>
                     <div id="processingTransactions"></div>

@@ -91,6 +91,9 @@ namespace RockWeb.Plugins.com_centralaz.Finance
 
         private Regex reOnlyDigits = new Regex( @"^[0-9-\/\.]+$" );
 
+        // Home Number type phone
+        private int _homePhoneDefinedValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_PHONE_TYPE_HOME ).Id;
+
         // Shelby Marital statuses: U, W, M, D, P, S
         private DefinedTypeCache _maritalStatusDefinedType = DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.PERSON_MARITAL_STATUS.AsGuid() );
 
@@ -369,6 +372,7 @@ namespace RockWeb.Plugins.com_centralaz.Finance
                     command.CommandText = @"SELECT COUNT(1) as 'Count'
 FROM [Shelby].[NANames] N WITH(NOLOCK)
 LEFT JOIN [Shelby].[NAAddresses] A WITH(NOLOCK) ON A.AddressCounter = N.MainAddress
+LEFT JOIN [Shelby].[NAPhones] P WITH(NOLOCK) ON P.[NameCounter] = N.[NameCounter] AND P.[PhoneCounter] = 1
 WHERE N.NameCounter IN ( SELECT H.NameCounter FROM [Shelby].[CNHst] H WITH(NOLOCK) )";
                     using ( SqlDataReader reader = command.ExecuteReader() )
                     {
@@ -381,9 +385,10 @@ WHERE N.NameCounter IN ( SELECT H.NameCounter FROM [Shelby].[CNHst] H WITH(NOLOC
                         }
                     }
 
-                    command.CommandText = @"SELECT N.[NameCounter], N.[EMailAddress], N.[Gender], N.[Salutation], N.[FirstMiddle], N.[LastName], N.[MaritalStatus], A.[Adr1], A.[Adr2], A.[City], A.[State], A.[PostalCode]
+                    command.CommandText = @"SELECT P.[PhoneNu], N.[NameCounter], N.[EMailAddress], N.[Gender], N.[Salutation], N.[FirstMiddle], N.[LastName], N.[MaritalStatus], A.[Adr1], A.[Adr2], A.[City], A.[State], A.[PostalCode]
 FROM [Shelby].[NANames] N WITH(NOLOCK)
 LEFT JOIN [Shelby].[NAAddresses] A WITH(NOLOCK) ON A.[AddressCounter] = N.[MainAddress]
+LEFT JOIN [Shelby].[NAPhones] P WITH(NOLOCK) ON P.[NameCounter] = N.[NameCounter] AND P.[PhoneCounter] = 1
 WHERE N.[NameCounter] IN ( SELECT H.[NameCounter] FROM [Shelby].[CNHst] H WITH(NOLOCK) )";
 
                     using ( SqlDataReader reader = command.ExecuteReader() )
@@ -396,9 +401,17 @@ WHERE N.[NameCounter] IN ( SELECT H.[NameCounter] FROM [Shelby].[CNHst] H WITH(N
                                 var shelbyPerson = new ShelbyPerson( reader );
                                 int nameCounter = shelbyPerson.NameCounter;
 
-                                int? personAliasId = FindOrCreateNewPerson( personService, shelbyPerson );
+                                // Throw away the context and get a new one periodically to improve performance
+                                // change detection.
+                                if ( counter % 100 == 0 )
+                                {
+                                    rockContext = new RockContext();
+                                    rockContext.Configuration.AutoDetectChangesEnabled = false;
+                                    personService = new PersonService( rockContext );
+                                }
+
+                                int? personAliasId = FindOrCreateNewPerson( personService, shelbyPerson, counter );
                                 NotifyClientProcessingUsers( counter, totalCount );
-                                //NotifyClient( "{0}", nameCounter );
 
                                 if ( personAliasId != null )
                                 {
@@ -824,7 +837,7 @@ if (counter > 2000) break;
         /// <param name="personService">The person service.</param>
         /// <param name="shelbyPerson">The shelby person.</param>
         /// <returns>The person's PersonAliasId</returns>
-        private int? FindOrCreateNewPerson( PersonService personService, ShelbyPerson shelbyPerson )
+        private int? FindOrCreateNewPerson( PersonService personService, ShelbyPerson shelbyPerson, int count )
         {
             int? personAliasId = null;
             string firstName = ( shelbyPerson.Salutation != string.Empty ) ? shelbyPerson.Salutation : shelbyPerson.FirstMiddle;
@@ -901,9 +914,25 @@ if (counter > 2000) break;
                 }
                 person.MaritalStatusValueId = FindMatchingMaritalStatus( shelbyPerson.MaritalStatus );
                 person.ForeignKey = namecounter;
+                if ( !string.IsNullOrWhiteSpace( shelbyPerson.HomePhone ) )
+                {
+                    var phoneNumber = new PhoneNumber
+                    {
+                        NumberTypeValueId = _homePhoneDefinedValueId,
+                        Number = PhoneNumber.CleanNumber( shelbyPerson.HomePhone )
+                    };
+
+                    // Format number since default SaveChanges() is not being used.
+                    phoneNumber.NumberFormatted = PhoneNumber.FormattedNumber( phoneNumber.CountryCode, phoneNumber.Number );
+
+                    person.PhoneNumbers.Add( phoneNumber );
+                }
 
                 RockContext rockContext = (RockContext) personService.Context;
                 Rock.Model.Group familyGroup = PersonService.SaveNewPerson( person, rockContext );
+
+                // Here you MUST detect changes before you save otherwise things like the ID and PrimaryAliasId
+                // won't be resolved.
                 rockContext.ChangeTracker.DetectChanges();
                 rockContext.SaveChanges( disablePrePostProcessing: true );
                 personAliasId = person.PrimaryAliasId;
@@ -1315,6 +1344,7 @@ if (counter > 2000) break;
             public string State;
             public string PostalCode;
             public string EmailAddress;
+            public string HomePhone;
 
             public ShelbyPerson( SqlDataReader reader )
             {
@@ -1336,6 +1366,7 @@ if (counter > 2000) break;
                 City = reader["City"].ToStringSafe();
                 State = reader["State"].ToStringSafe();
                 PostalCode = reader["PostalCode"].ToStringSafe();
+                HomePhone = reader["PhoneNu"].ToStringSafe();
             }
         }
 

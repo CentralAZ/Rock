@@ -833,6 +833,9 @@ ORDER BY N.[NameCounter]";
                     // this should not happen because we're dealing with the whole set at once.
                     // but I don't think it's an error -- it just means the record already existed.  It
                     // could be that they are running it a second time.
+                    // Drain the queue and move to the next set
+                    shelbyContributionsSet.Clear();
+                    return;
                 }
 
                 while ( shelbyContributionsSet.Count > 0 )
@@ -1158,7 +1161,7 @@ ORDER BY N.[NameCounter]";
             double percent = ( double ) count / total * 100;
             var x = string.Format( @"Processing {2} {3}...
                 <div class='progress'>
-                  <div class='progress-bar {4}' role='progressbar' aria-valuenow='{0:0}' aria-valuemin='0' aria-valuemax='100' style='width: {0:0}%;'>{1}</div>
+                  <div class='progress-bar {4}' role='progressbar' aria-valuenow='{0:0}' aria-valuemin='0' aria-valuemax='100' style='min-width: 2em; width: {0:0}%;'>{1}</div>
                 </div>", percent, count, total, itemTitle, progressBarclass );
             _hubContext.Clients.All.receiveNotification( htmlId, x );
         }

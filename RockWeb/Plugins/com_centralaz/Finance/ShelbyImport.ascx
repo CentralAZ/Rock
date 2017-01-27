@@ -80,9 +80,8 @@
                 </div>
 
                 <asp:Panel ID="pnlErrors" runat="server" Visible="false" CssClass="alert alert-danger block-message error">
-                    <Rock:Grid ID="gErrors" runat="server" AllowSorting="false" OnRowDataBound="gErrors_RowDataBound" RowItemText="error" AllowPaging="false" RowStyle-CssClass="danger" AlternatingRowStyle-CssClass="danger" ShowActionRow="false">
-                        
-                    </Rock:Grid>
+                    <h3>Error Transactions</h3>
+                    <asp:GridView ID="gErrors" runat="server" AutoGenerateColumns="true" CssClass="table table-striped" BorderColor="White"></asp:GridView>
                 </asp:Panel>
 
                 <Rock:NotificationBox ID="nbBatch" runat="server" NotificationBoxType="Success" />

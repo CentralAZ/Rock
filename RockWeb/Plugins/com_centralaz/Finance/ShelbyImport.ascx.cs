@@ -62,6 +62,7 @@ namespace RockWeb.Plugins.com_centralaz.Finance
     [DisplayName( "Shelby Import" )]
     [Category( "com_centralaz > Finance" )]
     [Description( "Finance block to import contribution data from a Shelby database. It will add new people if a match cannot be made, import the batches, and financial transactions." )]
+    [DefinedValueField( "2E6540EA-63F0-40FE-BE50-F2A84735E600", "Connection Status", "The connection status to use for new individuals (default: 'Web Prospect'.)", true, false, "368DD475-242C-49C4-A42C-7278BE690CC2", "", 0 )]
 
     [TextField( "Batch Name Prefix", "The prefix that should be used for the name of the batches that are created. Note: the Shelby Batch Number will be appended to the name.", true, "Glendale Shelby", order: 0 )]
     [LinkedPage( "Batch Detail Page", "The page used to display the contributions for a specific batch", true, "", "Linked Pages", 0 )]
@@ -93,6 +94,9 @@ namespace RockWeb.Plugins.com_centralaz.Finance
 
         // Home Number type phone
         private int _homePhoneDefinedValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_PHONE_TYPE_HOME ).Id;
+
+        // Connection Status
+        private int connectionStatusDefinedValueId = -1;
 
         // Shelby Marital statuses: U, W, M, D, P, S
         private DefinedTypeCache _maritalStatusDefinedType = DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.PERSON_MARITAL_STATUS.AsGuid() );
@@ -140,8 +144,8 @@ namespace RockWeb.Plugins.com_centralaz.Finance
             base.OnInit( e );
             gBatchList.GridRebind += gBatchList_GridRebind;
             gBatchList.RowDataBound += gBatchList_RowDataBound;
-            gErrors.GridRebind += gErrors_GridRebind;
-            gErrors.RowDataBound += gErrors_RowDataBound;
+            //gErrors.GridRebind += gErrors_GridRebind;
+            //gErrors.RowDataBound += gErrors_RowDataBound;
 
             // this event gets fired after block settings are updated. it's nice to repaint the screen if these settings would alter it
             this.BlockUpdated += Block_BlockUpdated;
@@ -155,6 +159,7 @@ namespace RockWeb.Plugins.com_centralaz.Finance
             _fundAccountMappingDictionary = Regex.Matches( GetAttributeValue( FUND_ACCOUNT_MAPPINGS ), @"\s*(.*?)\s*=\s*(.*?)\s*(;|,|$)" )
                 .OfType<Match>()
                 .ToDictionary( m => m.Groups[1].Value, m => m.Groups[2].Value );
+            connectionStatusDefinedValueId = DefinedValueCache.Read( GetAttributeValue( "ConnectionStatus" ).AsGuid() ).Id;
         }
 
         /// <summary>
@@ -213,8 +218,13 @@ namespace RockWeb.Plugins.com_centralaz.Finance
 
                 _hubContext.Clients.All.showLog();
                 importedPeople = ProcessPeople();
-                importedBatches = ProcessBatches();
-                importedTransactions = ProcessTransactions();
+
+                // Don't continue if there were errors.
+                if ( _errorElements.Count == 0 )
+                {
+                    importedBatches = ProcessBatches();
+                    importedTransactions = ProcessTransactions();
+                }
 
                 BindGrid();
                 pnlConfiguration.Visible = false;
@@ -359,7 +369,7 @@ namespace RockWeb.Plugins.com_centralaz.Finance
             try
             {
                 RockContext rockContext = new RockContext();
-                rockContext.Configuration.AutoDetectChangesEnabled = false;
+                //rockContext.Configuration.AutoDetectChangesEnabled = false;
                 PersonService personService = new PersonService( rockContext );
                 var connectionString = GetConnectionString();
                 using ( SqlConnection connection = new SqlConnection( connectionString ) )
@@ -389,7 +399,8 @@ WHERE N.NameCounter IN ( SELECT H.NameCounter FROM [Shelby].[CNHst] H WITH(NOLOC
 FROM [Shelby].[NANames] N WITH(NOLOCK)
 LEFT JOIN [Shelby].[NAAddresses] A WITH(NOLOCK) ON A.[AddressCounter] = N.[MainAddress]
 LEFT JOIN [Shelby].[NAPhones] P WITH(NOLOCK) ON P.[NameCounter] = N.[NameCounter] AND P.[PhoneCounter] = 1
-WHERE N.[NameCounter] IN ( SELECT H.[NameCounter] FROM [Shelby].[CNHst] H WITH(NOLOCK) )";
+WHERE N.[NameCounter] IN ( SELECT H.[NameCounter] FROM [Shelby].[CNHst] H WITH(NOLOCK) )
+ORDER BY N.[NameCounter]";
 
                     using ( SqlDataReader reader = command.ExecuteReader() )
                     {
@@ -417,10 +428,13 @@ WHERE N.[NameCounter] IN ( SELECT H.[NameCounter] FROM [Shelby].[CNHst] H WITH(N
                                 {
                                     _shelbyPersonMappingDictionary.AddOrReplace( nameCounter, personAliasId.Value );
                                 }
-
-#if DEBUG
-if (counter > 3000) break;
-#endif
+                                else
+                                {
+                                    var shelbyContribution = new ShelbyContribution();
+                                    shelbyContribution.ERROR = string.Format( "Person with Shelby NameCounter {0} could not be found.", nameCounter );
+                                    _errorElements.Add( shelbyContribution );
+                                    break;
+                                }
                             }
                         }
 
@@ -497,9 +511,6 @@ if (counter > 3000) break;
                                 {
                                     _shelbyBatchMappingDictionary.AddOrReplace( shelbyBatch.BatchNu, rockBatchId.Value );
                                 }
-#if DEBUG
-if (counter > 2000) break;
-#endif
                             }
                         }
 
@@ -675,9 +686,7 @@ if (counter > 2000) break;
                                     }
 
                                     NotifyClientProcessingTransactions( counter, totalCount );
-#if DEBUG
-//if (counter > 30000) break;
-#endif
+
                                 }
                                 catch ( Exception ex )
                                 {
@@ -728,104 +737,127 @@ if (counter > 2000) break;
         /// </summary>
         private void FindOrCreateTransaction( FinancialTransactionService transactionService, Queue<ShelbyContribution> shelbyContributionsSet, int count )
         {
-            var shelbyContribution = shelbyContributionsSet.Dequeue();
-            string counter = shelbyContribution.Counter.ToStringSafe();
-            FinancialTransaction financialTransaction = transactionService.Queryable().Where( p => p.ForeignKey == counter ).FirstOrDefault();
-
-            if ( financialTransaction == null )
+            if ( shelbyContributionsSet.Count == 0 )
             {
-                financialTransaction = new FinancialTransaction();
-                //financialTransaction.TotalAmount = shelbyContribution.Amount;
-                financialTransaction.TransactionTypeValueId = _transactionTypeIdContribution;
-                financialTransaction.Summary = shelbyContribution.Memo;
-                financialTransaction.TransactionCode = shelbyContribution.CheckNu;
-                financialTransaction.ProcessedDateTime = Rock.RockDateTime.Now;
-                financialTransaction.TransactionDateTime = shelbyContribution.WhenSetup;
-                financialTransaction.ForeignKey = shelbyContribution.Counter.ToStringSafe();
-                financialTransaction.AuthorizedPersonAliasId = _shelbyPersonMappingDictionary[shelbyContribution.NameCounter];
-                financialTransaction.BatchId = _shelbyBatchMappingDictionary[shelbyContribution.BatchNu];
+                return;
+            }
 
-                if ( _shelbyWhoMappingDictionary.ContainsKey( shelbyContribution.WhoSetup ) )
-                {
-                    financialTransaction.CreatedByPersonAliasId = _shelbyWhoMappingDictionary[shelbyContribution.WhoSetup];
-                }
+            var shelbyContribution = shelbyContributionsSet.Dequeue();
+            try
+            {
+                string counter = shelbyContribution.Counter.ToStringSafe();
+                FinancialTransaction financialTransaction = transactionService.Queryable().Where( p => p.ForeignKey == counter ).FirstOrDefault();
 
-                if ( _shelbyWhoMappingDictionary.ContainsKey( shelbyContribution.WhoUpdated ) )
+                if ( financialTransaction == null )
                 {
-                    financialTransaction.ModifiedByPersonAliasId = _shelbyWhoMappingDictionary[shelbyContribution.WhoUpdated];
-                }
+                    financialTransaction = new FinancialTransaction();
+                    //financialTransaction.TotalAmount = shelbyContribution.Amount;
+                    financialTransaction.TransactionTypeValueId = _transactionTypeIdContribution;
+                    financialTransaction.Summary = shelbyContribution.Memo;
+                    financialTransaction.TransactionCode = shelbyContribution.CheckNu;
+                    financialTransaction.ProcessedDateTime = Rock.RockDateTime.Now;
+                    financialTransaction.TransactionDateTime = shelbyContribution.WhenSetup;
+                    financialTransaction.ForeignKey = shelbyContribution.Counter.ToStringSafe();
+                    financialTransaction.AuthorizedPersonAliasId = _shelbyPersonMappingDictionary[shelbyContribution.NameCounter];
+                    financialTransaction.BatchId = _shelbyBatchMappingDictionary[shelbyContribution.BatchNu];
 
-                // Hardcoded junk...
-                if ( shelbyContribution.CheckNu.Contains( "cash" ) )
-                {
-                    financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_ONSITE_COLLECTION.AsGuid() ).Id;
-                }
-                else if ( shelbyContribution.CheckNu.Contains( "kiosk" ) )
-                {
-                    financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_KIOSK.AsGuid() ).Id;
-                }
-                else if ( shelbyContribution.CheckNu.StartsWith( "on" ) )
-                {
-                    financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_WEBSITE.AsGuid() ).Id;
-                }
-                else
-                {
-                    financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_ONSITE_COLLECTION.AsGuid() ).Id;
-                }
+                    if ( _shelbyWhoMappingDictionary.ContainsKey( shelbyContribution.WhoSetup ) )
+                    {
+                        financialTransaction.CreatedByPersonAliasId = _shelbyWhoMappingDictionary[shelbyContribution.WhoSetup];
+                    }
 
-                // set up the necessary Financial Payment Detail record
-                if ( financialTransaction.FinancialPaymentDetail == null )
-                {
-                    financialTransaction.FinancialPaymentDetail = new FinancialPaymentDetail();
-                    financialTransaction.FinancialPaymentDetail.ForeignKey = shelbyContribution.DetailCounter.ToStringSafe();
-                    financialTransaction.FinancialPaymentDetail.CreatedDateTime = shelbyContribution.WhenSetup;
+                    if ( _shelbyWhoMappingDictionary.ContainsKey( shelbyContribution.WhoUpdated ) )
+                    {
+                        financialTransaction.ModifiedByPersonAliasId = _shelbyWhoMappingDictionary[shelbyContribution.WhoUpdated];
+                    }
 
-                    // Now find the matching tender type...
-                    // Get the tender type and put in cache if we've not encountered it before.
+                    // Hardcoded junk...
                     if ( shelbyContribution.CheckNu.Contains( "cash" ) )
                     {
-                        financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CASH.AsGuid() ).Id;
+                        financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_ONSITE_COLLECTION.AsGuid() ).Id;
                     }
-                    else if ( reOnlyDigits.IsMatch( shelbyContribution.CheckNu ) )
+                    else if ( shelbyContribution.CheckNu.Contains( "kiosk" ) )
                     {
-                        financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CHECK.AsGuid() ).Id;
+                        financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_KIOSK.AsGuid() ).Id;
+                    }
+                    else if ( shelbyContribution.CheckNu.StartsWith( "on" ) )
+                    {
+                        financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_WEBSITE.AsGuid() ).Id;
                     }
                     else
                     {
-                        financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_NONCASH.AsGuid() ).Id;
+                        financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_ONSITE_COLLECTION.AsGuid() ).Id;
                     }
+
+                    // set up the necessary Financial Payment Detail record
+                    if ( financialTransaction.FinancialPaymentDetail == null )
+                    {
+                        financialTransaction.FinancialPaymentDetail = new FinancialPaymentDetail();
+                        financialTransaction.FinancialPaymentDetail.ForeignKey = shelbyContribution.DetailCounter.ToStringSafe();
+                        financialTransaction.FinancialPaymentDetail.CreatedDateTime = shelbyContribution.WhenSetup;
+
+                        // Now find the matching tender type...
+                        // Get the tender type and put in cache if we've not encountered it before.
+                        if ( shelbyContribution.CheckNu.Contains( "cash" ) )
+                        {
+                            financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CASH.AsGuid() ).Id;
+                        }
+                        else if ( reOnlyDigits.IsMatch( shelbyContribution.CheckNu ) )
+                        {
+                            financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CHECK.AsGuid() ).Id;
+                        }
+                        else
+                        {
+                            var nonCash = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_NONCASH.AsGuid() );
+                            // For some reason our production system does not have the above system GUID.
+                            if ( nonCash == null )
+                            {
+                                nonCash = DefinedValueCache.Read( "6E4DA648-EF54-4375-A9FF-B675E6239E78".AsGuid() );
+                            }
+
+                            if ( nonCash != null )
+                            {
+                                financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = nonCash.Id;
+                            }
+                        }
+                    }
+
+                    FinancialTransactionDetail transactionDetail = new FinancialTransactionDetail();
+                    transactionDetail.AccountId = _fundAccountMappingDictionary[shelbyContribution.PurCounter.ToString()].AsInteger();
+                    transactionDetail.ForeignKey = shelbyContribution.DetailCounter.ToStringSafe();
+                    transactionDetail.Amount = shelbyContribution.PurAmount;
+                    financialTransaction.TransactionDetails.Add( transactionDetail );
+                }
+                else
+                {
+                    // this should not happen because we're dealing with the whole set at once.
+                    // but I don't think it's an error -- it just means the record already existed.  It
+                    // could be that they are running it a second time.
                 }
 
-                FinancialTransactionDetail transactionDetail = new FinancialTransactionDetail();
-                transactionDetail.AccountId = _fundAccountMappingDictionary[shelbyContribution.PurCounter.ToString()].AsInteger();
-                transactionDetail.ForeignKey = shelbyContribution.DetailCounter.ToStringSafe();
-                transactionDetail.Amount = shelbyContribution.PurAmount;
-                financialTransaction.TransactionDetails.Add( transactionDetail );
+                while ( shelbyContributionsSet.Count > 0 )
+                {
+                    shelbyContribution = shelbyContributionsSet.Dequeue();
+                    FinancialTransactionDetail transactionDetail = new FinancialTransactionDetail();
+                    transactionDetail.AccountId = _fundAccountMappingDictionary[shelbyContribution.PurCounter.ToString()].AsInteger();
+                    transactionDetail.ForeignKey = shelbyContribution.DetailCounter.ToStringSafe();
+                    transactionDetail.Amount = shelbyContribution.PurAmount;
+                    financialTransaction.TransactionDetails.Add( transactionDetail );
+                }
+
+                // Now save/write the whole set...
+                transactionService.Add( financialTransaction );
+                RockContext rockContext = ( RockContext ) transactionService.Context;
+                if ( count % 200 == 0 )
+                {
+                    rockContext.ChangeTracker.DetectChanges();
+                    rockContext.SaveChanges( disablePrePostProcessing: true );
+                }
             }
-            else
+            catch (Exception ex )
             {
-                // this should not happen because we're dealing with the whole set at once.
-                shelbyContribution.ERROR = string.Format( "Transaction already existed!?? (Shelby CNHst.Counter: {0})", shelbyContribution.Counter );
+                shelbyContribution.ERROR = ex.Message + " : " + ex.StackTrace + " : " + ex.InnerException + " : " + string.Join( "^^^", ex.Messages().ToArray() );
                 _errorElements.Add( shelbyContribution );
-            }
-
-            while ( shelbyContributionsSet.Count > 0 )
-            {
-                shelbyContribution = shelbyContributionsSet.Dequeue();
-                FinancialTransactionDetail transactionDetail = new FinancialTransactionDetail();
-                transactionDetail.AccountId = _fundAccountMappingDictionary[shelbyContribution.PurCounter.ToString()].AsInteger();
-                transactionDetail.ForeignKey = shelbyContribution.DetailCounter.ToStringSafe();
-                transactionDetail.Amount = shelbyContribution.PurAmount;
-                financialTransaction.TransactionDetails.Add( transactionDetail );
-            }
-
-            // Now save/write the whole set...
-            transactionService.Add( financialTransaction );
-            RockContext rockContext = ( RockContext ) transactionService.Context;
-            //rockContext.ChangeTracker.DetectChanges();
-            if ( count % 200 == 0 )
-            {
-                rockContext.SaveChanges( disablePrePostProcessing: true );
             }
         }
 
@@ -843,7 +875,7 @@ if (counter > 2000) break;
             string firstName = ( shelbyPerson.Salutation != string.Empty ) ? shelbyPerson.Salutation : shelbyPerson.FirstMiddle;
             string namecounter = shelbyPerson.NameCounter.ToStringSafe();
 
-            var exactPerson = personService.Queryable().Where( p => p.ForeignKey == namecounter ).FirstOrDefault();
+            var exactPerson = personService.Queryable().Where( p => p.ForeignKey == namecounter ).AsNoTracking().FirstOrDefault();
 
             if ( exactPerson != null )
             {
@@ -852,7 +884,7 @@ if (counter > 2000) break;
 
             if ( personAliasId == null && firstName != string.Empty && shelbyPerson.LastName != string.Empty )
             {
-                var people = personService.GetByFirstLastName( firstName, shelbyPerson.LastName, true, true );
+                var people = personService.GetByFirstLastName( firstName, shelbyPerson.LastName, true, true ).AsNoTracking();
 
                 // find any matches?
                 if ( people.Any() )
@@ -878,7 +910,7 @@ if (counter > 2000) break;
             // If no match was found, try matching just by email address
             if ( personAliasId == null && shelbyPerson.EmailAddress != string.Empty )
             {
-                var people = personService.GetByEmail( shelbyPerson.EmailAddress, true, true );
+                var people = personService.GetByEmail( shelbyPerson.EmailAddress, true, true ).AsNoTracking();
                 if ( people.Any() && people.Count() == 1 )
                 {
                     personAliasId = people.FirstOrDefault().PrimaryAliasId;
@@ -913,6 +945,7 @@ if (counter > 2000) break;
                         break;
                 }
                 person.MaritalStatusValueId = FindMatchingMaritalStatus( shelbyPerson.MaritalStatus );
+                person.ConnectionStatusValueId = connectionStatusDefinedValueId;
                 person.ForeignKey = namecounter;
                 if ( !string.IsNullOrWhiteSpace( shelbyPerson.HomePhone ) )
                 {
@@ -956,7 +989,7 @@ if (counter > 2000) break;
         {
             var theDefinedValue = _maritalStatusDefinedType.DefinedValues.FirstOrDefault( a => a.Value.StartsWith( theValue, StringComparison.CurrentCultureIgnoreCase ) );
             // use the unknown value if we didn't find a match.
-            if ( theDefinedValue == null )
+            if ( string.IsNullOrWhiteSpace( theValue ) || theDefinedValue == null )
             {
                 theDefinedValue = _maritalStatusDefinedType.DefinedValues.FirstOrDefault( a => String.Equals( a.Value, "Unknown", StringComparison.CurrentCultureIgnoreCase ) );
             }
@@ -1402,25 +1435,28 @@ if (counter > 2000) break;
         /// 	H.[WhenSetup], H.[WhenUpdated], H.[WhoSetup], H.[WhoUpdated], H.[CheckType], D.[PurCounter],
         /// 	P.[Descr], D.[Amount] as 'PurAmount'
         /// </summary>
-        class ShelbyContribution
+        public class ShelbyContribution
         {
-            public int Counter;
-            public int DetailCounter;
-            public Decimal Amount;
-            public int BatchNu;
-            public string CheckNu;
-            public DateTime CNDate;
-            public string Memo;
-            public int NameCounter;
-            public DateTime WhenSetup;
-            public DateTime WhenUpdated;
-            public string WhoSetup;
-            public string WhoUpdated;
-            public string CheckType;
-            public int PurCounter;
-            public string Descr;
-            public Decimal PurAmount;
-            public string ERROR;
+            public int Counter { get; set; }
+            public int DetailCounter { get; set; }
+            public Decimal Amount { get; set; }
+            public int BatchNu { get; set; }
+            public string CheckNu { get; set; }
+            public DateTime CNDate { get; set; }
+            public string Memo { get; set; }
+            public int NameCounter { get; set; }
+            public DateTime WhenSetup { get; set; }
+            public DateTime WhenUpdated { get; set; }
+            public string WhoSetup { get; set; }
+            public string WhoUpdated { get; set; }
+            public string CheckType { get; set; }
+            public int PurCounter { get; set; }
+            public string Descr { get; set; }
+            public Decimal PurAmount { get; set; }
+            public string ERROR { get; set; }
+
+            public ShelbyContribution()
+            { }
 
             public ShelbyContribution( SqlDataReader reader )
             {

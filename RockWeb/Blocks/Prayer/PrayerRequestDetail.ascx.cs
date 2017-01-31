@@ -18,7 +18,7 @@ using System;
 using System.ComponentModel;
 using System.Linq;
 using System.Web.UI;
-
+using System.Web.UI.WebControls;
 using Rock;
 using Rock.Attribute;
 using Rock.Constants;
@@ -26,6 +26,7 @@ using Rock.Data;
 using Rock.Model;
 using Rock.Security;
 using Rock.Web;
+using Rock.Web.Cache;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
 
@@ -40,6 +41,7 @@ namespace RockWeb.Blocks.Prayer
     [BooleanField( "Set Current Person To Requester", "Will set the current person as the requester. This is useful in self-entry situiations.", false, order: 2 )]
 
     [BooleanField( "Require Last Name", "Require that a last name be entered", true, "", 3 )]
+    [BooleanField( "Show Delete Option", "Allow delete button to be visible on page", true, "", 4 )]
     public partial class PrayerRequestDetail : RockBlock, IDetailBlock
     {
         #region Properties
@@ -131,6 +133,7 @@ namespace RockWeb.Blocks.Prayer
             if ( !Page.IsPostBack )
             {
                 ShowDetail( PageParameter( "prayerRequestId" ).AsInteger() );
+                lbDelete.Visible=GetAttributeValue("ShowDeleteOption").AsBooleanOrNull() ?? true;
             }
 
             base.OnLoad( e );
@@ -172,12 +175,54 @@ namespace RockWeb.Blocks.Prayer
         {
             NavigateToParentPage();
         }
-
+ 
         /// <summary>
-        /// Handles the SelectPerson event of the ppRequestor control.
+        /// Handles the Click event of the lbDelete control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        /// <param name="e">The <see cref="EventArgs" /> instance containing the event data.</param>
+        protected void lbDelete_Click(object sender, EventArgs e)
+        {
+            int prayerRequestId = hfPrayerRequestId.ValueAsInt();
+
+            var rockContext = new RockContext();
+            PrayerRequestService prayerRequestService = new PrayerRequestService(rockContext);
+            PrayerRequest prayerRequest = prayerRequestService.Get(prayerRequestId);
+
+            if (prayerRequest != null)
+            {
+                DeleteAllRelatedNotes(prayerRequest, rockContext);
+
+                string errorMessage;
+                if (!prayerRequestService.CanDelete(prayerRequest, out errorMessage))
+                {
+                    maWarning.Show(errorMessage, ModalAlertType.Information);
+                    return;
+                }
+
+                prayerRequestService.Delete(prayerRequest);
+                rockContext.SaveChanges();
+                NavigateToParentPage();
+            }
+        }
+
+        /// <summary>
+        /// Deletes all related notes.
+        /// </summary>
+        /// <param name="prayerRequest">The prayer request.</param>
+        private void DeleteAllRelatedNotes(PrayerRequest prayerRequest, RockContext rockContext)
+        {
+            var noteTypeService = new NoteTypeService(rockContext);
+            var noteType = noteTypeService.Get(Rock.SystemGuid.NoteType.PRAYER_COMMENT.AsGuid());
+            var noteService = new NoteService(rockContext);
+            var prayerComments = noteService.Get(noteType.Id, prayerRequest.Id);
+            foreach (Note prayerComment in prayerComments)
+            {
+                noteService.Delete(prayerComment);
+            }
+
+            rockContext.SaveChanges();
+        }
         protected void ppRequestor_SelectPerson( object sender, EventArgs e )
         {
             if ( ppRequestor.PersonId.HasValue )
@@ -547,5 +592,6 @@ namespace RockWeb.Blocks.Prayer
         }
 
         #endregion
+
     }
 }

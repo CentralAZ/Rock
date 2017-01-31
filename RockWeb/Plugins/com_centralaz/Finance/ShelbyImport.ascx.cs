@@ -33,6 +33,7 @@ using Rock.Model;
 using Rock.Security;
 using Rock.Web.Cache;
 using Rock.Web.UI.Controls;
+using System.Diagnostics;
 
 namespace RockWeb.Plugins.com_centralaz.Finance
 {
@@ -85,7 +86,7 @@ namespace RockWeb.Plugins.com_centralaz.Finance
 
         private static readonly string FUND_ACCOUNT_MAPPINGS = "FundAccountMappings";
         private List<ShelbyContribution> _errorElements = new List<ShelbyContribution>();
-
+        private Stopwatch _stopwatch;
         private int _personRecordTypeId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
         private int _personStatusPending = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_PENDING.AsGuid() ).Id;
         private int _transactionTypeIdContribution = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_CONTRIBUTION.AsGuid() ).Id;
@@ -105,7 +106,10 @@ namespace RockWeb.Plugins.com_centralaz.Finance
         private Dictionary<String, String> _fundAccountMappingDictionary = new Dictionary<string, string>();
 
         // Holds the Shelby NameCounter to Rock PersonAliasId map
-        private Dictionary<int, int> _shelbyPersonMappingDictionary = new Dictionary<int, int>();
+        private static Dictionary<int, int> _shelbyPersonMappingDictionary = new Dictionary<int, int>();
+
+        // Holds a record of the completed ShelbyContribution counters
+        private static Dictionary<int, bool> _shelbyContributionsCompleted = new Dictionary<int, bool>();
 
         // Holds the Shelby Batch to Rock Batch map
         private Dictionary<int, int> _shelbyBatchMappingDictionary = new Dictionary<int, int>();
@@ -169,10 +173,10 @@ namespace RockWeb.Plugins.com_centralaz.Finance
         protected override void OnLoad( EventArgs e )
         {
             base.OnLoad( e );
-
-            // Set timeout for up to 30 minutes (just like installer)
-            Server.ScriptTimeout = 1800;
-            ScriptManager.GetCurrent( Page ).AsyncPostBackTimeout = 1800;
+            Session.Timeout = 120;
+            // Set timeout for up to 60 minutes (twice as long as the installer)
+            Server.ScriptTimeout = 3600;
+            ScriptManager.GetCurrent( Page ).AsyncPostBackTimeout = 3600;
 
             if ( !Page.IsPostBack )
             {
@@ -189,6 +193,15 @@ namespace RockWeb.Plugins.com_centralaz.Finance
                 BindGrid();
                 BindErrorGrid();
             }
+
+            if ( _shelbyPersonMappingDictionary != null )
+            {
+                lSessionStats.Text = string.Format( "people ({0}) ", _shelbyPersonMappingDictionary.Count );
+            }
+            if ( _shelbyContributionsCompleted != null )
+            {
+                lSessionStats.Text += string.Format( "contributions ({0})", _shelbyContributionsCompleted.Count );
+            }
         }
 
         #endregion
@@ -202,6 +215,8 @@ namespace RockWeb.Plugins.com_centralaz.Finance
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void lbImport_Click( object sender, EventArgs e )
         {
+            _stopwatch = new Stopwatch();
+            _stopwatch.Start();
             // clear any old errors:
             _errorElements = new List<ShelbyContribution>();
             nbMessage.Text = "";
@@ -238,12 +253,12 @@ namespace RockWeb.Plugins.com_centralaz.Finance
 
             _shelbyBatchMappingDictionary.Clear();
             _fundAccountMappingDictionary.Clear();
-            _shelbyPersonMappingDictionary.Clear();
+            //_shelbyPersonMappingDictionary.Clear();
             _shelbyWhoMappingDictionary.Clear();
 
             _shelbyBatchMappingDictionary = null;
             _fundAccountMappingDictionary = null;
-            _shelbyPersonMappingDictionary = null;
+            //_shelbyPersonMappingDictionary = null;
             _shelbyWhoMappingDictionary = null;
 
             if ( _errorElements.Count > 0 )
@@ -364,6 +379,11 @@ namespace RockWeb.Plugins.com_centralaz.Finance
         /// </summary>
         private int ProcessPeople()
         {
+            if ( Session["ShelbyImport:shelbyPersonMappingDictionary"] != null )
+            {
+                _shelbyPersonMappingDictionary = Session["ShelbyImport:shelbyPersonMappingDictionary"] as Dictionary<int, int>;
+            }
+
             int totalCount = 0;
             int counter = 0;
             try
@@ -411,6 +431,7 @@ ORDER BY N.[NameCounter]";
                                 counter++;
                                 var shelbyPerson = new ShelbyPerson( reader );
                                 int nameCounter = shelbyPerson.NameCounter;
+                                int? personAliasId = null;
 
                                 // Throw away the context and get a new one periodically to improve performance
                                 // change detection.
@@ -421,23 +442,27 @@ ORDER BY N.[NameCounter]";
                                     personService = new PersonService( rockContext );
                                 }
 
-                                int? personAliasId = FindOrCreateNewPerson( personService, shelbyPerson, counter );
-                                NotifyClientProcessingUsers( counter, totalCount );
+                                // Skip it if the name counter is already mapped
+                                if ( !_shelbyPersonMappingDictionary.ContainsKey( nameCounter ) )
+                                {
+                                    personAliasId = FindOrCreateNewPerson( personService, shelbyPerson, counter );
 
-                                if ( personAliasId != null )
-                                {
-                                    _shelbyPersonMappingDictionary.AddOrReplace( nameCounter, personAliasId.Value );
+                                    if ( personAliasId != null )
+                                    {
+                                        _shelbyPersonMappingDictionary.AddOrReplace( nameCounter, personAliasId.Value );
+                                    }
+                                    else
+                                    {
+                                        var shelbyContribution = new ShelbyContribution();
+                                        shelbyContribution.ERROR = string.Format( "Person with Shelby NameCounter {0} could not be found.", nameCounter );
+                                        _errorElements.Add( shelbyContribution );
+                                        break;
+                                    }
                                 }
-                                else
-                                {
-                                    var shelbyContribution = new ShelbyContribution();
-                                    shelbyContribution.ERROR = string.Format( "Person with Shelby NameCounter {0} could not be found.", nameCounter );
-                                    _errorElements.Add( shelbyContribution );
-                                    break;
-                                }
+                                NotifyClientProcessingUsers( counter, totalCount );
                             }
                         }
-
+                        Session["ShelbyImport:shelbyPersonMappingDictionary"] = _shelbyPersonMappingDictionary;
                         reader.Close();
                     }
                 }
@@ -481,7 +506,7 @@ ORDER BY N.[NameCounter]";
                     command.Connection = connection;
 
                     // First count the total
-                    command.CommandText = @"SELECT COUNT(1) as 'Count' FROM [Shelby].[CNBat] WITH(NOLOCK) WHERE BatchNu IN (SELECT distinct BatchNu from [Shelby].[CNHst] WITH(NOLOCK))";
+                    command.CommandText = string.Format( @"SELECT COUNT(1) as 'Count' FROM [Shelby].[CNBat] WITH(NOLOCK) WHERE [BatchNu] BETWEEN {0} AND {1} AND [BatchNu] IN (SELECT distinct BatchNu from [Shelby].[CNHst] WITH(NOLOCK))", nreBatchRange.LowerValue, nreBatchRange.UpperValue );
                     using ( SqlDataReader reader = command.ExecuteReader() )
                     {
                         if ( reader.HasRows )
@@ -493,7 +518,7 @@ ORDER BY N.[NameCounter]";
                         }
                     }
 
-                    command.CommandText = @"SELECT [BatchNu], [NuContr], [Total], [WhenPosted], [WhenSetup], [WhoSetup]  FROM [Shelby].[CNBat] WITH(NOLOCK) WHERE [BatchNu] IN (SELECT distinct [BatchNu] from [Shelby].[CNHst] WITH(NOLOCK)) ORDER BY [BatchNu]";
+                    command.CommandText = string.Format( @"SELECT [BatchNu], [NuContr], [Total], [WhenPosted], [WhenSetup], [WhoSetup] FROM [Shelby].[CNBat] WITH(NOLOCK) WHERE [BatchNu] BETWEEN {0} AND {1} AND [BatchNu] IN (SELECT distinct [BatchNu] from [Shelby].[CNHst] WITH(NOLOCK)) ORDER BY [BatchNu]", nreBatchRange.LowerValue, nreBatchRange.UpperValue );
 
                     using ( SqlDataReader reader = command.ExecuteReader() )
                     {
@@ -606,6 +631,12 @@ ORDER BY N.[NameCounter]";
             int counter = 0;
             int previousTransactionCounter = -1;
             var shelbyContributionsSet = new Queue<ShelbyContribution>();
+            
+            if ( Session["ShelbyImport:shelbyContributionsCompleted"] != null )
+            {
+                _shelbyContributionsCompleted = Session["ShelbyImport:shelbyContributionsCompleted"] as Dictionary<int, bool>;
+            }
+
             try
             {
                 RockContext rockContext = new RockContext();
@@ -619,7 +650,8 @@ ORDER BY N.[NameCounter]";
                     command.Connection = connection;
 
                     // First count the total
-                    command.CommandText = @"SELECT COUNT(1) as 'Count' FROM [ShelbyDB].[Shelby].[CNHst] H WITH(NOLOCK) INNER JOIN [ShelbyDB].[Shelby].[CNHstDet] D WITH(NOLOCK) ON D.[HstCounter] = H.[Counter]";
+                    command.CommandText = string.Format( @"SELECT COUNT(1) as 'Count' FROM [ShelbyDB].[Shelby].[CNHst] H WITH(NOLOCK) INNER JOIN [ShelbyDB].[Shelby].[CNHstDet] D WITH(NOLOCK) ON D.[HstCounter] = H.[Counter]
+WHERE [BatchNu] BETWEEN {0} and {1}", nreBatchRange.LowerValue, nreBatchRange.UpperValue );
                     using ( SqlDataReader reader = command.ExecuteReader() )
                     {
                         if ( reader.HasRows )
@@ -631,7 +663,7 @@ ORDER BY N.[NameCounter]";
                         }
                     }
 
-                    command.CommandText = @"SELECT
+                    command.CommandText = string.Format( @"SELECT
 	H.[Counter]
 	,H.[Amount]
 	,H.[BatchNu]
@@ -651,8 +683,10 @@ ORDER BY N.[NameCounter]";
   FROM [ShelbyDB].[Shelby].[CNHst] H WITH(NOLOCK)
   INNER JOIN [ShelbyDB].[Shelby].[CNHstDet] D WITH(NOLOCK) ON D.[HstCounter] = H.[Counter]
   INNER JOIN [ShelbyDB].[Shelby].[CNPur] P WITH(NOLOCK) ON P.[Counter]= D.[PurCounter]
+  WHERE [BatchNu] BETWEEN {0} AND {1}
   ORDER BY H.[Counter]
-";
+", nreBatchRange.LowerValue, nreBatchRange.UpperValue );
+                    ;
 
                     using ( SqlDataReader reader = command.ExecuteReader() )
                     {
@@ -672,15 +706,27 @@ ORDER BY N.[NameCounter]";
                                     }
 
                                     // Is the next item just another detail record for the same transaction?
-                                    // If so, just add it to the set.
+                                    // If so, just add it to the set and move to the next record...
                                     if ( previousTransactionCounter == shelbyContribution.Counter )
                                     {
                                         shelbyContributionsSet.Enqueue( shelbyContribution );
                                     }
                                     else
                                     {
-                                        // Otherwise we finish/write the previous set, and then clear the set and move to the next item
-                                        FindOrCreateTransaction( transactionService, shelbyContributionsSet, counter );
+                                        // Otherwise, process the set...
+                                        // But skip it if the counter is already recorded/saved (recorded via Session).
+                                        if ( !_shelbyContributionsCompleted.ContainsKey( shelbyContribution.Counter ) )
+                                        {
+                                            // Otherwise we finish/write the previous set, and then clear the set and move to the next item
+                                            FindOrCreateTransaction( transactionService, shelbyContributionsSet, counter );
+                                            _shelbyContributionsCompleted.Add( shelbyContribution.Counter, true );
+                                        }
+                                        else
+                                        {
+                                            // Clear the set and add the current record to the set.
+                                            shelbyContributionsSet.Clear();
+                                        }
+
                                         shelbyContributionsSet.Enqueue( shelbyContribution );
                                         previousTransactionCounter = shelbyContribution.Counter;
                                     }
@@ -700,6 +746,7 @@ ORDER BY N.[NameCounter]";
                            rockContext.SaveChanges( disablePrePostProcessing: true );
                         }
 
+                        Session["ShelbyImport:shelbyContributionsCompleted"] = _shelbyContributionsCompleted;
                         reader.Close();
                     }
                 }
@@ -1158,11 +1205,13 @@ ORDER BY N.[NameCounter]";
 
         private void NotifyClientProcessing( string itemTitle, string htmlId, string progressBarclass, int count, int total )
         {
+            var ts = _stopwatch.Elapsed;
             double percent = ( double ) count / total * 100;
             var x = string.Format( @"Processing {2} {3}...
                 <div class='progress'>
                   <div class='progress-bar {4}' role='progressbar' aria-valuenow='{0:0}' aria-valuemin='0' aria-valuemax='100' style='min-width: 2em; width: {0:0}%;'>{1}</div>
-                </div>", percent, count, total, itemTitle, progressBarclass );
+                </div>
+                <div class='pull-right'>{5:00}:{6:00}</div>", percent, count, total, itemTitle, progressBarclass, ts.Minutes, ts.Seconds );
             _hubContext.Clients.All.receiveNotification( htmlId, x );
         }
         #endregion
@@ -1482,5 +1531,23 @@ ORDER BY N.[NameCounter]";
             }
         }
         #endregion
+
+        protected void lbClearSession_Click( object sender, EventArgs e )
+        {
+            _shelbyContributionsCompleted.Clear();
+            _shelbyBatchMappingDictionary.Clear();
+            _fundAccountMappingDictionary.Clear();
+            _shelbyPersonMappingDictionary.Clear();
+            _shelbyWhoMappingDictionary.Clear();
+
+            _shelbyContributionsCompleted = null;
+            _shelbyBatchMappingDictionary = null;
+            _fundAccountMappingDictionary = null;
+            _shelbyPersonMappingDictionary = null;
+            _shelbyWhoMappingDictionary = null;
+
+            Session["ShelbyImport:shelbyPersonMappingDictionary"] = null;
+            Session["ShelbyImport:shelbyContributionsCompleted"] = null;
+        }
     }
 }

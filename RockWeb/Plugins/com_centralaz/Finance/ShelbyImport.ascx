@@ -67,9 +67,12 @@
                 </asp:Panel>
 
                 <p>
+                    <Rock:NumberRangeEditor runat="server" ID="nreBatchRange" Label="Batch Range" LowerValue="1" RangeLabel=" to " />
                     <asp:LinkButton runat="server" ID="lbImport" CssClass="btn btn-primary" OnClick="lbImport_Click">
                         <i class="fa fa-arrow-up"></i> Import
                     </asp:LinkButton>
+
+                    <asp:LinkButton runat="server" ID="lbClearSession" CssClass="btn btn-link" OnClick="lbClearSession_Click">Clear Session</asp:LinkButton> <asp:Literal runat="server" ID="lSessionStats"></asp:Literal>
                 </p>
 
                 <!-- SignalR client notification area -->

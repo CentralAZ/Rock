@@ -98,6 +98,8 @@
                         <div class="actions">
                             <asp:LinkButton ID="lbEdit" runat="server" Text="Edit" CssClass="btn btn-primary" OnClick="lbEdit_Click" />
                             <asp:LinkButton ID="lbCancelView" runat="server" Text="Back" CssClass="btn btn-link" CausesValidation="false" OnClick="lbCancel_Click" />
+                            <asp:LinkButton ID="lbDelete" runat="server" Text="Delete" CssClass="btn btn-link" CausesValidation="true" OnClick="lbDelete_Click" />
+                            <Rock:ModalAlert ID="maWarning" runat="server" />
                         </div>
 
                     </fieldset>

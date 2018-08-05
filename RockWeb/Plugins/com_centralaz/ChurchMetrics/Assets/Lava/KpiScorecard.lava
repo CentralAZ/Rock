@@ -7,8 +7,11 @@
 		<thead>
 			<tr align="left" data-original-title="" title="">
 			    <td colspan='3'></td>
-				<th colspan='4' data-priority="1" scope="col">
+				<th colspan='3' data-priority="1" scope="col">
 					{{table1.rows[0].ThisMonthStart | Date:'MMMM'}}
+				</th>
+				<th colspan='2' data-priority="1" scope="col">
+					YTD
 				</th>
 			</tr>
 			<tr align="left" data-original-title="" title="">
@@ -18,6 +21,8 @@
 				<th data-priority="1" scope="col">Goal</th>
 				<th data-priority="1" scope="col">Actual</th>
 				<th data-priority="1" scope="col">% to Goal</th>
+				<th data-priority="1" scope="col">Actual</th>
+				<th data-priority="1" scope="col">% to Goal</th>
 			</tr>
 		</thead>
 		<tbody>
@@ -25,8 +30,10 @@
     		{%for row in table2.rows %}
     		{% if row.Order == 0 %}
 			    {% assign monthRating = row.MonthlyPercentToGoal | AsDecimal %}
+			    {% assign yearRating = row.YearlyPercentToGoal | AsDecimal %}
 			{% else %}
 			    {% assign monthRating = row.MonthlyRating | AsDecimal %}
+			    {% assign yearRating = row.YearlyRating | AsDecimal %}
 			{% endif %}
 
 			{% if monthRating >= 0.9 %}
@@ -39,6 +46,16 @@
 			    {% assign monthColor = red %}
 			{% endif %}
 
+			{% if yearRating >= 0.9 %}
+			    {% assign yearColor = betterGreen %}
+			{% elseif yearRating >= 0.8 %}
+			    {% assign yearColor = green %}
+			{% elseif yearRating >= 0.7 %}
+			    {% assign yearColor = yellow %}
+			{% else %}
+			    {% assign yearColor = red %}
+			{% endif %}
+
     			<tr align="left" data-original-title="" title="">
     				<td class="grid-select-cell" data-priority="1">{% if row.Order == 0 %}{{row.Name}}{% endif %}</td>
     				<td class="grid-select-cell" data-priority="1">{% if row.Order == 0 %}{% if row.IsPercent == 1 %}{{row.YearlyGoal | Format:'p1'}}{%else%}{{row.YearlyGoal}}{% endif %}{% endif %}</td>
@@ -46,6 +63,8 @@
     				<td class="grid-select-cell" data-priority="1">{% if row.Order == 0 %}{% if row.IsPercent == 1 %}{{row.MonthlyGoal | Format:'p1'}}{%else%}{{row.MonthlyGoal}}{% endif %}{% endif %}</td>
     				<td class="grid-select-cell" data-priority="1">{% if row.Order == 0 %}{% if row.IsPercent == 1 %}{{row.MonthlyMeasure | Format:'p1'}}{%else%}{{row.MonthlyMeasure}}{% endif %}{% else %}RATING{% endif %}</td>
     				<td class="grid-select-cell" data-priority="1" style="background-color:{{monthColor}};"><p style="color:black">{{monthRating | Format:'p1'}}</p></td>
+    				<td class="grid-select-cell" data-priority="1">{% if row.Order == 0 %}{% if row.IsPercent == 1 %}{{row.YearlyMeasure | Format:'p1'}}{%else%}{{row.YearlyMeasure}}{% endif %}{% else %}RATING{% endif %}</td>
+    				<td class="grid-select-cell" data-priority="1" style="background-color:{{yearColor}};"><p style="color:black">{{yearRating | Format:'p1'}}</p></td>
     			</tr>
     		{% endfor %}
 		</tbody>

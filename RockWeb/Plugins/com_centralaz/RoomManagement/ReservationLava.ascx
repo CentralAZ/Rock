@@ -1,4 +1,5 @@
 ﻿<%@ Control Language="C#" AutoEventWireup="true" CodeFile="ReservationLava.ascx.cs" Inherits="RockWeb.Plugins.com_centralaz.RoomManagement.ReservationLava" %>
+<%@ Register TagPrefix="CentralAZ" Assembly="com.centralaz.RoomManagement" Namespace="com.centralaz.RoomManagement.Web.UI.Controls" %>
 
 <asp:UpdatePanel ID="upnlContent" runat="server">
     <ContentTemplate>
@@ -22,16 +23,60 @@
                     </asp:Calendar>
                 </asp:Panel>
 
-                <% if ( CampusPanelOpen || CampusPanelClosed )
+                <% if ( LocationPanelOpen || LocationPanelClosed )
                     { %>
                 <div class="panel panel-default">
                     <div class="panel-heading">
                         <a role="button" data-toggle="collapse" href="#collapseOne">
+                            <h4 class="panel-title">Locations                                
+                            </h4>
+                        </a>
+                    </div>
+                    <div id="collapseOne" class='<%= LocationPanelOpen ? "panel-collapse collapse in" : "panel-collapse collapse out" %>'>
+                        <div class="panel-body">
+                            <% } %>
+
+                            <Rock:LocationItemPicker ID="lipLocation" runat="server" Label="Filter by Locations" AllowMultiSelect="true" OnSelectItem="lipLocation_SelectItem" />
+
+                            <% if ( LocationPanelOpen || LocationPanelClosed )
+                                { %>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+
+                <% if ( ResourcePanelOpen || ResourcePanelClosed )
+                    { %>
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <a role="button" data-toggle="collapse" href="#collapseTwo">
+                            <h4 class="panel-title">Resources                                
+                            </h4>
+                        </a>
+                    </div>
+                    <div id="collapseTwo" class='<%= ResourcePanelOpen ? "panel-collapse collapse in" : "panel-collapse collapse out" %>'>
+                        <div class="panel-body">
+                            <% } %>
+
+                            <CentralAZ:ResourcePicker ID="rpResource" runat="server" Label="Filter by Resources" AllowMultiSelect="true" OnSelectItem="rpResource_SelectItem" />
+
+                            <% if ( ResourcePanelOpen || ResourcePanelClosed )
+                                { %>
+                        </div>
+                    </div>
+                </div>
+                <% } %>
+
+                <% if ( CampusPanelOpen || CampusPanelClosed )
+                    { %>
+                <div class="panel panel-default">
+                    <div class="panel-heading">
+                        <a role="button" data-toggle="collapse" href="#collapseThree">
                             <h4 class="panel-title">Campuses                                
                             </h4>
                         </a>
                     </div>
-                    <div id="collapseOne" class='<%= CampusPanelOpen ? "panel-collapse collapse in" : "panel-collapse collapse out" %>'>
+                    <div id="collapseThree" class='<%= CampusPanelOpen ? "panel-collapse collapse in" : "panel-collapse collapse out" %>'>
                         <div class="panel-body">
                             <% } %>
 
@@ -54,12 +99,12 @@
                     { %>
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        <a role="button" data-toggle="collapse" href="#collapseTwo">
+                        <a role="button" data-toggle="collapse" href="#collapseFour">
                             <h4 class="panel-title">Ministries                            
                             </h4>
                         </a>
                     </div>
-                    <div id="collapseTwo" class='<%= MinistryPanelOpen ? "panel-collapse collapse in" : "panel-collapse collapse out" %>'>
+                    <div id="collapseFour" class='<%= MinistryPanelOpen ? "panel-collapse collapse in" : "panel-collapse collapse out" %>'>
                         <div class="panel-body">
                             <% } %>
 
@@ -80,12 +125,12 @@
                     { %>
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        <a role="button" data-toggle="collapse" href="#collapseThree">
+                        <a role="button" data-toggle="collapse" href="#collapseFive">
                             <h4 class="panel-title">Statuses                            
                             </h4>
                         </a>
                     </div>
-                    <div id="collapseThree" class='<%= ApprovalPanelOpen ? "panel-collapse collapse in" : "panel-collapse collapse out" %>'>
+                    <div id="collapseFive" class='<%= ApprovalPanelOpen ? "panel-collapse collapse in" : "panel-collapse collapse out" %>'>
                         <div class="panel-body">
                             <% } %>
 
@@ -106,12 +151,12 @@
                     { %>
                 <div class="panel panel-default">
                     <div class="panel-heading">
-                        <a role="button" data-toggle="collapse" href="#collapseFour">
+                        <a role="button" data-toggle="collapse" href="#collapseSix">
                             <h4 class="panel-title">Reservation Types                                
                             </h4>
                         </a>
                     </div>
-                    <div id="collapseFour" class='<%= ReservationTypePanelOpen ? "panel-collapse collapse in" : "panel-collapse collapse out" %>'>
+                    <div id="collapseSix" class='<%= ReservationTypePanelOpen ? "panel-collapse collapse in" : "panel-collapse collapse out" %>'>
                         <div class="panel-body">
                             <% } %>
 
@@ -130,10 +175,10 @@
                 </div>
                 <% } %>
 
-                <Rock:DateRangePicker ID="drpDateRange" runat="server" Label="Select Range" />
-                <asp:LinkButton ID="lbDateRangeRefresh" runat="server" CssClass="btn btn-default btn-sm" Text="Refresh" OnClick="lbDateRangeRefresh_Click" />
+                <Rock:DatePicker ID="dpStartDate" runat="server" Label="Start Date" OnTextChanged="dpStartDate_TextChanged" AutoPostBack="true" />
+                <Rock:DatePicker ID="dpEndDate" runat="server" Label="End Date" OnTextChanged="dpEndDate_TextChanged" AutoPostBack="true" />
 
-                <small class="text-muted">v<asp:Literal ID="lVersionText" runat ="server"></asp:Literal></small>
+                <small class="text-muted">v<asp:Literal ID="lVersionText" runat="server"></asp:Literal></small>
             </asp:Panel>
 
             <asp:Panel ID="pnlList" CssClass="col-md-9" runat="server">

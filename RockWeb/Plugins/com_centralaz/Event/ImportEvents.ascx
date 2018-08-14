@@ -5,7 +5,7 @@
         <asp:HiddenField ID="hfFileEncoding" runat="server" />
         <div class="panel panel-block">
             <div class="panel panel-heading">
-                Import People To Group
+                Import Events
                 <small class="text-muted pull-right">v<asp:Literal ID="lVersionText" runat ="server"></asp:Literal></small>
             </div>
             <div class="panel panel-body">

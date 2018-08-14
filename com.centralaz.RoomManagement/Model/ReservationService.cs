@@ -346,23 +346,23 @@ namespace com.centralaz.RoomManagement.Model
         /// <returns>
         ///   <c>true</c> if this instance [can person approve reservation resource] the specified person; otherwise, <c>false</c>.
         /// </returns>
-        private static bool CanPersonApproveReservationResource( Person person, bool isSuperAdmin, ReservationResource reservationResource )
+        public static bool CanPersonApproveReservationResource( Person person, bool isSuperAdmin, ReservationResource reservationResource )
         {
             bool canApprove = false;
 
-            if ( reservationResource.Resource.ApprovalGroupId == null )
+            if ( isSuperAdmin )
             {
                 canApprove = true;
             }
             else
             {
-                if ( ReservationTypeService.IsPersonInGroupWithId( person, reservationResource.Resource.ApprovalGroupId ) )
+                if ( reservationResource.Resource.ApprovalGroupId == null )
                 {
                     canApprove = true;
                 }
                 else
                 {
-                    if ( isSuperAdmin )
+                    if ( ReservationTypeService.IsPersonInGroupWithId( person, reservationResource.Resource.ApprovalGroupId ) )
                     {
                         canApprove = true;
                     }
@@ -381,25 +381,26 @@ namespace com.centralaz.RoomManagement.Model
         /// <returns>
         ///   <c>true</c> if this instance [can person approve reservation location] the specified person; otherwise, <c>false</c>.
         /// </returns>
-        private static bool CanPersonApproveReservationLocation( Person person, bool isSuperAdmin, ReservationLocation reservationLocation )
+        public static bool CanPersonApproveReservationLocation( Person person, bool isSuperAdmin, ReservationLocation reservationLocation )
         {
             bool canApprove = false;
-            reservationLocation.Location.LoadAttributes();
-            var approvalGroupGuid = reservationLocation.Location.GetAttributeValue( "ApprovalGroup" ).AsGuidOrNull();
 
-            if ( approvalGroupGuid == null )
+            if ( isSuperAdmin )
             {
                 canApprove = true;
             }
             else
             {
-                if ( ReservationTypeService.IsPersonInGroupWithGuid( person, approvalGroupGuid ) )
+                reservationLocation.Location.LoadAttributes();
+                var approvalGroupGuid = reservationLocation.Location.GetAttributeValue( "ApprovalGroup" ).AsGuidOrNull();
+
+                if ( approvalGroupGuid == null )
                 {
                     canApprove = true;
                 }
                 else
                 {
-                    if ( isSuperAdmin )
+                    if ( ReservationTypeService.IsPersonInGroupWithGuid( person, approvalGroupGuid ) )
                     {
                         canApprove = true;
                     }
@@ -575,22 +576,28 @@ namespace com.centralaz.RoomManagement.Model
         #region Resource Conflict Methods
 
         /// <summary>
-        /// Gets the available resource quantity.
+        /// Gets the available resource quantity for the given resource, during the time (schedule)
+        /// of the given resource -- but excluding the ones used by the given resource.
         /// </summary>
         /// <param name="resource">The resource.</param>
         /// <param name="reservation">The reservation.</param>
-        /// <returns></returns>
+        /// <returns>a quantity of available resources at </returns>
         public int GetAvailableResourceQuantity( Resource resource, Reservation reservation )
         {
             // For each new reservation summary, make sure that the quantities of existing summaries that come into contact with it
             // do not exceed the resource's quantity
-            var newReservationResourceIds = reservation.ReservationResources.Select( rl => rl.ResourceId ).ToList();
 
-            var currentReservationSummaries = GetReservationSummaries( Queryable().AsNoTracking().Where( r => r.Id != reservation.Id && r.ApprovalState != ReservationApprovalState.Denied && r.ReservationResources.Any( rr => newReservationResourceIds.Contains( rr.ResourceId ) ) ), RockDateTime.Now.AddMonths( -1 ), RockDateTime.Now.AddYears( 1 ) );
+            // Get all existing non-denied reservations (for a huge time period; a month before now and a year after
+            // now) which have the given resource in them.
+            var existingReservationSummaries = GetReservationSummaries(
+                Queryable().AsNoTracking()
+                .Where( r => r.Id != reservation.Id && r.ApprovalState != ReservationApprovalState.Denied && r.ReservationResources.Any( rr => resource.Id == rr.ResourceId ) ),
+                RockDateTime.Now.AddMonths( -1 ), RockDateTime.Now.AddYears( 1 ) );
 
+            // Now narrow the reservations down to only the ones in the matching/overlapping time frame
             var reservedQuantities = GetReservationSummaries( new List<Reservation>() { reservation }.AsQueryable(), RockDateTime.Now.AddMonths( -1 ), RockDateTime.Now.AddYears( 1 ) )
                 .Select( newReservationSummary =>
-                    currentReservationSummaries.Where( currentReservationSummary =>
+                    existingReservationSummaries.Where( currentReservationSummary =>
                      ( currentReservationSummary.ReservationStartDateTime > newReservationSummary.ReservationStartDateTime || currentReservationSummary.ReservationEndDateTime > newReservationSummary.ReservationStartDateTime ) &&
                      ( currentReservationSummary.ReservationStartDateTime < newReservationSummary.ReservationEndDateTime || currentReservationSummary.ReservationEndDateTime < newReservationSummary.ReservationEndDateTime )
                     )
@@ -774,7 +781,7 @@ namespace com.centralaz.RoomManagement.Model
 
             target.CampusId = source.CampusId;
             target.ReservationMinistryId = source.ReservationMinistryId;
-            
+
             //target.ApprovalState = source.ApprovalState;
             target.RequesterAliasId = source.RequesterAliasId;
             //target.ApproverAliasId = source.ApproverAliasId;

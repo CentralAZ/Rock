@@ -75,6 +75,18 @@ BEGIN
 
 -- END FOR TESTING
 
+-- If a service has been discontinued within the last year, its numbers will not get included while 
+-- services are active (historical numbers are only included once a current value is entered). Because
+-- of that is services are active, any historical metric with the campus/schedule entered here will 
+-- also be included after the number of hours since the week started (monday morning @ 12:00 AM)
+-- and will not require a current value be entered before including them.
+DECLARE @OldServices TABLE (
+	CampusId int, 
+	ScheduleId int,
+	AppearHoursAfterWeekStart int )
+INSERT INTO @OldServices VALUES 
+	( 2, 999, 136 )	-- Gilbert @ Sat 4:00pm; Appear after sat @ 4:00pm
+
 DECLARE @SundayDateTime DATETIME = NULL
 
 BEGIN TRY
@@ -431,10 +443,14 @@ DECLARE @CurrentMetrics AS MetricKeyStringTableType;
 	--KeyString NVARCHAR(MAX),
 
 INSERT INTO @CurrentMetrics
-SELECT STR(MetricId)+'-'+STR(CampusId)+'-'+ScheduleName
-FROM @MetricValues
-WHERE MetricValueDateTime >= @ThisWeekStart AND MetricValueDateTime <= @ThisWeekEnd
-
+SELECT V.[MetricKeyString]
+FROM @MetricValues V
+LEFT OUTER JOIN @OldServices O
+	ON O.[CampusId] = V.[CampusId]
+	AND O.[ScheduleId] = V.[ScheduleId]
+	AND @CurrentDateTime >= DATEADD( hour, O.[AppearHoursAfterWeekStart], @ThisWeekStart )
+WHERE ( MetricValueDateTime >= @ThisWeekStart AND MetricValueDateTime <= @ThisWeekEnd )
+OR ( O.[CampusId] IS NOT NULL )
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------

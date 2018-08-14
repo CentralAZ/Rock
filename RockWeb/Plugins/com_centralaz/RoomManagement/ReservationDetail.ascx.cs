@@ -798,6 +798,11 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             LoadPickers();
         }
 
+        /// <summary>
+        /// Handles the ValueChanged event of the approval toggle. If the reservation is set to approved, it will iterate through each resource and location and approve the ones the user has access to approve.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         protected void hfApprovalState_ValueChanged( object sender, EventArgs e )
         {
             if ( PageParameter( "ReservationId" ).AsIntegerOrNull() != null )
@@ -807,16 +812,25 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 {
                     ReservationApprovalState? newApprovalState = hfApprovalState.Value.ConvertToEnum<ReservationApprovalState>();
 
-                    if ( newApprovalState != null && ( newApprovalState == ReservationApprovalState.Denied || newApprovalState == ReservationApprovalState.Approved ) )
+                    if ( newApprovalState != null && newApprovalState == ReservationApprovalState.Approved )
                     {
+                        bool isSuperAdmin = ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, reservation.ReservationType.SuperAdminGroupId );
                         foreach ( var reservationResource in reservation.ReservationResources )
                         {
-                            reservationResource.ApprovalState = ReservationResourceApprovalState.Approved;
+                            bool canApprove = ReservationService.CanPersonApproveReservationResource( CurrentPerson, isSuperAdmin, reservationResource );
+                            if ( canApprove )
+                            {
+                                reservationResource.ApprovalState = ReservationResourceApprovalState.Approved;
+                            }
                         }
 
                         foreach ( var reservationLocation in reservation.ReservationLocations )
                         {
-                            reservationLocation.ApprovalState = ReservationLocationApprovalState.Approved;
+                            bool canApprove = ReservationService.CanPersonApproveReservationLocation( CurrentPerson, isSuperAdmin, reservationLocation );
+                            if ( canApprove )
+                            {
+                                reservationLocation.ApprovalState = ReservationLocationApprovalState.Approved;
+                            }
                         }
                     }
                 }
@@ -1446,22 +1460,20 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             lNumberAttending.Text = reservation.NumberAttending.ToString();
             lSetupTime.Text = reservation.SetupTime.HasValue ? String.Format( "{0} min", reservation.SetupTime ) : "N/A";
             lCleanupTime.Text = reservation.CleanupTime.HasValue ? String.Format( "{0} min", reservation.CleanupTime ) : "N/A";
-            lCampus.Text = reservation.Campus.Name;
-            lMinistry.Text = reservation.ReservationMinistry.Name;
+            lCampus.Text = reservation.Campus != null ? reservation.Campus.Name : string.Empty;
+            lMinistry.Text = reservation.ReservationMinistry != null ? reservation.ReservationMinistry.Name : string.Empty;
             lReservationType.Text = ReservationType.Name;
             lSchedule.Text = reservation.GetFriendlyReservationScheduleText();
             lEventContact.Text = String.Format( "<a href='/Person/{0}'>{1}</a><br>{2}<br>{3}",
-                reservation.EventContactPersonAlias.PersonId,
-                reservation.EventContactPersonAlias.Person.FullName,
+                reservation.EventContactPersonAlias != null ? reservation.EventContactPersonAlias.PersonId.ToStringSafe() : string.Empty,
+                reservation.EventContactPersonAlias != null ? reservation.EventContactPersonAlias.Person.FullName : string.Empty,
                 reservation.EventContactPhone,
                 reservation.EventContactEmail );
             lAdminContact.Text = String.Format( "<a href='/Person/{0}'>{1}</a><br>{2}<br>{3}",
-                reservation.AdministrativeContactPersonAlias.PersonId,
-                reservation.AdministrativeContactPersonAlias.Person.FullName,
+                reservation.AdministrativeContactPersonAlias != null ? reservation.AdministrativeContactPersonAlias.PersonId.ToStringSafe() : string.Empty,
+                reservation.AdministrativeContactPersonAlias != null ? reservation.AdministrativeContactPersonAlias.Person.FullName : string.Empty,
                 reservation.AdministrativeContactPhone,
                 reservation.AdministrativeContactEmail );
-
-
 
             if ( reservation.SetupPhotoId.HasValue )
             {

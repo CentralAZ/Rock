@@ -514,14 +514,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         protected void gMinistries_ShowEdit( Guid reservationMinistryGuid )
         {
             ReservationMinistry reservationMinistry = ReservationMinistriesState.FirstOrDefault( l => l.Guid.Equals( reservationMinistryGuid ) );
-            if ( reservationMinistry != null )
-            {
-                tbMinistryName.Text = reservationMinistry.Name;
-            }
-            else
-            {
-                tbMinistryName.Text = string.Empty;
-            }
+            tbMinistryName.Text = reservationMinistry != null ? reservationMinistry.Name : string.Empty;
+
             hfAddMinistryGuid.Value = reservationMinistryGuid.ToString();
             ShowDialog( "ReservationMinistries", true );
         }
@@ -709,56 +703,52 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         {
             using ( var rockContext = new RockContext() )
             {
+                var isQualifierDropdownsVisible = false;
                 String[] qualifierValues = new String[2];
                 ReservationWorkflowTrigger reservationWorkflowTrigger = ReservationWorkflowTriggersState.FirstOrDefault( l => l.Guid.Equals( hfAddWorkflowTriggerGuid.Value.AsGuid() ) );
                 ReservationWorkflowTriggerType reservationWorkflowTriggerType = ddlTriggerType.SelectedValueAsEnum<ReservationWorkflowTriggerType>();
                 switch ( reservationWorkflowTriggerType )
                 {
                     case ReservationWorkflowTriggerType.ReservationCreated:
-                        ddlPrimaryQualifier.Visible = false;
                         ddlPrimaryQualifier.Items.Clear();
-                        ddlSecondaryQualifier.Visible = false;
                         ddlSecondaryQualifier.Items.Clear();
                         break;
 
                     case ReservationWorkflowTriggerType.Manual:
-                        ddlPrimaryQualifier.Visible = false;
                         ddlPrimaryQualifier.Items.Clear();
-                        ddlSecondaryQualifier.Visible = false;
                         ddlSecondaryQualifier.Items.Clear();
                         break;
 
                     case ReservationWorkflowTriggerType.StateChanged:
                         ddlPrimaryQualifier.Label = "From";
-                        ddlPrimaryQualifier.Visible = true;
                         ddlPrimaryQualifier.BindToEnum<ReservationApprovalState>( true );
 
                         ddlSecondaryQualifier.Label = "To";
-                        ddlSecondaryQualifier.Visible = true;
                         ddlSecondaryQualifier.BindToEnum<ReservationApprovalState>( true );
 
+                        isQualifierDropdownsVisible = true;
                         break;
 
                     case ReservationWorkflowTriggerType.ReservationUpdated:
-                        ddlPrimaryQualifier.Visible = false;
                         ddlPrimaryQualifier.Items.Clear();
-                        ddlSecondaryQualifier.Visible = false;
                         ddlSecondaryQualifier.Items.Clear();
                         break;
 
                 }
+
+                ddlPrimaryQualifier.Visible = ddlSecondaryQualifier.Visible = isQualifierDropdownsVisible;
 
                 if ( reservationWorkflowTrigger != null )
                 {
                     if ( reservationWorkflowTrigger.TriggerType == ddlTriggerType.SelectedValueAsEnum<ReservationWorkflowTriggerType>() )
                     {
                         qualifierValues = reservationWorkflowTrigger.QualifierValue.SplitDelimitedValues();
-                        if ( ddlPrimaryQualifier.Visible && qualifierValues.Length > 0 )
+                        if ( isQualifierDropdownsVisible && qualifierValues.Length > 0 )
                         {
                             ddlPrimaryQualifier.SelectedValue = qualifierValues[0];
                         }
 
-                        if ( ddlSecondaryQualifier.Visible && qualifierValues.Length > 1 )
+                        if ( isQualifierDropdownsVisible && qualifierValues.Length > 1 )
                         {
                             ddlSecondaryQualifier.SelectedValue = qualifierValues[1];
                         }

@@ -47,36 +47,40 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
     [Category( "com_centralaz > Room Management" )]
     [Description( "Renders a list of reservations in lava." )]
 
-    [CustomDropdownListField( "Default View Option", "Determines the default view option", "Day,Week,Month", true, "Week", order: 1 )]
-    [LinkedPage( "Details Page", "Detail page for events", order: 2 )]
+    [CustomRadioListField( "Location Filter Display Mode", "", "1^Hidden, 2^Plain, 3^Panel Open, 4^Panel Closed", true, "1", order: 1, category: "Filter Settings" )]
+    [CustomRadioListField( "Resource Filter Display Mode", "", "1^Hidden, 2^Plain, 3^Panel Open, 4^Panel Closed", true, "1", order: 2, category: "Filter Settings" )]
+    [CustomRadioListField( "Campus Filter Display Mode", "", "1^Hidden, 2^Plain, 3^Panel Open, 4^Panel Closed", true, "1", order: 3, category: "Filter Settings" )]
+    [CustomRadioListField( "Ministry Filter Display Mode", "", "1^Hidden, 2^Plain, 3^Panel Open, 4^Panel Closed", true, "1", key: "MinistryFilterDisplayMode", order: 4, category: "Filter Settings" )]
+    [CustomRadioListField( "Approval Filter Display Mode", "", "1^Hidden, 2^Plain, 3^Panel Open, 4^Panel Closed", true, "1", key: "ApprovalFilterDisplayMode", order: 5, category: "Filter Settings" )]
+    [CustomRadioListField( "Reservation Type Filter Display Mode", "", "1^Hidden, 2^Plain, 3^Panel Open, 4^Panel Closed", true, "1", key: "ReservationTypeFilterDisplayMode", order: 6, category: "Filter Settings" )]
+    [BooleanField( "Show Date Range Filter", "Determines whether the date range filters are shown", false, order: 7, category: "Filter Settings" )]
 
-    [CustomRadioListField( "Campus Filter Display Mode", "", "1^Hidden, 2^Plain, 3^Panel Open, 4^Panel Closed", true, "1", order: 3 )]
-    [CustomRadioListField( "Ministry Filter Display Mode", "", "1^Hidden, 2^Plain, 3^Panel Open, 4^Panel Closed", true, "1", key: "MinistryFilterDisplayMode", order: 4 )]
-    [CustomRadioListField( "Approval Filter Display Mode", "", "1^Hidden, 2^Plain, 3^Panel Open, 4^Panel Closed", true, "1", key: "ApprovalFilterDisplayMode", order: 5 )]
-    [CustomRadioListField( "Reservation Type Filter Display Mode", "", "1^Hidden, 2^Plain, 3^Panel Open, 4^Panel Closed", true, "1", key: "ReservationTypeFilterDisplayMode", order: 6 )]
-    [BooleanField( "Show Date Range Filter", "Determines whether the date range filters are shown", false, order: 7 )]
+    [LinkedPage( "Details Page", "Detail page for events", order: 8, category: "Lava Settings" )]
+    [CodeEditorField( "Lava Template", "Lava template to use to display the list of reservations.", CodeEditorMode.Lava, CodeEditorTheme.Rock, 400, true, @"{% include '~/Plugins/com_centralaz/RoomManagement/Assets/Lava/Reservation.lava' %}", "Lava Settings", 9 )]
+    [BooleanField( "Enable Debug", "Display a list of merge fields available for lava.", false, "Lava Settings", 10 )]
 
-    [BooleanField( "Show Small Calendar", "Determines whether the calendar widget is shown", true, order: 8 )]
-    [BooleanField( "Show Day View", "Determines whether the day view option is shown", false, order: 9 )]
-    [BooleanField( "Show Week View", "Determines whether the week view option is shown", true, order: 10 )]
-    [BooleanField( "Show Month View", "Determines whether the month view option is shown", true, order: 11 )]
+    [TextField( "Report Font", "", true, "Gotham", "Report Settings", 11 )]
+    [TextField( "Report Logo", "URL to the logo (PNG) to display in the printed report.", true, "~/Plugins/com_centralaz/RoomManagement/Assets/Icons/Central_Logo_Black_rgb_165_90.png", "Report Settings", 12 )]
+    [ReportTemplateField( "Report Template", "The template for the printed report. The Default and Advanced Templates will generate a printed report based on the templates' hardcoded layout. The Lava Template will generate a report based on the lava provided below in the Report Lava Setting. Any other custom templates will format based on their developer's documentation.", true, "9b74314a-37e0-40f2-906c-2862c93f8888", "Report Settings", 13 )]
+    [CodeEditorField( "Report Lava", "If the Lava Template is selected, this is the lava that will be used in the report", CodeEditorMode.Lava, CodeEditorTheme.Rock, 400, true, @"{% include '~/Plugins/com_centralaz/RoomManagement/Assets/Lava/ReservationReport.lava' %}", "Report Settings", 14 )]
 
-    [CodeEditorField( "Lava Template", "Lava template to use to display the list of reservations.", CodeEditorMode.Lava, CodeEditorTheme.Rock, 400, true, @"{% include '~/Plugins/com_centralaz/RoomManagement/Assets/Lava/Reservation.lava' %}", "", 12 )]
+    [CustomDropdownListField( "Default View Option", "Determines the default view option", "Day,Week,Month", true, "Week", order: 15, category: "View Settings" )]
+    [DayOfWeekField( "Start of Week Day", "Determines what day is the start of a week.", true, DayOfWeek.Sunday, order: 16, category: "View Settings" )]
+    [BooleanField( "Show Small Calendar", "Determines whether the calendar widget is shown", true, order: 17, category: "View Settings" )]
+    [BooleanField( "Show Day View", "Determines whether the day view option is shown", false, order: 18, category: "View Settings" )]
+    [BooleanField( "Show Week View", "Determines whether the week view option is shown", true, order: 19, category: "View Settings" )]
+    [BooleanField( "Show Month View", "Determines whether the month view option is shown", true, order: 20, category: "View Settings" )]
 
-    [DayOfWeekField( "Start of Week Day", "Determines what day is the start of a week.", true, DayOfWeek.Sunday, order: 13 )]
-
-    [TextField( "Report Font", "", true, "Gotham", "", 14 )]
-    [TextField( "Report Logo", "URL to the logo (PNG) to display in the printed report.", true, "~/Plugins/com_centralaz/RoomManagement/Assets/Icons/Central_Logo_Black_rgb_165_90.png", "", 15 )]
-    [ReportTemplateField( "Report Template", "The template for the printed report. The Default and Advanced Templates will generate a printed report based on the templates' hardcoded layout. The Lava Template will generate a report based on the lava provided below in the Report Lava Setting. Any other custom templates will format based on their developer's documentation.", true, "9b74314a-37e0-40f2-906c-2862c93f8888", "", 16 )]
-    [CodeEditorField( "Report Lava", "If the Lava Template is selected, this is the lava that will be used in the report", CodeEditorMode.Lava, CodeEditorTheme.Rock, 400, true, @"{% include '~/Plugins/com_centralaz/RoomManagement/Assets/Lava/ReservationReport.lava' %}", "", 17 )]
-
-    [BooleanField( "Enable Debug", "Display a list of merge fields available for lava.", false, "", 18 )]
     public partial class ReservationLava : Rock.Web.UI.RockBlock
     {
         #region Fields
 
         private DayOfWeek _firstDayOfWeek = DayOfWeek.Sunday;
 
+        protected bool LocationPanelOpen { get; set; }
+        protected bool LocationPanelClosed { get; set; }
+        protected bool ResourcePanelOpen { get; set; }
+        protected bool ResourcePanelClosed { get; set; }
         protected bool CampusPanelOpen { get; set; }
         protected bool CampusPanelClosed { get; set; }
         protected bool MinistryPanelOpen { get; set; }
@@ -125,12 +129,21 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             lVersionText.Text = com.centralaz.RoomManagement.VersionInfo.GetPluginProductVersionNumber();
 
+            LocationPanelOpen = GetAttributeValue( "LocationFilterDisplayMode" ) == "3";
+            LocationPanelClosed = GetAttributeValue( "LocationFilterDisplayMode" ) == "4";
+
+            ResourcePanelOpen = GetAttributeValue( "ResourceFilterDisplayMode" ) == "3";
+            ResourcePanelClosed = GetAttributeValue( "ResourceFilterDisplayMode" ) == "4";
+
             CampusPanelOpen = GetAttributeValue( "CampusFilterDisplayMode" ) == "3";
             CampusPanelClosed = GetAttributeValue( "CampusFilterDisplayMode" ) == "4";
+
             MinistryPanelOpen = GetAttributeValue( "MinistryFilterDisplayMode" ) == "3";
             MinistryPanelClosed = GetAttributeValue( "MinistryFilterDisplayMode" ) == "4";
+
             ApprovalPanelOpen = GetAttributeValue( "ApprovalFilterDisplayMode" ) == "3";
             ApprovalPanelClosed = GetAttributeValue( "ApprovalFilterDisplayMode" ) == "4";
+
             ReservationTypePanelOpen = GetAttributeValue( "ReservationTypeFilterDisplayMode" ) == "3";
             ReservationTypePanelClosed = GetAttributeValue( "ReservationTypeFilterDisplayMode" ) == "4";
 
@@ -255,6 +268,18 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             BindData();
         }
 
+        protected void lipLocation_SelectItem( object sender, EventArgs e )
+        {
+            this.SetUserPreference( "Locations", lipLocation.SelectedValues.AsIntegerList().AsDelimited( "," ) );
+            BindData();
+        }
+
+        protected void rpResource_SelectItem( object sender, EventArgs e )
+        {
+            this.SetUserPreference( "Resources", rpResource.SelectedValues.AsIntegerList().AsDelimited( "," ) );
+            BindData();
+        }
+
         /// <summary>
         /// Handles the SelectedIndexChanged event of the cblCampus control.
         /// </summary>
@@ -299,10 +324,15 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             BindData();
         }
 
-        protected void lbDateRangeRefresh_Click( object sender, EventArgs e )
+        protected void dpStartDate_TextChanged( object sender, EventArgs e )
         {
-            FilterStartDate = drpDateRange.LowerValue;
-            FilterEndDate = drpDateRange.UpperValue;
+            FilterStartDate = dpStartDate.SelectedDate;
+            BindData();
+        }
+
+        protected void dpEndDate_TextChanged( object sender, EventArgs e )
+        {
+            FilterEndDate = dpEndDate.SelectedDate;
             BindData();
         }
 
@@ -374,7 +404,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 EventContactPersonAlias = r.EventContactPersonAlias,
                 EventContactEmail = r.EventContactEmail,
                 EventContactPhoneNumber = r.EventContactPhoneNumber,
-                MinistryName = r.ReservationMinistry.Name,
+                MinistryName = r.ReservationMinistry != null ? r.ReservationMinistry.Name : string.Empty,
             } )
             .OrderBy( r => r.EventStartDateTime )
             .GroupBy( r => r.EventStartDateTime.Date )
@@ -408,6 +438,20 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             var rockContext = new RockContext();
             var reservationService = new ReservationService( rockContext );
             var qry = reservationService.Queryable();
+
+            // Filter by Resources
+            var resourceIdList = rpResource.SelectedValuesAsInt().ToList();
+            if ( resourceIdList.Where( r => r != 0 ).Any() )
+            {
+                qry = qry.Where( r => r.ReservationResources.Any( rr => resourceIdList.Contains( rr.ResourceId ) ) );
+            }
+
+            // Filter by Locations
+            var locationIdList = lipLocation.SelectedValuesAsInt().ToList();
+            if ( locationIdList.Where( r => r != 0 ).Any() )
+            {
+                qry = qry.Where( r => r.ReservationLocations.Any( rr => locationIdList.Contains( rr.LocationId ) ) );
+            }
 
             // Filter by campus
             List<int> campusIds = cblCampus.Items.OfType<System.Web.UI.WebControls.ListItem>().Where( l => l.Selected ).Select( a => a.Value.AsInteger() ).ToList();
@@ -503,6 +547,20 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             calReservationCalendar.SelectedDates.Clear();
             calReservationCalendar.SelectedDates.SelectRange( FilterStartDate.Value, FilterEndDate.Value );
 
+            // Setup Location Filter
+            lipLocation.Visible = GetAttributeValue( "LocationFilterDisplayMode" ).AsInteger() > 1;
+            if ( !string.IsNullOrWhiteSpace( this.GetUserPreference( "Locations" ) ) )
+            {
+                lipLocation.SetValues( this.GetUserPreference( "Locations" ).Split( ',' ).AsIntegerList() );
+            }
+
+            // Setup Resource Filter
+            rpResource.Visible = GetAttributeValue( "ResourceFilterDisplayMode" ).AsInteger() > 1;
+            if ( !string.IsNullOrWhiteSpace( this.GetUserPreference( "Resources" ) ) )
+            {
+                rpResource.SetValues( this.GetUserPreference( "Resources" ).Split( ',' ).AsIntegerList() );
+            }
+
             // Setup Campus Filter
             rcwCampus.Visible = GetAttributeValue( "CampusFilterDisplayMode" ).AsInteger() > 1;
             cblCampus.DataSource = CampusCache.All();
@@ -553,10 +611,11 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             }
 
             // Date Range Filter
-            drpDateRange.Visible = GetAttributeValue( "ShowDateRangeFilter" ).AsBoolean();
-            lbDateRangeRefresh.Visible = drpDateRange.Visible;
-            drpDateRange.LowerValue = FilterStartDate;
-            drpDateRange.UpperValue = FilterEndDate;
+            dpStartDate.Visible = GetAttributeValue( "ShowDateRangeFilter" ).AsBoolean();
+            dpStartDate.SelectedDate = FilterStartDate;
+
+            dpEndDate.Visible = GetAttributeValue( "ShowDateRangeFilter" ).AsBoolean();
+            dpEndDate.SelectedDate = FilterEndDate;
 
             // Get the View Modes, and only show them if more than one is visible
             var viewsVisible = new List<bool> {
@@ -571,7 +630,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             btnMonth.Visible = howManyVisible > 1 && viewsVisible[2];
 
             // Set filter visibility
-            bool showFilter = ( pnlCalendar.Visible || rcwCampus.Visible || rcwMinistry.Visible || rcwApproval.Visible || drpDateRange.Visible );
+            bool showFilter = ( pnlCalendar.Visible || lipLocation.Visible || rpResource.Visible || rcwCampus.Visible || rcwMinistry.Visible || rcwApproval.Visible || dpStartDate.Visible || dpEndDate.Visible );
             pnlFilters.Visible = showFilter;
             pnlList.CssClass = showFilter ? "col-md-9" : "col-md-12";
 

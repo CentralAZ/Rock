@@ -115,15 +115,14 @@ namespace com.centralaz.RoomManagement.Migrations
 
             Update [_com_centralaz_RoomManagement_Reservation]
             Set ReservationTypeId = 1
-
-" );
+                " );
 
             Sql( @"
                 ALTER TABLE [dbo].[_com_centralaz_RoomManagement_ReservationWorkflowTrigger] ALTER COLUMN [ReservationTypeId] INT NOT NULL
                 ALTER TABLE [dbo].[_com_centralaz_RoomManagement_ReservationMinistry] ALTER COLUMN [ReservationTypeId] INT NOT NULL
                 ALTER TABLE [dbo].[_com_centralaz_RoomManagement_Reservation] ALTER COLUMN [ReservationTypeId] INT NOT NULL
-
-" );
+                ALTER TABLE [dbo].[_com_centralaz_RoomManagement_ReservationWorkflow] ALTER COLUMN [ReservationWorkflowTriggerId] [int] NULL
+                " );
             RockMigrationHelper.DeleteBlock( "2B864E89-27DE-41F9-A24B-8D2EA5C40D10" );
             RockMigrationHelper.DeleteBlockType( "6931E212-A76A-4DBB-9B97-86E5CDD0793A" );
             RockMigrationHelper.DeletePage( "CFF84B6D-C852-4FC4-B602-9F045EDC8854" ); //  Page: Reservation Configuration

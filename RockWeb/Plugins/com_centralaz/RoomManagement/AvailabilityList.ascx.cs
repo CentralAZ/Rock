@@ -321,6 +321,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 locationList = locationService.Queryable().AsNoTracking().Where( l => l.Name != null && l.Name != string.Empty ).ToList();
             }
 
+            locationList = locationList.Where( l => l.IsActive ).ToList();
+
             if ( nbMaxOccupants.Text.AsInteger() > 0 )
             {
                 locationList = locationList.Where( l => l.FirmRoomThreshold >= nbMaxOccupants.Text.AsInteger() ).ToList();

@@ -177,7 +177,13 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 ReservationEndDateTime = r.ReservationEndDateTime,
                 EventDateTimeDescription = r.EventTimeDescription.Replace( "a", " AM" ).Replace( "p", " PM" ),
                 ReservationDateTimeDescription = r.ReservationTimeDescription,
-                SetupPhotoId = r.SetupPhotoId
+                SetupPhotoId = r.SetupPhotoId,
+                Note = r.Note,
+                RequesterAlias = r.RequesterAlias,
+                EventContactPersonAlias = r.EventContactPersonAlias,
+                EventContactEmail = r.EventContactEmail,
+                EventContactPhoneNumber = r.EventContactPhoneNumber,
+                MinistryName = r.ReservationMinistry != null ? r.ReservationMinistry.Name : string.Empty,
             } )
             .OrderBy( r => r.EventStartDateTime )
             .GroupBy( r => r.EventStartDateTime.Date )

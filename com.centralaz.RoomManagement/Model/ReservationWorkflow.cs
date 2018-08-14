@@ -51,7 +51,7 @@ namespace com.centralaz.RoomManagement.Model
         /// </value>
         [Required]
         [DataMember]
-        public int ReservationWorkflowTriggerId { get; set; }
+        public int? ReservationWorkflowTriggerId { get; set; }
 
         /// <summary>
         /// Gets or sets the workflow identifier.

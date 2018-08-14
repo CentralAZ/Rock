@@ -1000,6 +1000,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// </summary>
         private void BindReservationResourcesGrid()
         {
+            Hydrate( ResourcesState, new RockContext() );
             gResources.EntityTypeId = EntityTypeCache.Read<com.centralaz.RoomManagement.Model.ReservationResource>().Id;
             gResources.SetLinqDataSource( ResourcesState.AsQueryable().OrderBy( r => r.Resource.Name ) );
             gResources.DataBind();
@@ -1246,6 +1247,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// </summary>
         private void BindReservationLocationsGrid()
         {
+            Hydrate( LocationsState, new RockContext() );
             gLocations.EntityTypeId = EntityTypeCache.Read<com.centralaz.RoomManagement.Model.ReservationLocation>().Id;
             gLocations.SetLinqDataSource( LocationsState.AsQueryable().OrderBy( l => l.Location.Name ) );
             gLocations.DataBind();
@@ -2598,6 +2600,28 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             BindReservationResourcesGrid();
             LoadQuestionsAndAnswers();
+        }
+
+        private void Hydrate( List<ReservationLocationSummary> locationsState, RockContext rockContext )
+        {
+            var locationService = new LocationService( rockContext );
+            var reservationService = new ReservationService( rockContext );
+            foreach ( var reservationLocation in locationsState )
+            {
+                reservationLocation.Reservation = reservationService.Get( reservationLocation.ReservationId );
+                reservationLocation.Location = locationService.Get( reservationLocation.LocationId );
+            }
+        }
+
+        private void Hydrate( List<ReservationResourceSummary> resourcesState, RockContext rockContext )
+        {
+            var resourceService = new ResourceService( rockContext );
+            var reservationService = new ReservationService( rockContext );
+            foreach ( var reservationResource in resourcesState )
+            {
+                reservationResource.Reservation = reservationService.Get( reservationResource.ReservationId );
+                reservationResource.Resource = resourceService.Get( reservationResource.ResourceId );
+            }
         }
 
         #endregion

@@ -209,7 +209,7 @@ namespace RockWeb.Plugins.com_centralaz.Core
                 Device.SaveAttributeValues( rockContext );
             } );
 
-            Rock.CheckIn.KioskDevice.Flush( Device.Id );
+            Rock.CheckIn.KioskDevice.Remove( Device.Id );
             
             NavigateToParentPage();
         }
@@ -305,7 +305,7 @@ namespace RockWeb.Plugins.com_centralaz.Core
         /// </summary>
         private void LoadDropDowns()
         {
-            ddlDeviceType.BindToDefinedType( DefinedTypeCache.Read( new Guid( Rock.SystemGuid.DefinedType.DEVICE_TYPE ) ) );
+            ddlDeviceType.BindToDefinedType( DefinedTypeCache.Get( new Guid( Rock.SystemGuid.DefinedType.DEVICE_TYPE ) ) );
             ddlDeviceType.Items.Insert( 0, new ListItem( string.Empty, string.Empty ) );
 
             ddlPrintFrom.BindToEnum<PrintFrom>();
@@ -361,7 +361,7 @@ namespace RockWeb.Plugins.com_centralaz.Core
             phAttributes.Controls.Clear();
             Rock.Attribute.Helper.AddEditControls( Device, phAttributes, true, BlockValidationGroup );
 
-            string orgLocGuid = GlobalAttributesCache.Read().GetValue( "OrganizationAddress" );
+            string orgLocGuid = GlobalAttributesCache.Value( "OrganizationAddress" );
             if ( !string.IsNullOrWhiteSpace( orgLocGuid ) )
             {
                 Guid locGuid = Guid.Empty;
@@ -453,7 +453,7 @@ namespace RockWeb.Plugins.com_centralaz.Core
         /// </summary>
         private void SetPrinterSettingsVisibility()
         {
-            var checkinKioskDeviceTypeId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.DEVICE_TYPE_CHECKIN_KIOSK ).Id;
+            var checkinKioskDeviceTypeId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.DEVICE_TYPE_CHECKIN_KIOSK ).Id;
             pnlPrinterSettings.Visible = ( ddlDeviceType.SelectedValue.AsIntegerOrNull() == checkinKioskDeviceTypeId );
         }
 

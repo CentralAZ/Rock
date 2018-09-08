@@ -149,10 +149,10 @@ namespace RockWeb.Plugins.com_centralaz.Finance
                 FinancialAccountService financialAccountService = new FinancialAccountService( rockContext );
                 PersonService personService = new PersonService( rockContext );
 
-                var transactionType = DefinedValueCache.Read( GetAttributeValue( "TransactionType" ).AsGuid() );
-                var defaultTransactionSource = DefinedValueCache.Read( GetAttributeValue( "DefaultTransactionSource" ).AsGuid() );
-                var tenderDefinedType = DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.FINANCIAL_CURRENCY_TYPE.AsGuid() );
-                var sourceTypeDefinedType = DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.FINANCIAL_SOURCE_TYPE.AsGuid() );
+                var transactionType = DefinedValueCache.Get( GetAttributeValue( "TransactionType" ).AsGuid() );
+                var defaultTransactionSource = DefinedValueCache.Get( GetAttributeValue( "DefaultTransactionSource" ).AsGuid() );
+                var tenderDefinedType = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.FINANCIAL_CURRENCY_TYPE.AsGuid() );
+                var sourceTypeDefinedType = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.FINANCIAL_SOURCE_TYPE.AsGuid() );
 
                 // Find/verify the anonymous person alias ID
                 var anonPersonAlias = personAliasService.GetByAliasId( GetAttributeValue( "AnonymousGiverPersonAliasID" ).AsInteger() );
@@ -316,7 +316,7 @@ namespace RockWeb.Plugins.com_centralaz.Finance
                         else
                         {
                             // otherwise get and use the tender type default value
-                            id = DefinedValueCache.Read( GetAttributeValue( "DefaultTenderTypeValue" ).AsGuid() ).Id;
+                            id = DefinedValueCache.Get( GetAttributeValue( "DefaultTenderTypeValue" ).AsGuid() ).Id;
                         }
                         financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = id;
                     }

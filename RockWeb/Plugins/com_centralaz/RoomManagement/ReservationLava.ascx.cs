@@ -309,7 +309,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void cblApproval_SelectedIndexChanged( object sender, EventArgs e )
         {
-            this.SetUserPreference( "Approval State", cblApproval.Items.OfType<System.Web.UI.WebControls.ListItem>().Where( l => l.Selected ).Select( a => a.Value.ConvertToEnum<ReservationApprovalState>().ConvertToInt() ).Where( a => a != null ).ToList().AsDelimited( "," ) );
+            this.SetUserPreference( "Approval State", cblApproval.Items.OfType<System.Web.UI.WebControls.ListItem>().Where( l => l.Selected ).Select( a => a.Value.ConvertToEnum<ReservationApprovalState>().ConvertToInt() ).ToList().AsDelimited( "," ) );
             BindData();
         }
 
@@ -474,7 +474,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             }
 
             // Filter by Approval
-            List<ReservationApprovalState> approvalValues = cblApproval.Items.OfType<System.Web.UI.WebControls.ListItem>().Where( l => l.Selected ).Select( a => a.Value.ConvertToEnum<ReservationApprovalState>() ).Where( a => a != null ).ToList();
+            List<ReservationApprovalState> approvalValues = cblApproval.Items.OfType<System.Web.UI.WebControls.ListItem>().Where( l => l.Selected ).Select( a => a.Value.ConvertToEnum<ReservationApprovalState>() ).ToList();
             if ( approvalValues.Any() )
             {
                 qry = qry
@@ -563,7 +563,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             // Setup Campus Filter
             rcwCampus.Visible = GetAttributeValue( "CampusFilterDisplayMode" ).AsInteger() > 1;
-            cblCampus.DataSource = CampusCache.All();
+            cblCampus.DataSource = CampusCache.All( false );
             cblCampus.DataBind();
             if ( !string.IsNullOrWhiteSpace( this.GetUserPreference( "Campuses" ) ) )
             {
@@ -573,7 +573,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             {
                 if ( GetAttributeValue( "EnableCampusContext" ).AsBoolean() )
                 {
-                    var contextCampus = RockPage.GetCurrentContext( EntityTypeCache.Read( "Rock.Model.Campus" ) ) as Campus;
+                    var contextCampus = RockPage.GetCurrentContext( EntityTypeCache.Get( "Rock.Model.Campus" ) ) as Campus;
                     if ( contextCampus != null )
                     {
                         cblCampus.SetValue( contextCampus.Id );
@@ -705,7 +705,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         {
             if ( reportTemplateGuid.HasValue )
             {
-                var reportTemplateEntityType = EntityTypeCache.Read( reportTemplateGuid.Value );
+                var reportTemplateEntityType = EntityTypeCache.Get( reportTemplateGuid.Value );
                 if ( reportTemplateEntityType == null )
                 {
                     return null;

@@ -67,7 +67,7 @@ public class _com_centralAZ_MailgunWithUnsubscribe : IHttpHandler
             string signature = request.Form["signature"];
             string apiKey = string.Empty;
 
-            var mailgunEntity = Rock.Web.Cache.EntityTypeCache.Read( "Rock.Communication.Transport.MailgunSmtp", false );
+            var mailgunEntity = Rock.Web.Cache.EntityTypeCache.Get( "Rock.Communication.Transport.MailgunSmtp", false );
             if ( mailgunEntity != null )
             {
                 apiKey = new AttributeValueService( rockContext )
@@ -309,8 +309,8 @@ public class _com_centralAZ_MailgunWithUnsubscribe : IHttpHandler
     /// <param name="reason">The reason.</param>
     private static void RecordEmailChangeToHistory( Rock.Data.RockContext rockContext, int personId, string changedToValue, string reason )
     {
-        var changes = new List<string>();
-        changes.Add( string.Format( "Email address set to <span class='field-value'>{0}</span> due to <span class='field-value'>{1}</span>.", changedToValue, reason ) );
+        var changes = new History.HistoryChangeList();
+        changes.Add( new History.HistoryChange( History.HistoryVerb.Process, History.HistoryChangeType.Record, string.Format( "Email address set to {0} due to {1}.", changedToValue, reason ) ) );
 
         HistoryService.SaveChanges(
             rockContext,

@@ -303,7 +303,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                     if ( !locations.Contains( location.Location.Id ) )		
                     {		
                         locations.Add( location.Location.Id );		
-                        var locationAttendance = KioskLocationAttendance.Read( location.Location.Id );		
+                        var locationAttendance = KioskLocationAttendance.Get( location.Location.Id );		
 		
                         if ( locationAttendance != null )		
                         {		
@@ -380,7 +380,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
             if ( userLogin != null && userLogin.EntityTypeId.HasValue )
             {
                 // make sure this is a PIN auth user login
-                var userLoginEntityType = EntityTypeCache.Read( userLogin.EntityTypeId.Value );
+                var userLoginEntityType = EntityTypeCache.Get( userLogin.EntityTypeId.Value );
                 if ( userLoginEntityType != null && userLoginEntityType.Id == pinAuth.EntityType.Id )
                 {
                     if ( pinAuth != null && pinAuth.IsActive )
@@ -463,13 +463,13 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                     {
                         location.IsActive = true;
                         rockContext.SaveChanges();
-                        KioskDevice.FlushAll();
+                        KioskDevice.Clear();
                     }
                     else if ( e.CommandName == "Close" && location.IsActive )
                     {
                         location.IsActive = false;
                         rockContext.SaveChanges();
-                        KioskDevice.FlushAll();
+                        KioskDevice.Clear();
                     }
                 }
 
@@ -510,7 +510,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                 lLocationName.Text = locationDataItem.GetPropertyValue( "Name" ) as string;
 
                 var lLocationCount = e.Item.FindControl( "lLocationCount" ) as Literal;
-                lLocationCount.Text = KioskLocationAttendance.Read( (int)locationDataItem.GetPropertyValue( "LocationId" ) ).CurrentCount.ToString();
+                lLocationCount.Text = KioskLocationAttendance.Get( (int)locationDataItem.GetPropertyValue( "LocationId" ) ).CurrentCount.ToString();
             }
         }
 

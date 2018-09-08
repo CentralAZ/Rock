@@ -1,25 +1,67 @@
-DECLARE @StartDate datetime = '2017-07-01'
+DECLARE @StartDate datetime = '2018-07-01'
 DECLARE @Months int = 24
-DECLARE @GrowthRate decimal(5,2) = .02
 
-DECLARE @CampusTbl TABLE ( CampusGuid uniqueidentifier NOT NULL, Multiplier decimal(5,2) )
-INSERT INTO @CampusTbl VALUES
-    ( '0BF5BD9B-2D8E-4215-999C-EAA46165BD9F', 1 ),	--	Gilbert
-    ( '76882AE3-1CE8-42A6-A2B6-8C0B29CF8CF8', .8 ),	--	Mesa
-    ( '9329C09C-B41A-408F-9DEF-CE5A743D6CFC', .2 ),	--	Queen Creek
-    ( '6A23A30B-A4DA-4240-9449-B5B227233B30', .2 ),	--	Glendale
-    ( 'B450CE45-37E8-4295-9BF9-11F907714FFA', .1 )	--	Ahwatukee
-
-
-DECLARE @MetricTbl TABLE ( MetricGuid uniqueidentifier NOT NULL, Goal decimal(18,2), [Value] decimal(18,2), StartGoalIsPercentage bit NOT NULL )
+DECLARE @MetricTbl TABLE ( MetricGuid uniqueidentifier NOT NULL, MetricCode varchar(2) NOT NULL )
 INSERT INTO @MetricTbl VALUES
-	( 'BBF8148D-84A2-4FCD-8768-A154B951A986', 25, 0, 0 ),	--	Discover More Attendance
-	( '2340CC55-FDF6-4F87-9013-E4918C3D83C7', 50, 0, 0 ),	--	Connection Cards (FTG)
-	( '35CCF658-25AE-4DD5-88A4-83F3C3DDAAB2', 50, 0, 1 ),	--	Connection Card Conversion
-	( '8E502D63-9485-4332-A412-94EAC686E91B', 50, 100, 1 ),	--	DM Room Capacity Utilization
-	( '92BAE802-FA3C-41C2-A551-960A492B800E', 20, 0, 0 ),	--	Baptisms
-	( '156C80A4-33CF-4E6D-920E-30FC56BE7801', 10, 0, 1 ),	--	New Servant Ministers
-	( 'A22B3072-1A68-4034-A3E6-7B331894BC6E', 20, 0, 1 )	--	New Life Group Members
+	( 'BBF8148D-84A2-4FCD-8768-A154B951A986', 'DM' ),	--	Discover More Attendance
+	( '2340CC55-FDF6-4F87-9013-E4918C3D83C7', 'CC' ),	--	Connection Cards (FTG)
+	( '35CCF658-25AE-4DD5-88A4-83F3C3DDAAB2', 'CR' ),	--	Connection Card Conversion
+	( '8E502D63-9485-4332-A412-94EAC686E91B', 'RC' ),	--	DM Room Capacity Utilization
+	( '92BAE802-FA3C-41C2-A551-960A492B800E', 'BP' ),	--	Baptisms
+	( '156C80A4-33CF-4E6D-920E-30FC56BE7801', 'SM' ),	--	New Servant Ministers
+	( 'A22B3072-1A68-4034-A3E6-7B331894BC6E', 'LG' )	--	New Life Group Members
+
+DECLARE @GoalsTbl TABLE ( MetricCode varchar(2) NOT NULL, CampusName varchar(50), Goal decimal(18,2), Value decimal(18,2), GrowthRate decimal(5,4) )
+INSERT INTO @GoalsTbl VALUES
+
+--	Discover More Attendance
+	( 'DM', 'Gilbert',		214,	0,		1.0833 ),	
+	( 'DM', 'Ahwatukee',	54,		0,		1.0833 ),	
+	( 'DM', 'Glendale',		104,	0,		1.0833 ),	
+	( 'DM', 'Mesa',			329,	0,		1.0833 ),	
+	( 'DM', 'Queen Creek',	80,		0,		1.0833 ),	
+
+--	Connection Cards				
+	( 'CC', 'Gilbert',		881,	0,		1.0833 ),	
+	( 'CC', 'Ahwatukee',	139,	0,		1.0833 ),	
+	( 'CC', 'Glendale',		575,	0,		1.0833 ),	
+	( 'CC', 'Mesa',			620,	0,		1.0833 ),	
+	( 'CC', 'Queen Creek',	176,	0,		1.0833 ),	
+
+--	Connection Card Conversion		
+	( 'CR', 'Gilbert',		.25,	0,		1 ),	
+	( 'CR', 'Ahwatukee',	.39,	0,		1 ),	
+	( 'CR', 'Glendale',		.18,	0,		1 ),	
+	( 'CR', 'Mesa',			.53,	0,		1 ),	
+	( 'CR', 'Queen Creek',	.46,	0,		1 ),	
+
+--	DM Room Capacity Utilization	
+	( 'RC', 'Gilbert',		.40,	535,	1 ),	
+	( 'RC', 'Ahwatukee',	.20,	270,	1 ),	
+	( 'RC', 'Glendale',		.24,	430,	1 ),	
+	( 'RC', 'Mesa',			.70,	470,	1 ),	
+	( 'RC', 'Queen Creek',	.15,	535,    1 ),	
+
+--	Baptisms				
+	( 'BP', 'Gilbert',		225,	0,		1.0833 ),	
+	( 'BP', 'Ahwatukee',	46,		0,		1.0833 ),	
+	( 'BP', 'Glendale',		74,		0,		1.0833 ),	
+	( 'BP', 'Mesa',			152,	0,		1.0833 ),	
+	( 'BP', 'Queen Creek',	49,		0,		1.0833 ),	
+
+--	New Servent Ministers	
+	( 'SM', 'Gilbert',		.10,	0,		1 ),	
+	( 'SM', 'Ahwatukee',	.10,	0,		1 ),	
+	( 'SM', 'Glendale',		.10,	0,		1 ),	
+	( 'SM', 'Mesa',			.10,	0,		1 ),	
+	( 'SM', 'Queen Creek',	.10,	0,		1 ),	
+
+--	New Life Group Members 
+	( 'LG', 'Gilbert',		.10,	0,		1 ),	
+	( 'LG', 'Ahwatukee',	.10,	0,		1 ),	
+	( 'LG', 'Glendale',		.10,	0,		1 ),	
+	( 'LG', 'Mesa',			.10,	0,		1 ),	
+	( 'LG', 'Queen Creek',	.10,	0,		1 )
 
 DECLARE @Month datetime = @StartDate
 DECLARE @LastMonth datetime
@@ -39,22 +81,29 @@ INNER JOIN [Metric] M ON M.[Guid] = T.[MetricGuid]
 INNER JOIN [MetricValue] V ON V.[MetricId] = M.[Id]
 
 DECLARE @CampusId int
-DECLARE @CampusMultiplier decimal(5,2)
 DECLARE @MetricId int
+DECLARE @PartitionId int
+DECLARE @Goal decimal(18,2)
+DECLARE @Value decimal(18,2)
+DECLARE @GrowthRate decimal(5,4)
+
 DECLARE @MetricValueId int
 DECLARE @LastValue decimal(18,2)
 
 WHILE @Month < @EndDate
 BEGIN
 	
-	DECLARE CampusCursor CURSOR FOR
-	SELECT C.[Id], CT.[Multiplier]
-	FROM @CampusTbl CT
-	INNER JOIN [Campus] C ON C.[Guid] = CT.[CampusGuid]
-	
-	OPEN CampusCursor
-	FETCH NEXT FROM CampusCursor
-	INTO @CampusId, @CampusMultiplier
+	DECLARE MetricCursor CURSOR FOR
+	SELECT C.[Id], M.[Id], P.[Id], GT.[Goal], GT.[Value], GT.[GrowthRate]
+	FROM @GoalsTbl GT
+	INNER JOIN @MetricTbl MT ON MT.[MetricCode] = GT.[MetricCode]
+	INNER JOIN [Metric] M ON M.[Guid] = MT.[MetricGuid]
+	INNER JOIN [MetricPartition] P ON P.[MetricId] = M.[Id] AND P.[EntityTypeId] = @CampusEntityTypeId
+	INNER JOIN [Campus] C ON C.[Name] = GT.[CampusName]
+
+	OPEN MetricCursor
+	FETCH NEXT FROM MetricCursor
+	INTO @CampusId, @MetricId, @PartitionId, @Goal, @Value, @GrowthRate
 
 	WHILE (@@FETCH_STATUS <> -1)
 	BEGIN
@@ -62,91 +111,58 @@ BEGIN
 		IF (@@FETCH_STATUS = 0)
 		BEGIN
 
-			DECLARE MetricCursor CURSOR FOR
-			SELECT M.[Id] 
-			FROM @MetricTbl MT
-			INNER JOIN [Metric] M ON M.[Guid] = MT.[MetricGuid]
-	
-			OPEN MetricCursor
-			FETCH NEXT FROM MetricCursor
-			INTO @MetricId
+			SET @LastValue = ( 
+				SELECT TOP 1 MV.[YValue]
+				FROM [MetricPartition] MP
+				INNER JOIN [MetricValuePartition] VP ON VP.[MetricPartitionId] = MP.[Id] AND VP.[EntityId] = @CampusId
+				INNER JOIN [MetricValue] MV ON MV.[Id] = VP.[MetricValueId]
+				WHERE MP.[MetricId] = @MetricId 
+				AND MP.[EntityTypeId] = @CampusEntityTypeId 
+				AND MV.[MetricValueDateTime] = @LastMonth
+			)
 
-			WHILE (@@FETCH_STATUS <> -1)
+			-- Create Goal
+			INSERT INTO [MetricValue] ( [MetricValueType], [XValue], [YValue], [MetricId], [Note], [MetricValueDateTime], [Guid] )
+			VALUES ( 1, '', 
+                CASE WHEN @GrowthRate = 1 
+                    THEN @Goal
+                    ELSE 
+                    CASE WHEN @LastValue IS NULL 
+                        THEN CAST ( @Goal AS INT )
+                        ELSE CAST ( @LastValue * @GrowthRate AS INT )
+                    END
+                END, 
+				@MetricId, '', @Month, NEWID() )
+			SET @MetricValueId = SCOPE_IDENTITY()
+
+			-- Add Partition
+			INSERT INTO [MetricValuePartition] ( [MetricPartitionId], [MetricValueId], [EntityId], [Guid] )
+			VALUES ( @PartitionId, @MetricValueId, @CampusId, NEWID() )
+		
+			IF @Value IS NOT NULL AND @Value > 0 
 			BEGIN
 
-				IF (@@FETCH_STATUS = 0)
-				BEGIN
+				-- Insert Value
+				INSERT INTO [MetricValue] ( [MetricValueType], [XValue], [YValue], [MetricId], [Note], [MetricValueDateTime], [Guid] )
+				VALUES ( 0, '', @Value, @MetricId, '', @Month, NEWID() )
+				SET @MetricValueId = SCOPE_IDENTITY()
 
-					SET @LastValue = ( 
-						SELECT TOP 1 MV.[YValue]
-						FROM [MetricPartition] MP
-						INNER JOIN [MetricValuePartition] VP ON VP.[MetricPartitionId] = MP.[Id] AND VP.[EntityId] = @CampusId
-						INNER JOIN [MetricValue] MV ON MV.[Id] = VP.[MetricValueId]
-						WHERE MP.[MetricId] = @MetricId 
-						AND MP.[EntityTypeId] = @CampusEntityTypeId 
-						AND MV.[MetricValueDateTime] = @LastMonth
-					)
+				-- Add Partition
+				INSERT INTO [MetricValuePartition] ( [MetricPartitionId], [MetricValueId], [EntityId], [Guid] )
+				VALUES ( @PartitionId, @MetricValueId, @CampusId, NEWID() )
 
-					-- Create Goal
-					INSERT INTO [MetricValue] ( [MetricValueType], [XValue], [YValue], [MetricId], [Note], [MetricValueDateTime], [Guid] )
-					SELECT 1, '', 
-						CASE WHEN MT.[StartGoalIsPercentage] = 1 
-							THEN MT.[Goal]
-							ELSE
-								CASE WHEN @LastValue IS NULL 
-									THEN CAST ( MT.[Goal] * @CampusMultiplier AS INT )
-									ELSE CAST ( ( @LastValue + ( @LastValue * @GrowthRate ) ) AS INT )
-								END
-						END, M.[Id], '', @Month, NEWID()
-					FROM [Metric] M
-					INNER JOIN @MetricTbl MT ON MT.[MetricGuid] = M.[Guid]
-					WHERE M.[Id] = @MetricId
-					SET @MetricValueId = SCOPE_IDENTITY()
-
-					-- Add Partition
-					INSERT INTO [MetricValuePartition] ( [MetricPartitionId], [MetricValueId], [EntityId], [Guid] )
-					SELECT MP.[Id], @MetricValueId, @CampusId, NEWID()
-					FROM [Metric] M
-					INNER JOIN [MetricPartition] MP ON MP.[MetricId] = M.[Id] AND MP.[EntityTypeId] = @CampusEntityTypeId
-					INNER JOIN @MetricTbl MT ON MT.[MetricGuid] = M.[Guid]
-					WHERE M.[Id] = @MetricId
-		
-					-- Insert Value
-					INSERT INTO [MetricValue] ( [MetricValueType], [XValue], [YValue], [MetricId], [Note], [MetricValueDateTime], [Guid] )
-					SELECT 0, '', MT.[Value] * @CampusMultiplier, M.[Id], '', @Month, NEWID()
-					FROM [Metric] M
-					INNER JOIN @MetricTbl MT ON MT.[MetricGuid] = M.[Guid] AND MT.[Value] > 0
-					WHERE M.[Id] = @MetricId
-					SET @MetricValueId = SCOPE_IDENTITY()
-
-					-- Add Partition
-					INSERT INTO [MetricValuePartition] ( [MetricPartitionId], [MetricValueId], [EntityId], [Guid] )
-					SELECT MP.[Id], @MetricValueId, @CampusId, NEWID()
-					FROM [Metric] M
-					INNER JOIN [MetricPartition] MP ON MP.[MetricId] = M.[Id] AND MP.[EntityTypeId] = @CampusEntityTypeId
-					INNER JOIN @MetricTbl MT ON MT.[MetricGuid] = M.[Guid] AND MT.[Value] > 0
-					WHERE M.[Id] = @MetricId
-
-					FETCH NEXT FROM MetricCursor
-					INTO @MetricId
-
-				END
-	
 			END
 
-			CLOSE MetricCursor
-			DEALLOCATE MetricCursor
-		
+			FETCH NEXT FROM MetricCursor
+			INTO @CampusId, @MetricId, @PartitionId, @Goal, @Value, @GrowthRate
+
 		END
 	
-		FETCH NEXT FROM CampusCursor
-		INTO @CampusId, @CampusMultiplier
-
 	END
 
-	CLOSE CampusCursor
-	DEALLOCATE CampusCursor
-
+	CLOSE MetricCursor
+	DEALLOCATE MetricCursor
+		
 	SET @LastMonth = @Month
 	SET @Month = DATEADD( m, 1, @Month) 
 

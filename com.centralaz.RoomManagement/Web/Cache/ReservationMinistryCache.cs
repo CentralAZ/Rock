@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Data.Entity;
 using System.Linq;
+using System.Runtime.Serialization;
 using System.Web.UI.WebControls;
 using com.centralaz.RoomManagement.Model;
 using Rock;
@@ -30,21 +31,9 @@ namespace com.centralaz.RoomManagement.Web.Cache
     /// This information will be cached by the engine
     /// </summary>
     [Serializable]
-    public class ReservationMinistryCache : CachedModel<ReservationMinistry>
+    [DataContract]
+    public class ReservationMinistryCache : ModelCache<ReservationMinistryCache, ReservationMinistry>
     {
-        #region Constructors
-
-        private ReservationMinistryCache()
-        {
-        }
-
-        private ReservationMinistryCache( ReservationMinistry reservationMinistry )
-        {
-            CopyFromModel( reservationMinistry );
-        }
-
-        #endregion
-
         #region Properties
 
         /// <summary>
@@ -53,6 +42,7 @@ namespace com.centralaz.RoomManagement.Web.Cache
         /// <value>
         /// The reservation type identifier.
         /// </value>
+        [DataMember]
         public int ReservationTypeId { get; set; }
 
         /// <summary>
@@ -61,6 +51,7 @@ namespace com.centralaz.RoomManagement.Web.Cache
         /// <value>
         ///   <c>true</c> if this instance is system; otherwise, <c>false</c>.
         /// </value>
+        [DataMember]
         public bool IsSystem { get; set; }
 
         /// <summary>
@@ -69,6 +60,7 @@ namespace com.centralaz.RoomManagement.Web.Cache
         /// <value>
         /// The name.
         /// </value>
+        [DataMember]
         public string Name { get; set; }
 
         /// <summary>
@@ -77,6 +69,7 @@ namespace com.centralaz.RoomManagement.Web.Cache
         /// <value>
         /// The description.
         /// </value>
+        [DataMember]
         public string Description { get; set; }
 
         /// <summary>
@@ -85,6 +78,7 @@ namespace com.centralaz.RoomManagement.Web.Cache
         /// <value>
         /// The is active.
         /// </value>
+        [DataMember]
         public bool? IsActive { get; set; }
 
         /// <summary>
@@ -93,6 +87,7 @@ namespace com.centralaz.RoomManagement.Web.Cache
         /// <value>
         /// The order.
         /// </value>
+        [DataMember]
         public int Order { get; set; }
 
         public virtual ReservationType ReservationType { get; set; }
@@ -104,21 +99,20 @@ namespace com.centralaz.RoomManagement.Web.Cache
         /// <summary>
         /// Copies from model.
         /// </summary>
-        /// <param name="model">The model.</param>
-        public override void CopyFromModel( Rock.Data.IEntity model )
+        /// <param name="entity">The entity.</param>
+        public override void SetFromEntity( IEntity entity )
         {
-            base.CopyFromModel( model );
+            base.SetFromEntity( entity );
 
-            if ( model is ReservationMinistry )
-            {
-                var reservationMinistry = ( ReservationMinistry ) model;
-                this.Description = reservationMinistry.Description;
-                this.IsActive = reservationMinistry.IsActive;
-                this.Name = reservationMinistry.Name;
-                this.ReservationType = reservationMinistry.ReservationType;
-                this.ReservationTypeId = reservationMinistry.ReservationTypeId;
-                this.Order = reservationMinistry.Order;
-            }
+            var reservationMinistry = entity as ReservationMinistry;
+            if ( reservationMinistry == null ) return;
+
+            this.Description = reservationMinistry.Description;
+            this.IsActive = reservationMinistry.IsActive;
+            this.Name = reservationMinistry.Name;
+            this.ReservationType = reservationMinistry.ReservationType;
+            this.ReservationTypeId = reservationMinistry.ReservationTypeId;
+            this.Order = reservationMinistry.Order;
         }
 
         /// <summary>
@@ -134,155 +128,5 @@ namespace com.centralaz.RoomManagement.Web.Cache
 
         #endregion
 
-        #region Static Methods
-
-        /// <summary>
-        /// Gets the cache key for the selected reservation ministry id.
-        /// </summary>
-        /// <param name="id">The reservation ministry id.</param>
-        /// <returns></returns>
-        public static string CacheKey( int id )
-        {
-            return string.Format( "com.centralaz.RoomManagement:ReservationMinistry:{0}", id );
-        }
-
-        /// <summary>
-        /// Returns ReservationMinistry object from cache.  If reservation ministry does not already exist in cache, it
-        /// will be read and added to cache
-        /// </summary>
-        /// <param name="id">The identifier.</param>
-        /// <param name="rockContext">The rock context.</param>
-        /// <returns></returns>
-        public static ReservationMinistryCache Read( int id, RockContext rockContext = null )
-        {
-            return GetOrAddExisting( ReservationMinistryCache.CacheKey( id ),
-                () => LoadById( id, rockContext ) );
-        }
-
-        private static ReservationMinistryCache LoadById( int id, RockContext rockContext )
-        {
-            if ( rockContext != null )
-            {
-                return LoadById2( id, rockContext );
-            }
-
-            using ( var rockContext2 = new RockContext() )
-            {
-                return LoadById2( id, rockContext2 );
-            }
-        }
-
-        private static ReservationMinistryCache LoadById2( int id, RockContext rockContext )
-        {
-            var reservationMinistryService = new ReservationMinistryService( rockContext );
-            var reservationMinistryModel = reservationMinistryService
-                .Queryable().AsNoTracking()
-                .FirstOrDefault( c => c.Id == id );
-            if ( reservationMinistryModel != null )
-            {
-                return new ReservationMinistryCache( reservationMinistryModel );
-            }
-
-            return null;
-        }
-
-        /// <summary>
-        /// Reads the specified GUID.
-        /// </summary>
-        /// <param name="guid">The GUID.</param>
-        /// <param name="rockContext">The rock context.</param>
-        /// <returns></returns>
-        public static ReservationMinistryCache Read( Guid guid, RockContext rockContext = null )
-        {
-            int id = GetOrAddExisting( guid.ToString(),
-                () => LoadByGuid( guid, rockContext ) );
-
-            return Read( id, rockContext );
-        }
-
-        private static int LoadByGuid( Guid guid, RockContext rockContext )
-        {
-            if ( rockContext != null )
-            {
-                return LoadByGuid2( guid, rockContext );
-            }
-
-            using ( var rockContext2 = new RockContext() )
-            {
-                return LoadByGuid2( guid, rockContext2 );
-            }
-        }
-
-        private static int LoadByGuid2( Guid guid, RockContext rockContext )
-        {
-            var reservationMinistryService = new ReservationMinistryService( rockContext );
-            return reservationMinistryService
-                .Queryable().AsNoTracking()
-                .Where( c => c.Guid.Equals( guid ) )
-                .Select( c => c.Id )
-                .FirstOrDefault();
-        }
-
-        /// <summary>
-        /// Adds ReservationMinistry model to cache, and returns cached object
-        /// </summary>
-        /// <param name="reservationMinistryModel"></param>
-        /// <returns></returns>
-        public static ReservationMinistryCache Read( ReservationMinistry reservationMinistryModel )
-        {
-            return GetOrAddExisting( ReservationMinistryCache.CacheKey( reservationMinistryModel.Id ),
-                () => LoadByModel( reservationMinistryModel ) );
-        }
-
-        private static ReservationMinistryCache LoadByModel( ReservationMinistry reservationMinistryModel )
-        {
-            if ( reservationMinistryModel != null )
-            {
-                return new ReservationMinistryCache( reservationMinistryModel );
-            }
-            return null;
-        }
-
-        /// <summary>
-        /// Returns all reservation ministrys
-        /// </summary>
-        /// <returns></returns>
-        public static List<ReservationMinistryCache> All()
-        {
-            List<ReservationMinistryCache> reservationMinistrys = new List<ReservationMinistryCache>();
-            var reservationMinistryIds = GetOrAddExisting( "com.centralaz.RoomManagement:ReservationMinistry:All", () => LoadAll() );
-            if ( reservationMinistryIds != null )
-            {
-                foreach ( int reservationMinistryId in reservationMinistryIds )
-                {
-                    reservationMinistrys.Add( ReservationMinistryCache.Read( reservationMinistryId ) );
-                }
-            }
-            return reservationMinistrys;
-        }
-
-        private static List<int> LoadAll()
-        {
-            using ( var rockContext = new RockContext() )
-            {
-                return new ReservationMinistryService( rockContext )
-                    .Queryable().AsNoTracking()
-                    .OrderBy( c => c.Name )
-                    .Select( c => c.Id )
-                    .ToList();
-            }
-        }
-
-        /// <summary>
-        /// Removes reservation ministry from cache
-        /// </summary>
-        /// <param name="id"></param>
-        public static void Flush( int id )
-        {
-            FlushCache( ReservationMinistryCache.CacheKey( id ) );
-            FlushCache( "com.centralaz.RoomManagement:ReservationMinistry:All" );
-        }
-
-        #endregion
     }
 }

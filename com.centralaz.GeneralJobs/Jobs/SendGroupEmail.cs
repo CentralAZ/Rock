@@ -83,8 +83,12 @@ namespace com.centralaz.GeneralJobs.Jobs
                     recipients.Add( new RecipientData( groupMember.Person.Email, mergeFields ) );
                 }
 
-                var appRoot = Rock.Web.Cache.GlobalAttributesCache.Read( rockContext ).GetValue( "ExternalApplicationRoot" );
-                Email.Send( emailTemplateGuid, recipients, appRoot );
+                var appRoot = GlobalAttributesCache.Value( "ExternalApplicationRoot" );
+                var emailMessage = new RockEmailMessage( emailTemplateGuid );
+                emailMessage.SetRecipients( recipients );
+                emailMessage.AppRoot = appRoot;
+                emailMessage.Send();
+
                 context.Result = string.Format( "{0} emails sent", recipients.Count() );
             }
         }

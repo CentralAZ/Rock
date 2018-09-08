@@ -242,7 +242,7 @@ namespace RockWeb.Plugins.com_centralaz.Core.Groups
                     personPageParams.Add( "PersonId", string.Empty );
                     var personProfilePage = LinkedPageUrl( "PersonProfilePage", personPageParams );
 
-                    var groupEntityType = EntityTypeCache.Read( typeof( Group ) );
+                    var groupEntityType = EntityTypeCache.Get( typeof( Group ) );
                     var dynamicGroups = new List<dynamic>();
 
 
@@ -287,7 +287,7 @@ namespace RockWeb.Plugins.com_centralaz.Core.Groups
                     
                     if ( GetAttributeValue( "RespectCampusContext" ).AsBoolean() )
                     {
-                        var campusContext = RockPage.GetCurrentContext( EntityTypeCache.Read( typeof( Campus ) ) );
+                        var campusContext = RockPage.GetCurrentContext( EntityTypeCache.Get( typeof( Campus ) ) );
 
                         if ( campusContext != null )
                         {
@@ -375,7 +375,7 @@ namespace RockWeb.Plugins.com_centralaz.Core.Groups
                         var groupAttributes = new List<dynamic>();
                         foreach ( AttributeValue value in group.AttributeValues )
                         {
-                            var attrCache = AttributeCache.Read( value.AttributeId );
+                            var attrCache = AttributeCache.Get( value.AttributeId );
                             var dictAttribute = new Dictionary<string, object>();
                             dictAttribute.Add( "Key", attrCache.Key );
                             dictAttribute.Add( "Name", attrCache.Name );
@@ -478,7 +478,7 @@ namespace RockWeb.Plugins.com_centralaz.Core.Groups
                     string styleCode = "null";
                     string markerColor = "FE7569";
 
-                    DefinedValueCache dvcMapStyle = DefinedValueCache.Read( GetAttributeValue( "MapStyle" ).AsGuid() );
+                    DefinedValueCache dvcMapStyle = DefinedValueCache.Get( GetAttributeValue( "MapStyle" ).AsGuid() );
                     if ( dvcMapStyle != null )
                     {
                         styleCode = dvcMapStyle.GetAttributeValue( "DynamicMapStyle" );

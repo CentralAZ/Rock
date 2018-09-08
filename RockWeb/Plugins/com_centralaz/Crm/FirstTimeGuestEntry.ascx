@@ -64,7 +64,7 @@
                                         <Rock:RockCheckBox ID="cbSms" runat="server" Label="&nbsp;" Text="Enable SMS" />
                                     </div>
                                 </asp:Panel>
-                                <Rock:EmailBox ID="tbEmail" runat="server" Label="Email" Required="true"></Rock:EmailBox>
+                                <Rock:EmailBox ID="tbEmail" runat="server" Label="Email" Required="false"></Rock:EmailBox>
                                 <asp:Panel ID="pnlHomePhone" runat="server" CssClass="row">
                                     <div class="col-sm-7">
                                         <Rock:PhoneNumberBox ID="pnHome" runat="server" Label="Home Phone" />

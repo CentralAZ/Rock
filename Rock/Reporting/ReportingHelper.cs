@@ -23,8 +23,8 @@ using System.Web.UI.WebControls;
 
 using Rock.Data;
 using Rock.Model;
-using Rock.Security;
 using Rock.Web.Cache;
+using Rock.Security;
 using Rock.Web.UI.Controls;
 
 namespace Rock.Reporting
@@ -92,7 +92,7 @@ namespace Rock.Reporting
                     return;
                 }
 
-                Type entityType = EntityTypeCache.Read( report.EntityTypeId.Value, rockContext ).GetEntityType();
+                Type entityType = EntityTypeCache.Get( report.EntityTypeId.Value, rockContext ).GetEntityType();
                 if ( entityType == null )
                 {
                     errorMessage = string.Format( "Unable to determine entityType for {0}", report.EntityType );
@@ -101,7 +101,7 @@ namespace Rock.Reporting
 
                 gReport.EntityTypeId = report.EntityTypeId;
 
-                bool isPersonDataSet = report.EntityTypeId == EntityTypeCache.Read( typeof( Rock.Model.Person ), true, rockContext ).Id;
+                bool isPersonDataSet = report.EntityTypeId == EntityTypeCache.Get( typeof( Rock.Model.Person ), true, rockContext ).Id;
 
                 if ( isPersonDataSet )
                 {
@@ -115,7 +115,7 @@ namespace Rock.Reporting
 
                 if ( report.EntityTypeId.HasValue )
                 {
-                    gReport.RowItemText = EntityTypeCache.Read( report.EntityTypeId.Value, rockContext ).FriendlyName;
+                    gReport.RowItemText = EntityTypeCache.Get( report.EntityTypeId.Value, rockContext ).FriendlyName;
                 }
 
                 List<EntityField> entityFields = Rock.Reporting.EntityHelper.GetEntityFields( entityType, true, false );
@@ -177,7 +177,7 @@ namespace Rock.Reporting
                         Guid? attributeGuid = reportField.Selection.AsGuidOrNull();
                         if ( attributeGuid.HasValue )
                         {
-                            var attribute = AttributeCache.Read( attributeGuid.Value, rockContext );
+                            var attribute = AttributeCache.Get( attributeGuid.Value, rockContext );
                             if ( attribute != null )
                             {
                                 selectedAttributes.Add( columnIndex, attribute );
@@ -539,7 +539,7 @@ namespace Rock.Reporting
             filter.Expanded = filterField.Expanded;
             if ( filterField.FilterEntityTypeName != null )
             {
-                filter.EntityTypeId = Rock.Web.Cache.EntityTypeCache.Read( filterField.FilterEntityTypeName ).Id;
+                filter.EntityTypeId = EntityTypeCache.Get( filterField.FilterEntityTypeName ).Id;
                 filter.Selection = filterField.GetSelection();
             }
 
@@ -771,8 +771,8 @@ namespace Rock.Reporting
         {
             var result = new Dictionary<Guid, string>();
 
-            var entityType = EntityTypeCache.Read( filter.EntityTypeId ?? 0 );
-            var reportEntityTypeCache = EntityTypeCache.Read( reportEntityType );
+            var entityType = EntityTypeCache.Get( filter.EntityTypeId ?? 0 );
+            var reportEntityTypeCache = EntityTypeCache.Get( reportEntityType );
             var reportEntityTypeModel = reportEntityTypeCache.GetEntityType();
 
             var filterInfo = new FilterInfo( filter );

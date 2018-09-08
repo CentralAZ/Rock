@@ -299,14 +299,14 @@ DECLARE @LifeGroupYear FLOAT = (SELECT CASE
 		THEN @LifeGroupYear_subA / @ConnectionCardYear
 		ELSE 0 END)
 
-DECLARE @DmCapacityMonth_subA FLOAT = (SELECT COUNT(*)
+DECLARE @DmCapacityMonth_subA FLOAT = (SELECT SUM(YValue)
 		FROM @MetricValues AS mv
 		WHERE mv.MetricValueDateTime >= @ThisMonthStart
 		AND mv.MetricValueDateTime <= @ThisMonthEnd
 		AND mv.MetricValueType = 0
 		AND MetricGuid = '8E502D63-9485-4332-A412-94EAC686E91B')
 
-DECLARE @DmCapacityYear_subA FLOAT = (SELECT COUNT(*)
+DECLARE @DmCapacityYear_subA FLOAT = (SELECT SUM(YValue)
 		FROM @MetricValues AS mv
 		WHERE mv.MetricValueDateTime >= @ThisMinistryYearStart
 		AND mv.MetricValueDateTime <= @ThisMinistryYearEnd
@@ -322,6 +322,30 @@ DECLARE @DmCapacityYear FLOAT = (SELECT CASE
 		WHEN (@DmCapacityYear_subA != 0 AND @DmCapacityYear_subA IS NOT NULL) 
 		THEN @DiscoverMoreYear / @DmCapacityYear_subA
 		ELSE 0 END)
+
+--SELECT
+-- @ConnectionCardMonth                           AS [ConnectionCardMonth ]
+--,@ConnectionCardYear                            AS [ConnectionCardYear ]
+--,@DiscoverMoreMonth                             AS [DiscoverMoreMonth ]
+--,@DiscoverMoreYear                              AS [DiscoverMoreYear ]
+--,@BaptismMonth                                  AS [BaptismMonth]
+--,@BaptismYear                                   AS [BaptismYear ]
+--,@ConnectionCardConversionMonth_subA            AS [ConnectionCardConversionMonth_subA ]
+--,@ConnectionCardConversionYear_subA             AS [ConnectionCardConversionYear_subA ]
+--,@ServantMinisterMonth_subA                     AS [ServantMinisterMonth_subA ]
+--,@ServantMinisterYear_subA                      AS [ServantMinisterYear_subA ]
+--,@LifeGroupMonth_subA                           AS [LifeGroupMonth_subA ]
+--,@LifeGroupYear_subA                            AS [LifeGroupYear_subA ]
+--,@ConnectionCardConversionMonth                 AS [ConnectionCardConversionMonth ]
+--,@ConnectionCardConversionYear                  AS [ConnectionCardConversionYear ]
+--,@ServantMinisterMonth                          AS [ServantMinisterMonth ]
+--,@ServantMinisterYear                           AS [ServantMinisterYear ]
+--,@LifeGroupMonth                                AS [LifeGroupMonth ]
+--,@LifeGroupYear                                 AS [LifeGroupYear ]
+--,@DmCapacityMonth_subA                          AS [DmCapacityMonth_subA ]
+--,@DmCapacityYear_subA                           AS [DmCapacityYear_subA ]
+--,@DmCapacityMonth                               AS [DmCapacityMonth ]
+--,@DmCapacityYear                                AS [DmCapacityYear]
 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -355,13 +379,13 @@ DECLARE @ScoreCardTable TABLE(
 	AssociateWeightedValue [float],
 	IsPercent [nvarchar](50),
 
-	MonthlyGoal [float],
+	MonthlyGoal decimal(18,2),
 	MonthlyMeasure [float],
 	MonthlyPercentToGoal [float],
 	MonthlyRating [float],
 	AssociateMonthlyRating [float],
 
-	YearlyGoal [float],
+	YearlyGoal decimal(18,2),
 	YearlyMeasure [float],
 	YearlyPercentToGoal [float],
 	YearlyRating [float],
@@ -373,7 +397,7 @@ SELECT referenceTable.MetricGuid,
 		referenceTable.MetricName,
 		referenceTable.WeightedValue,
 		referenceTable.AssociateWeightedValue,
-		referenceTable.IsPercentage,
+		CASE WHEN referenceTable.IsPercentage = 1 THEN 'True' ELSE 'False' END,
 		monthlyGoal.Measure,
 		fiscalYearGoal.Measure
 FROM (
@@ -389,29 +413,31 @@ FROM (
 LEFT JOIN 
 	(
 		SELECT MetricName
-		,SUM(YValue) AS 'Measure'
-		FROM @MetricValues
+		,CASE WHEN CT.IsPercentage = 1 THEN AVG(YValue) ELSE SUM(YValue) END AS 'Measure'
+		FROM @MetricValues mv
+		INNER JOIN @MetricConfigTbl CT ON CT.MetricGuid = mv.MetricGuid
 		WHERE MetricValueDateTime >= @ThisMonthStart
 		AND MetricValueDateTime <= @ThisMonthEnd
 		AND MetricValueType = 1
-		GROUP BY (MetricName)
+		GROUP BY MetricName, CT.IsPercentage
 	) AS monthlyGoal
 	ON referenceTable.MetricName = monthlyGoal.MetricName
 LEFT JOIN 
 	(
 		SELECT MetricName
-		,SUM(YValue) AS 'Measure'
-		FROM @MetricValues
+		,CASE WHEN CT.IsPercentage = 1 THEN AVG(YValue) ELSE SUM(YValue) END AS 'Measure'
+		FROM @MetricValues mv
+		INNER JOIN @MetricConfigTbl CT ON CT.MetricGuid = mv.MetricGuid
 		WHERE MetricValueDateTime >= @ThisMinistryYearStart
 		AND MetricValueDateTime <= @ThisMinistryYearEnd
 		AND MetricValueType = 1
-		GROUP BY (MetricName)
+		GROUP BY MetricName, CT.IsPercentage
 	) AS fiscalYearGoal
 	On fiscalYearGoal.MetricName = referenceTable.MetricName
 
-UPDATE @ScoreCardTable
-SET YearlyGoal = YearlyGoal/12
-WHERE IsPercent = 'True'
+-- UPDATE @ScoreCardTable
+-- SET YearlyGoal = YearlyGoal/12
+-- WHERE IsPercent = 'True'
 
 UPDATE @ScoreCardTable
 SET MonthlyMeasure = @BaptismMonth,
@@ -490,6 +516,8 @@ YearlyRating = (SELECT CASE WHEN (YearlyGoal != 0 AND YearlyGoal IS NOT NULL) TH
 AssociateYearlyRating = (SELECT	CASE WHEN (YearlyGoal != 0 AND YearlyGoal IS NOT NULL) THEN AssociateWeightedValue*(@DmCapacityYear / YearlyGoal) ELSE NULL END)
 WHERE MetricGuid = '8E502D63-9485-4332-A412-94EAC686E91B'
 
+--SELECT * FROM @ScoreCardTable
+
 SELECT	 CASE GROUPING(MetricGuid) WHEN 1 THEN 'Total' ELSE MAX(MetricName) END AS 'Name',
 		 CASE GROUPING(MetricGuid) WHEN 1 THEN 1 ELSE 0 END AS 'Order',
 		 CASE @IsAssociate WHEN 0 THEN SUM(WeightedValue) ELSE SUM(AssociateWeightedValue) END AS 'WeightedValue',
@@ -506,4 +534,5 @@ FROM @ScoreCardTable
 WHERE (@IsAssociate = 0 OR AssociateWeightedValue <> '')
 GROUP BY ROLLUP(MetricGuid)
 ORDER BY [Order], WeightedValue DESC
+
 END

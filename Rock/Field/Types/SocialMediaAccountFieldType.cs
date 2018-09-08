@@ -21,6 +21,8 @@ using System.Web.UI;
 using System.Web.UI.WebControls;
 
 using Rock.Data;
+using Rock.Model;
+using Rock.Reporting;
 using Rock.Web.Cache;
 using Rock.Web.UI.Controls;
 
@@ -272,11 +274,12 @@ namespace Rock.Field.Types
         /// <returns></returns>
         public override string GetEditValue( Control control, Dictionary<string, ConfigurationValue> configurationValues )
         {
-            if ( control != null && control is TextBox )
+            var editControl = control as TextBox;
+            if ( editControl != null )
             {
                 if ( configurationValues != null && configurationValues.ContainsKey( "baseurl" ) )
                 {
-                    string value = ( ( TextBox ) control ).Text;
+                    string value = editControl.Text;
                     if ( !value.StartsWith( configurationValues[BASEURL].Value ) && !string.IsNullOrEmpty( value ) )
                     {
                         return string.Format( "{0}{1}", configurationValues[BASEURL].Value, value );
@@ -298,44 +301,125 @@ namespace Rock.Field.Types
         /// <param name="value">The value.</param>
         public override void SetEditValue( Control control, Dictionary<string, ConfigurationValue> configurationValues, string value )
         {
-            if ( value != null && control != null && control is TextBox && !string.IsNullOrEmpty( value ) )
+            var editControl = control as TextBox;
+            if ( editControl != null )
             {
-                try
+                if ( string.IsNullOrEmpty( value ) )
                 {
-                    ( (TextBox)control ).Text = new Uri( value ).Segments.Last();
+                    editControl.Text = value;
                 }
-                catch
+                else
                 {
-                    ( (TextBox)control ).Text = value;
+                    try
+                    {
+                        editControl.Text = new Uri( value ).Segments.Last();
+                    }
+                    catch
+                    {
+                        editControl.Text = value;
+                    }
                 }
             }
         }
 
         #endregion
 
-        #region Filter Control
+        #region FilterControl
 
         /// <summary>
-        /// Creates the control needed to filter (query) values using this field type.
+        /// Gets the filter compare control.
         /// </summary>
         /// <param name="configurationValues">The configuration values.</param>
         /// <param name="id">The identifier.</param>
         /// <param name="required">if set to <c>true</c> [required].</param>
         /// <param name="filterMode">The filter mode.</param>
         /// <returns></returns>
-        public override System.Web.UI.Control FilterControl( System.Collections.Generic.Dictionary<string, ConfigurationValue> configurationValues, string id, bool required, Rock.Reporting.FilterMode filterMode )
+        public override Control FilterCompareControl( Dictionary<string, ConfigurationValue> configurationValues, string id, bool required, FilterMode filterMode )
         {
-            // This field type does not support filtering
-            return null;
+            if ( filterMode == FilterMode.SimpleFilter )
+            {
+                // hide the compare control for SimpleFilter mode
+                RockDropDownList ddlCompare = ComparisonHelper.ComparisonControl( FilterComparisonType, required );
+                ddlCompare.ID = string.Format( "{0}_ddlCompare", id );
+                ddlCompare.AddCssClass( "js-filter-compare" );
+                ddlCompare.Visible = false;
+                return ddlCompare;
+            }
+            else
+            {
+                return base.FilterCompareControl( configurationValues, id, required, filterMode );
+            }
         }
 
         /// <summary>
-        /// Determines whether this filter has a filter control
+        /// Determines whether [has filter control].
         /// </summary>
         /// <returns></returns>
         public override bool HasFilterControl()
         {
-            return false;
+            return true;
+        }
+
+        /// <summary>
+        /// Gets the filter values.
+        /// </summary>
+        /// <param name="filterControl">The filter control.</param>
+        /// <param name="configurationValues">The configuration values.</param>
+        /// <param name="filterMode">The filter mode.</param>
+        /// <returns></returns>
+        public override List<string> GetFilterValues( Control filterControl, Dictionary<string, ConfigurationValue> configurationValues, FilterMode filterMode )
+        {
+            // If this is a simple filter, only return values if something was actually entered into the filter's text field
+            var values = base.GetFilterValues( filterControl, configurationValues, filterMode );
+            if ( filterMode == FilterMode.SimpleFilter &&
+                values.Count == 2 &&
+                values[0].ConvertToEnum<ComparisonType>() == ComparisonType.Contains &&
+                values[1] == "" )
+            {
+                return new List<string>();
+            }
+
+            return values;
+        }
+
+        /// <summary>
+        /// Gets the filter compare value.
+        /// </summary>
+        /// <param name="control">The control.</param>
+        /// <param name="filterMode">The filter mode.</param>
+        /// <returns></returns>
+        public override string GetFilterCompareValue( Control control, FilterMode filterMode )
+        {
+            bool filterValueControlVisible = true;
+            var filterField = control.FirstParentControlOfType<FilterField>();
+            if ( filterField != null && filterField.HideFilterCriteria )
+            {
+                filterValueControlVisible = false;
+            }
+
+            if ( filterMode == FilterMode.SimpleFilter && filterValueControlVisible )
+            {
+                // hard code to Contains when in SimpleFilter mode and the FilterValue control is visible
+                return ComparisonType.Contains.ConvertToInt().ToString();
+            }
+            else
+            {
+                return base.GetFilterCompareValue( control, filterMode );
+            }
+        }
+
+        /// <summary>
+        /// Gets the type of the filter comparison.
+        /// </summary>
+        /// <value>
+        /// The type of the filter comparison.
+        /// </value>
+        public override Model.ComparisonType FilterComparisonType
+        {
+            get
+            {
+                return ComparisonHelper.StringFilterComparisonTypes;
+            }
         }
 
         #endregion

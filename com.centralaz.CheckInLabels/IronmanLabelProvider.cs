@@ -48,7 +48,7 @@ namespace com.centralaz.CheckInLabels
 
                 foreach ( var label in printFromServer )
                 {
-                    var labelCache = KioskLabel.Read( label.FileGuid );
+                    var labelCache = KioskLabel.Get( label.FileGuid );
                     if ( labelCache != null )
                     {
                         if ( !string.IsNullOrWhiteSpace( label.PrinterAddress ) )

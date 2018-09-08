@@ -123,7 +123,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
 
                     int id = e.Value.AsInteger();
 
-                    var groupType = GroupTypeCache.Read( id );
+                    var groupType = GroupTypeCache.Get( id );
                     if ( groupType != null )
                     {
                         e.Value = groupType.Name;
@@ -183,7 +183,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
                 bool isSecurityRoleGroup = group.IsSecurityRole || group.GroupType.Guid.Equals( Rock.SystemGuid.GroupType.GROUPTYPE_SECURITY_ROLE.AsGuid() );
                 if ( isSecurityRoleGroup )
                 {
-                    Rock.Security.Role.Flush( group.Id );
+                    RoleCache.Remove( group.Id );
                     foreach ( var auth in authService.Queryable().Where( a => a.GroupId == group.Id ).ToList() )
                     {
                         authService.Delete( auth );
@@ -196,7 +196,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
 
                 if ( isSecurityRoleGroup )
                 {
-                    Rock.Security.Authorization.Flush();
+                    Authorization.Clear();
                 }
             }
 
@@ -291,7 +291,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
             boolFields["IsSystem"].Visible = showSystemColumn;
 
             // Person context will exist if used on a person detail page
-            int personEntityTypeId = EntityTypeCache.Read( "Rock.Model.Person" ).Id;
+            int personEntityTypeId = EntityTypeCache.Get( "Rock.Model.Person" ).Id;
             if ( ContextTypesRequired.Any( e => e.Id == personEntityTypeId ) )
             {
                 var personContext = ContextEntity<Person>();
@@ -473,7 +473,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
 
             foreach ( int groupTypeId in qry.Select( t => t.Id ) )
             {
-                var groupType = GroupTypeCache.Read( groupTypeId );
+                var groupType = GroupTypeCache.Get( groupTypeId );
                 if ( groupType != null && groupType.IsAuthorized( Authorization.VIEW, CurrentPerson ) )
                 {
                     groupTypeIds.Add( groupTypeId );
@@ -483,7 +483,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
             // If there's only one group type, use it's 'group term' in the panel title.
             if ( groupTypeIds.Count == 1 )
             {
-                var singleGroupType = GroupTypeCache.Read( groupTypeIds.FirstOrDefault() );
+                var singleGroupType = GroupTypeCache.Get( groupTypeIds.FirstOrDefault() );
                 lTitle.Text = string.Format( "{0}", singleGroupType.GroupTerm.Pluralize() );
                 iIcon.AddCssClass( singleGroupType.IconCssClass );
             }

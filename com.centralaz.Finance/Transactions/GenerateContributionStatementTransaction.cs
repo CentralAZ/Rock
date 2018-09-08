@@ -342,12 +342,14 @@ namespace com.centralaz.Finance.Transactions
                     var emailMergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( null );
                     emailMergeFields.Add( "Person", Requestor );
 
-                    var appRoot = Rock.Web.Cache.GlobalAttributesCache.Read( rockContext ).GetValue( "ExternalApplicationRoot" );
+                    var recipients = new List<RecipientData>
+                    {
+                        new RecipientData( Requestor.Email, emailMergeFields )
+                    };
 
-                    var recipients = new List<RecipientData>();
-                    recipients.Add( new RecipientData( Requestor.Email, emailMergeFields ) );
-
-                    Email.Send( SystemEmailGuid.Value, recipients, appRoot );
+                    var message = new RockEmailMessage( SystemEmailGuid.Value );
+                    message.SetRecipients( recipients );
+                    message.Send();
                 }
             }
         }

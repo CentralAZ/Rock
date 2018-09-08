@@ -31,7 +31,7 @@ namespace com.centralaz.Accountability.Migrations
         //
         public override void Up()
         {
-            GroupTypeCache theGroupType = GroupTypeCache.Read( "DC99BF69-8A1A-411F-A267-1AE75FDC2341" );
+            GroupTypeCache theGroupType = GroupTypeCache.Get( "DC99BF69-8A1A-411F-A267-1AE75FDC2341" );
             int id = theGroupType.Id;
             String theId = id.ToString();
             RockMigrationHelper.AddEntityAttribute( "Rock.Model.GroupMember", Rock.SystemGuid.FieldType.DATE, "GroupTypeId", theId, "Member Start Date", "", "The date the first report is due for this member", 0, "10/1/2014", "1751DA07-F665-48F6-A409-E193FCB1C86D" );            

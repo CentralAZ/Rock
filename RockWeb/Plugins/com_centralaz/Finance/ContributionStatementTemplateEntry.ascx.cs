@@ -161,7 +161,7 @@ namespace RockWeb.Plugins.com_centralaz.Finance
             transaction.Account3 = account3;
             transaction.Account4 = account4;
             transaction.CampusIds = cblCampus.SelectedValuesAsInt;
-            transaction.DefinedTypeAttribute = AttributeCache.Read( GetAttributeValue( "StatementFrequencyAttribute" ).AsGuid() );
+            transaction.DefinedTypeAttribute = AttributeCache.Get( GetAttributeValue( "StatementFrequencyAttribute" ).AsGuid() );
             transaction.DefinedValueIds = cblStatementFrequency.SelectedValuesAsInt;
             transaction.ExcludedGroupId = gpExcludedGroup.SelectedValueAsId();
             transaction.StartDate = dateRange.Start;
@@ -269,13 +269,13 @@ namespace RockWeb.Plugins.com_centralaz.Finance
             }
 
             var attributeGuid = GetAttributeValue( "StatementFrequencyAttribute" ).AsGuid();
-            var personAttribute = AttributeCache.Read( attributeGuid );
+            var personAttribute = AttributeCache.Get( attributeGuid );
             if ( personAttribute != null )
             {
                 var qualifierValue = personAttribute.QualifierValues.Where( qv => qv.Key == "definedtype" ).First().Value;
                 if ( qualifierValue != null && qualifierValue.Value != null )
                 {
-                    var definedType = DefinedTypeCache.Read( int.Parse( qualifierValue.Value ) );
+                    var definedType = DefinedTypeCache.Get( int.Parse( qualifierValue.Value ) );
                     if ( definedType != null )
                     {
                         cblStatementFrequency.Visible = true;

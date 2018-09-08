@@ -54,8 +54,6 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         protected string PendingCss = "btn-default";
         protected string ApprovedCss = "btn-default";
         protected string DeniedCss = "btn-default";
-        public bool _canEdit = false;
-        public bool _canApprove = false;
 
         #endregion
 
@@ -210,9 +208,6 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             // this event gets fired after block settings are updated. it's nice to repaint the screen if these settings would alter it
             this.AddConfigurationUpdateTrigger( upnlContent );
 
-            _canEdit = UserCanEdit;
-            _canApprove = UserCanAdministrate;
-
             string script = string.Format( @"
     $('#{0} .btn-toggle').click(function (e) {{
 
@@ -339,9 +334,9 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 ReservationLocationService reservationLocationService = new ReservationLocationService( rockContext );
 
                 Reservation reservation = null;
-                var changes = new List<string>();
+                var changes = new History.HistoryChangeList();
 
-                if ( hfReservationId.ValueAsInt() != null )
+                if ( hfReservationId.Value.AsIntegerOrNull() != null )
                 {
                     reservation = reservationService.Get( hfReservationId.ValueAsInt() );
                 }
@@ -351,14 +346,14 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     reservation = new Reservation { Id = 0 };
                     reservation.ApprovalState = ReservationApprovalState.Unapproved;
                     reservation.RequesterAliasId = CurrentPersonAliasId;
-                    changes.Add( "Created Reservation" );
+                    changes.Add( new History.HistoryChange( History.HistoryVerb.Add, History.HistoryChangeType.Record, "Reservation" ) );
                 }
                 else
                 {
                     var uiLocations = LocationsState.Select( l => l.Guid );
                     foreach ( var reservationLocation in reservation.ReservationLocations.Where( l => !uiLocations.Contains( l.Guid ) ).ToList() )
                     {
-                        changes.Add( String.Format( "Removed <span class='field-name'>{0}</span> from Reservation", reservationLocation.Location.Name ) );
+                        changes.Add( new History.HistoryChange( History.HistoryVerb.Delete, History.HistoryChangeType.Property, String.Format( "Location ({0})", reservationLocation.Location.Name ) ) );
                         reservation.ReservationLocations.Remove( reservationLocation );
                         reservationLocationService.Delete( reservationLocation );
                     }
@@ -366,7 +361,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     var uiResources = ResourcesState.Select( l => l.Guid );
                     foreach ( var reservationResource in reservation.ReservationResources.Where( l => !uiResources.Contains( l.Guid ) ).ToList() )
                     {
-                        changes.Add( String.Format( "Removed <span class='field-name'>{0} {1}</span> from Reservation", reservationResource.Quantity, reservationResource.Resource.Name ) );
+                        changes.Add( new History.HistoryChange( History.HistoryVerb.Delete, History.HistoryChangeType.Property, String.Format( "Resource ({0})", reservationResource.Resource.Name ) ) );
                         reservation.ReservationResources.Remove( reservationResource );
                         reservationResourceService.Delete( reservationResource );
                     }
@@ -427,13 +422,13 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 CampusCache oldCampus = null;
                 if ( reservation.CampusId.HasValue )
                 {
-                    oldCampus = CampusCache.Read( reservation.CampusId.Value );
+                    oldCampus = CampusCache.Get( reservation.CampusId.Value );
                 }
 
                 CampusCache newCampus = null;
                 if ( ddlCampus.SelectedValueAsId().HasValue )
                 {
-                    newCampus = CampusCache.Read( ddlCampus.SelectedValueAsId().Value );
+                    newCampus = CampusCache.Get( ddlCampus.SelectedValueAsId().Value );
                 }
 
                 History.EvaluateChange( changes, "Campus", oldCampus != null ? oldCampus.Name : "None", newCampus != null ? newCampus.Name : "None" );
@@ -464,16 +459,16 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     {
                         if ( reservation.SetupPhotoId.HasValue )
                         {
-                            changes.Add( "Modified the setup photo." );
+                            changes.Add( new History.HistoryChange( History.HistoryVerb.Modify, History.HistoryChangeType.Property, "setup photo." ) );
                         }
                         else
                         {
-                            changes.Add( "Deleted the setup photo." );
+                            changes.Add( new History.HistoryChange( History.HistoryVerb.Delete, History.HistoryChangeType.Property, "setup photo." ) );
                         }
                     }
                     else if ( reservation.SetupPhotoId.HasValue )
                     {
-                        changes.Add( "Added a setup photo." );
+                        changes.Add( new History.HistoryChange( History.HistoryVerb.Add, History.HistoryChangeType.Property, "setup photo." ) );
                     }
                 }
 
@@ -1001,7 +996,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         private void BindReservationResourcesGrid()
         {
             Hydrate( ResourcesState, new RockContext() );
-            gResources.EntityTypeId = EntityTypeCache.Read<com.centralaz.RoomManagement.Model.ReservationResource>().Id;
+            gResources.EntityTypeId = EntityTypeCache.Get<com.centralaz.RoomManagement.Model.ReservationResource>().Id;
             gResources.SetLinqDataSource( ResourcesState.AsQueryable().OrderBy( r => r.Resource.Name ) );
             gResources.DataBind();
         }
@@ -1151,7 +1146,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             // check for attached resources and remove them too
             var reservationLocation = LocationsState.FirstOrDefault( a => a.Guid == rowGuid );
-            if ( reservationLocation != null && reservationLocation.LocationId != null )
+            if ( reservationLocation != null )
             {
                 var attachedResources = new ResourceService( new RockContext() ).Queryable().Where( r => r.Location.Id == reservationLocation.LocationId );
                 if ( attachedResources.Any() )
@@ -1248,7 +1243,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         private void BindReservationLocationsGrid()
         {
             Hydrate( LocationsState, new RockContext() );
-            gLocations.EntityTypeId = EntityTypeCache.Read<com.centralaz.RoomManagement.Model.ReservationLocation>().Id;
+            gLocations.EntityTypeId = EntityTypeCache.Get<com.centralaz.RoomManagement.Model.ReservationLocation>().Id;
             gLocations.SetLinqDataSource( LocationsState.AsQueryable().OrderBy( l => l.Location.Name ) );
             gLocations.DataBind();
         }
@@ -1417,22 +1412,23 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             bool readOnly = false;
             nbEditModeMessage.Text = string.Empty;
 
-            if ( !_canEdit )
-            {
-                readOnly = true;
-                nbEditModeMessage.Text = EditModeMessage.ReadOnlyEditActionNotAllowed( EventItem.FriendlyTypeName );
-            }
+            // This method is for 1.3.1 or 1.4 when we add security
+            //if ( !reservation.IsAuthorized( Authorization.EDIT, CurrentPerson ) )
+            //{
+            //    readOnly = true;
+            //    nbEditModeMessage.Text = EditModeMessage.ReadOnlyEditActionNotAllowed( EventItem.FriendlyTypeName );
+            //}
+
+            btnDelete.Visible = false;
 
             if ( readOnly )
             {
                 btnEdit.Visible = false;
-                btnDelete.Visible = false;
                 ShowReadonlyDetails( reservation );
             }
             else
             {
                 btnEdit.Visible = true;
-                btnDelete.Visible = true;
 
                 if ( !reservationId.Equals( 0 ) )
                 {
@@ -1505,6 +1501,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             // Show the delete button if the person is authorized to delete it
             if ( canApprove || CurrentPersonAliasId == reservation.CreatedByPersonAliasId )
             {
+                btnEdit.Visible = true;
                 btnDelete.Visible = true;
             }
 
@@ -1534,11 +1531,11 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             hfApprovalState.Value = reservation.ApprovalState.ConvertToString();
             LoadQuestionsAndAnswers( false, true );
 
-            gViewLocations.EntityTypeId = EntityTypeCache.Read<com.centralaz.RoomManagement.Model.ReservationLocation>().Id;
+            gViewLocations.EntityTypeId = EntityTypeCache.Get<com.centralaz.RoomManagement.Model.ReservationLocation>().Id;
             gViewLocations.SetLinqDataSource( LocationsState.AsQueryable().OrderBy( l => l.Location.Name ) );
             gViewLocations.DataBind();
 
-            gViewResources.EntityTypeId = EntityTypeCache.Read<com.centralaz.RoomManagement.Model.ReservationResource>().Id;
+            gViewResources.EntityTypeId = EntityTypeCache.Get<com.centralaz.RoomManagement.Model.ReservationResource>().Id;
             gViewResources.SetLinqDataSource( ResourcesState.AsQueryable().OrderBy( r => r.Resource.Name ) );
             gViewResources.DataBind();
 
@@ -2376,7 +2373,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// <param name="oldReservation">The old reservation.</param>
         /// <param name="reservation">The reservation.</param>
         /// <returns></returns>
-        private List<string> EvaluateLocationAndResourceChanges( List<string> changes, Reservation oldReservation, Reservation reservation )
+        private History.HistoryChangeList EvaluateLocationAndResourceChanges( History.HistoryChangeList changes, Reservation oldReservation, Reservation reservation )
         {
             foreach ( var reservationLocation in reservation.ReservationLocations )
             {
@@ -2403,7 +2400,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 }
                 else
                 {
-                    changes.Add( String.Format( "Added <span class='field-name'>{0}</span>", reservationLocation.Location.Name ) );
+                    changes.Add( new History.HistoryChange( History.HistoryVerb.Add, History.HistoryChangeType.Property, String.Format( "Location ({0})", reservationLocation.Location.Name ) ) );
                 }
             }
 
@@ -2434,7 +2431,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 }
                 else
                 {
-                    changes.Add( String.Format( "Added <span class='field-name'>{0} {1}</span>", reservationResource.Quantity, reservationResource.Resource.Name ) );
+                    changes.Add( new History.HistoryChange( History.HistoryVerb.Add, History.HistoryChangeType.Property, String.Format( "Resource ({0} {1})", reservationResource.Quantity, reservationResource.Resource.Name ) ) );
                 }
             }
 
@@ -2451,7 +2448,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         {
             if ( reservation != null && reservationWorkflowTrigger != null )
             {
-                var workflowType = WorkflowTypeCache.Read( reservationWorkflowTrigger.WorkflowTypeId.Value );
+                var workflowType = WorkflowTypeCache.Get( reservationWorkflowTrigger.WorkflowTypeId.Value );
                 if ( workflowType != null && ( workflowType.IsActive ?? true ) )
                 {
                     var workflow = Rock.Model.Workflow.Activate( workflowType, reservationWorkflowTrigger.WorkflowType.WorkTerm, rockContext );

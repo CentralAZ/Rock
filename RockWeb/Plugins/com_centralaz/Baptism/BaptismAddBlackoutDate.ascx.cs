@@ -256,7 +256,7 @@ namespace RockWeb.Plugins.com_centralaz.Baptism
             Group group = new GroupService( new RockContext() ).Get( PageParameter( "GroupId" ).AsInteger() );
             group.LoadAttributes();
             Guid categoryguid = group.GetAttributeValue( "BlackoutDates" ).AsGuid();
-            CategoryCache category = CategoryCache.Read( categoryguid );
+            CategoryCache category = CategoryCache.Get( categoryguid );
             if ( category == null )
             {
                 return -1;

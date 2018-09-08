@@ -135,7 +135,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
             base.OnInit( e );
 
 
-            sbtnSecurity.EntityTypeId = EntityTypeCache.Read( typeof( Rock.Model.Group ) ).Id;
+            sbtnSecurity.EntityTypeId = EntityTypeCache.Get( typeof( Rock.Model.Group ) ).Id;
 
             // this event gets fired after block settings are updated. it's nice to repaint the screen if these settings would alter it
             this.BlockUpdated += Block_BlockUpdated;
@@ -176,7 +176,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
                     var group = new Group { GroupTypeId = ddlGroupType.SelectedValueAsInt() ?? 0 };
                     if ( group.GroupTypeId > 0 )
                     {
-                        ShowGroupTypeEditDetails( GroupTypeCache.Read( group.GroupTypeId ), group, false );
+                        ShowGroupTypeEditDetails( GroupTypeCache.Get( group.GroupTypeId ), group, false );
                     }
                 }
             }
@@ -369,7 +369,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
                 group.SaveAttributeValues( rockContext );
 
                 /* Take care of Group Member Attributes */
-                var entityTypeId = EntityTypeCache.Read( typeof( GroupMember ) ).Id;
+                var entityTypeId = EntityTypeCache.Get( typeof( GroupMember ) ).Id;
                 string qualifierColumn = "GroupId";
                 string qualifierValue = group.Id.ToString();
 
@@ -380,7 +380,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
                 var selectedAttributeGuids = GroupMemberAttributesState.Select( a => a.Guid );
                 foreach ( var attr in attributes.Where( a => !selectedAttributeGuids.Contains( a.Guid ) ) )
                 {
-                    Rock.Web.Cache.AttributeCache.Flush( attr.Id );
+                    AttributeCache.Remove( attr.Id );
 
                     attributeService.Delete( attr );
                 }
@@ -399,8 +399,8 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
                 if ( !group.IsSecurityRole )
                 {
                     // if this group was a SecurityRole, but no longer is, flush
-                    Rock.Security.Role.Flush( group.Id );
-                    Rock.Security.Authorization.Flush();
+                    RoleCache.Remove( group.Id );
+                    Authorization.Clear();
                 }
             }
             else
@@ -408,7 +408,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
                 if ( group.IsSecurityRole )
                 {
                     // new security role, flush
-                    Rock.Security.Authorization.Flush();
+                    Authorization.Clear();
                 }
             }
 
@@ -477,7 +477,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
             var group = new Group { GroupTypeId = ddlGroupType.SelectedValueAsInt() ?? 0 };
             if ( group.GroupTypeId > 0 )
             {
-                ShowGroupTypeEditDetails( GroupTypeCache.Read( group.GroupTypeId ), group, true );
+                ShowGroupTypeEditDetails( GroupTypeCache.Get( group.GroupTypeId ), group, true );
             }
         }
         #endregion
@@ -646,7 +646,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
             //GroupLocationsState = groupLocations;
             GroupLocationsState = group.GroupLocations.ToList();
 
-            ShowGroupTypeEditDetails( GroupTypeCache.Read( group.GroupTypeId ), group, true );
+            ShowGroupTypeEditDetails( GroupTypeCache.Get( group.GroupTypeId ), group, true );
 
             string qualifierValue = group.Id.ToString();
             GroupMemberAttributesState = attributeService.GetByEntityTypeId( new GroupMember().TypeId ).AsQueryable()
@@ -747,10 +747,10 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
 
             // Get Map Style
             phMaps.Controls.Clear();
-            var mapStyleValue = DefinedValueCache.Read( GetAttributeValue( "MapStyle" ) );
+            var mapStyleValue = DefinedValueCache.Get( GetAttributeValue( "MapStyle" ) );
             if ( mapStyleValue == null )
             {
-                mapStyleValue = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.MAP_STYLE_ROCK );
+                mapStyleValue = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.MAP_STYLE_ROCK );
             }
 
             if ( mapStyleValue != null )
@@ -875,7 +875,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
 
             while ( inheritedGroupTypeId.HasValue )
             {
-                var inheritedGroupType = GroupTypeCache.Read( inheritedGroupTypeId.Value );
+                var inheritedGroupType = GroupTypeCache.Get( inheritedGroupTypeId.Value );
                 if ( inheritedGroupType != null )
                 {
                     string qualifierValue = inheritedGroupType.Id.ToString();

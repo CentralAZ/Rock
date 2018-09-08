@@ -136,7 +136,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void lbEdit_Click( object sender, EventArgs e )
         {
-            rptDeviceTypes.DataSource = DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.DEVICE_TYPE.AsGuid() ).DefinedValues;
+            rptDeviceTypes.DataSource = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.DEVICE_TYPE.AsGuid() ).DefinedValues;
             rptDeviceTypes.DataBind();
             pnlReadOnly.Visible = false;
             pnlEdit.Visible = true;
@@ -210,7 +210,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                     int definedValueId = 0;
                     if ( int.TryParse( e.Value, out definedValueId ) )
                     {
-                        var definedValue = DefinedValueCache.Read( definedValueId );
+                        var definedValue = DefinedValueCache.Get( definedValueId );
                         if ( definedValue != null )
                         {
                             e.Value = definedValue.Value;
@@ -259,7 +259,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
         /// </summary>
         private void BindFilter()
         {
-            ddlDeviceType.BindToDefinedType( DefinedTypeCache.Read( new Guid( Rock.SystemGuid.DefinedType.DEVICE_TYPE ) ) );
+            ddlDeviceType.BindToDefinedType( DefinedTypeCache.Get( new Guid( Rock.SystemGuid.DefinedType.DEVICE_TYPE ) ) );
             ddlDeviceType.Items.Insert( 0, new ListItem( string.Empty, string.Empty ) );
 
             ddlPrintTo.BindToEnum<PrintTo>();
@@ -296,7 +296,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
             {
                 var deviceService = new DeviceService( new RockContext() );
                 var sortProperty = gDevice.SortProperty;
-                gDevice.EntityTypeId = EntityTypeCache.Read<Device>().Id;
+                gDevice.EntityTypeId = EntityTypeCache.Get<Device>().Id;
 
                 var queryable = deviceService.Queryable()
                     .Where( d => d.Locations.Any( l => l.Id == locationId ) )
@@ -360,7 +360,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                     gDevice.DataSource = queryable.OrderBy( d => d.Name ).ToList();
                 }
 
-                gDevice.EntityTypeId = EntityTypeCache.Read<Rock.Model.Device>().Id;
+                gDevice.EntityTypeId = EntityTypeCache.Get<Rock.Model.Device>().Id;
                 gDevice.DataBind();
             }
         }

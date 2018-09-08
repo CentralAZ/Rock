@@ -382,7 +382,7 @@ namespace RockWeb.Plugins.com_centralaz.Baptism
             Group group = new GroupService( new RockContext() ).Get( PageParameter( "GroupId" ).AsInteger() );
             group.LoadAttributes();
             Guid categoryguid = group.GetAttributeValue( "BlackoutDates" ).AsGuid();
-            CategoryCache category = CategoryCache.Read( categoryguid );
+            CategoryCache category = CategoryCache.Get( categoryguid );
             _blackoutDates = new ScheduleService( new RockContext() ).Queryable()
                 .Where( s => s.CategoryId == category.Id )
                 .ToList();

@@ -40,7 +40,7 @@ namespace RockWeb.Plugins.com_centralaz.Cms
     [LinkedPage( "Root Page", "Select the root page to use as a starting point for the page confugration report.", true )]
     public partial class PageConfigurationReport : RockBlock
     {
-        FieldTypeCache pageReferencefieldType = FieldTypeCache.Read( Rock.SystemGuid.FieldType.PAGE_REFERENCE.AsGuid() );
+        FieldTypeCache pageReferencefieldType = FieldTypeCache.Get( Rock.SystemGuid.FieldType.PAGE_REFERENCE.AsGuid() );
         StringBuilder nodeData = new StringBuilder();
         StringBuilder edgeData = new StringBuilder();
         bool _isDiagramEnabled = false;
@@ -126,7 +126,7 @@ namespace RockWeb.Plugins.com_centralaz.Cms
             Guid pageGuid = Guid.Empty;
             if ( Guid.TryParse( GetAttributeValue( "RootPage" ), out pageGuid ) )
             {
-                rootPage = PageCache.Read( pageGuid );
+                rootPage = PageCache.Get( pageGuid );
             }
             else
             {
@@ -141,7 +141,7 @@ namespace RockWeb.Plugins.com_centralaz.Cms
 
             foreach ( var page in allPages )
             {
-                PageCache.Read( page );
+                PageCache.Get( page );
             }
 
             var sb = new StringBuilder();
@@ -291,7 +291,7 @@ namespace RockWeb.Plugins.com_centralaz.Cms
                 string cssClass = _referencedPages.ContainsKey( page.Guid.ToString() ) ? "well" : "alert alert-danger";
                 var routes = string.Join( ", ", page.PageRoutes.Select( o => o.Route ) );
                 routes = string.IsNullOrWhiteSpace( routes ) ? string.Empty : "<small><b class='text-muted'>ROUTES:</b></small> " + routes;
-                int pageEntityTypeId = EntityTypeCache.Read<Rock.Model.Page>().Id;
+                int pageEntityTypeId = EntityTypeCache.Get<Rock.Model.Page>().Id;
                 var pageViews = interactionService.Queryable().Where( i => i.InteractionComponent.EntityId == page.Id && i.InteractionComponent.Channel.ComponentEntityTypeId == pageEntityTypeId ).AsNoTracking();
                 var pageViewsCssClass = pageViews.Count() == 0 ? "text-warning" : "text-muted";
 

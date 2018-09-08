@@ -85,7 +85,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                 var rockContext = new RockContext();
 
                 // Bind Devices
-                var printerDeviceType = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.DEVICE_TYPE_PRINTER.AsGuid() );
+                var printerDeviceType = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.DEVICE_TYPE_PRINTER.AsGuid() );
 
                 var deviceService = new DeviceService( rockContext);
                 // Only get printers...
@@ -175,10 +175,10 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
 
             CheckInGroupType checkinGroupType = new CheckInGroupType();
             checkinGroupType.Groups = new List<CheckInGroup>();
-            var groupTypeCache = GroupTypeCache.Read( "6E7AD783-7614-4721-ABC1-35842113EF59".AsGuid() );
+            var groupTypeCache = GroupTypeCache.Get( "6E7AD783-7614-4721-ABC1-35842113EF59".AsGuid() );
             checkinGroupType.GroupType = groupTypeCache;
 
-            var labelCache = KioskLabel.Read( label.Value.AsGuid() );
+            var labelCache = KioskLabel.Get( label.Value.AsGuid() );
             var commonMergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( null );
             var mergeObjects = new Dictionary<string, object>();
             foreach ( var keyValue in commonMergeFields )
@@ -277,7 +277,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
             foreach ( var label in printFromServer.OrderBy( l => l.Order ) )
             {
                 labelIndex++;
-                var labelCache = KioskLabel.Read( label.FileGuid );
+                var labelCache = KioskLabel.Get( label.FileGuid );
                 if ( labelCache != null )
                 {
                     if ( !string.IsNullOrWhiteSpace( label.PrinterAddress ) )
@@ -377,7 +377,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
 
             // Get the device from cache
             var currentGroupTypeIds = ( Session["CheckInGroupTypeIds"] != null ) ? Session["CheckInGroupTypeIds"] as List<int> : new List<int>();
-            KioskDevice kioskDevice = KioskDevice.Read( deviceId.GetValueOrDefault(), currentGroupTypeIds );
+            KioskDevice kioskDevice = KioskDevice.Get( deviceId.GetValueOrDefault(), currentGroupTypeIds );
             hasCutter = kioskDevice.Device.GetAttributeValue( "HasCutter" ).AsBoolean();
 
             // also check the Description for the w/Cutter keywords

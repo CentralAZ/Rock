@@ -322,7 +322,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     nextOrder = CopyQuestionAttributes( rockContext, questionService, attributeService, keyMap, nextOrder, sourceQuestionList );
                 }
 
-                Rock.Web.Cache.AttributeCache.FlushEntityAttributes();
+                AttributeCache.RemoveEntityAttributes();
 
 
                 BindGrid();
@@ -505,7 +505,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             {
                 question = new Question();
                 question.Attribute = new Rock.Model.Attribute();
-                question.Attribute.FieldTypeId = FieldTypeCache.Read( Rock.SystemGuid.FieldType.TEXT ).Id;
+                question.Attribute.FieldTypeId = FieldTypeCache.Get( Rock.SystemGuid.FieldType.TEXT ).Id;
             }
 
             var reservedKeyNames = new List<string>();
@@ -575,7 +575,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             }
             
             var savedAttribute = SaveAttributeEdits( edtQuestion, entityTypeId, null, null, ResourceId, LocationId, rockContext );
-            AttributeCache.FlushEntityAttributes();
+            AttributeCache.RemoveEntityAttributes();
             return savedAttribute;
         }
 

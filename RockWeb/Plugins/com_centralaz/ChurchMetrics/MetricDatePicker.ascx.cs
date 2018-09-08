@@ -143,7 +143,7 @@ namespace RockWeb.Plugins.com_centralaz.ChurchMetrics
             string campusName = "All Church";
             if ( campusId != null )
             {
-                campusName = CampusCache.Read( campusId.Value ).Name;
+                campusName = CampusCache.Get( campusId.Value ).Name;
             }
 
             // Set the Holiday dropdownlist

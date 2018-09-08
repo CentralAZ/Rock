@@ -39,8 +39,7 @@ namespace RockWeb.Blocks.Crm
 <div class=""panel panel-block"">       
     <div class=""panel-heading"">
         <h4 class=""panel-title"">
-            <i class=""fa fa-mobile""></i>
-            {{ Person.FullName }}
+            <div class=""panel-panel-title""><i class=""fa fa-mobile""></i> {{ Person.FullName }}</div>
         </h4>
     </div>
     <div class=""panel-body"">
@@ -48,7 +47,7 @@ namespace RockWeb.Blocks.Crm
             {% for item in PersonalDevices %}
                 <div class=""col-md-3 col-sm-4"">                  
                     <div class=""well margin-b-none rollover-container"">                        
-                        <a class=""pull-right rollover-item btn btn-xs btn-danger"" href=""#"" onclick=""Rock.dialogs.confirm('Are you sure you want to delete this Device?', function (result) { if (result ){{ item.PersonalDevice.Id | Postback:'DeleteDevice' }}}) ""><i class=""fa fa-times""></i></a>
+                        <a class=""pull-right rollover-item btn btn-xs btn-danger"" href=""#"" onclick=""Rock.dialogs.confirm('Are you sure you want to delete this device?', function (result) { if (result ){{ item.PersonalDevice.Id | Postback:'DeleteDevice' }}}) ""><i class=""fa fa-times""></i></a>
                         <div style=""min-height: 120px;"">
                             <h3 class=""margin-v-none"">
                                 {% if item.DeviceIconCssClass != '' %}
@@ -164,13 +163,13 @@ namespace RockWeb.Blocks.Crm
                 {
                     if ( item.PersonalDevice.PersonalDeviceTypeValueId.HasValue )
                     {
-                        var value = DefinedValueCache.Read( item.PersonalDevice.PersonalDeviceTypeValueId.Value );
+                        var value = DefinedValueCache.Get( item.PersonalDevice.PersonalDeviceTypeValueId.Value );
                         item.DeviceIconCssClass = value.GetAttributeValue( "IconCssClass" );
                     }
 
                     if ( item.PersonalDevice.PlatformValueId.HasValue )
                     {
-                        item.PlatformValue = DefinedValueCache.Read( item.PersonalDevice.PlatformValueId.Value ).Value;
+                        item.PlatformValue = DefinedValueCache.Get( item.PersonalDevice.PlatformValueId.Value ).Value;
 
                     }
                 }

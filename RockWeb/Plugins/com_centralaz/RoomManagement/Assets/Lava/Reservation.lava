@@ -142,8 +142,12 @@ function InitialiseSettings(){
 			}).on('circle-animation-progress', function(event, progress, stepValue) {
 			$(this).find('strong').html(Math.floor(stepValue*100) + '<i>%</i>');
 		});
+
         $('[data-toggle="popover"]').popover();
 
+		$(".js-clickable-row").click(function() {
+				window.location = $(this).data("href");
+		});
 }
 
   $( document ).ready(function() {
@@ -151,9 +155,7 @@ function InitialiseSettings(){
 		InitialiseSettings();
   });
 
-  $(".js-clickable-row").click(function() {
-        window.location = $(this).data("href");
-    });
+
 
 </script>
 

@@ -430,8 +430,7 @@ namespace RockWeb.Plugins.com_centralaz.Utility
         /// <returns></returns>
         private bool FoundExactMatch( ArrayList personIds, string firstOrNickName, string lastName, string email )
         {
-            var exactPeople = new PersonService( new RockContext() ).GetByMatch( firstOrNickName, lastName, email );
-
+            var exactPeople = new PersonService( new RockContext() ).FindPersons( firstOrNickName, lastName, email );
             if ( exactPeople.Count() == 1 )
             {
                 personIds.Add( exactPeople.FirstOrDefault().Id );
@@ -463,9 +462,9 @@ namespace RockWeb.Plugins.com_centralaz.Utility
                 person.Email = email;
                 person.IsEmailActive = true;
                 person.EmailPreference = EmailPreference.EmailAllowed;
-                person.RecordTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
-                person.RecordStatusValueId = DefinedValueCache.Read( GetAttributeValue( "RecordStatus" ).AsGuid() ).Id;
-                person.ConnectionStatusValueId = DefinedValueCache.Read( GetAttributeValue( "ConnectionStatus" ).AsGuid() ).Id;
+                person.RecordTypeValueId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
+                person.RecordStatusValueId = DefinedValueCache.Get( GetAttributeValue( "RecordStatus" ).AsGuid() ).Id;
+                person.ConnectionStatusValueId = DefinedValueCache.Get( GetAttributeValue( "ConnectionStatus" ).AsGuid() ).Id;
                 person.Gender = Gender.Unknown;
                 PersonService.SaveNewPerson( person, rockContext );
                 rockContext.SaveChanges();

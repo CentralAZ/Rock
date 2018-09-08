@@ -67,7 +67,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                 var ageRangeAttributeGuid = GetAttributeValue( "GroupAgeRangeAttribute" ).AsGuid();
                 if ( ageRangeAttributeGuid != Guid.Empty )
                 {
-                    var groupAgeRange = AttributeCache.Read( ageRangeAttributeGuid );
+                    var groupAgeRange = AttributeCache.Get( ageRangeAttributeGuid );
                     if ( groupAgeRange != null )
                     {
                         ageRangeAttributeKey = groupAgeRange.Key;
@@ -92,7 +92,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                 var groupSpecialNeedsGuid = GetAttributeValue( "GroupSpecialNeedsAttribute" ).AsGuid();
                 if ( groupSpecialNeedsGuid != Guid.Empty )
                 {
-                    var groupSpecialNeeds = AttributeCache.Read( groupSpecialNeedsGuid );
+                    var groupSpecialNeeds = AttributeCache.Get( groupSpecialNeedsGuid );
                     if ( groupSpecialNeeds != null )
                     {
                         groupSpecialNeedsKey = groupSpecialNeeds.Key;
@@ -117,7 +117,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                 var groupLastNameStartLetterGuid = GetAttributeValue( "GroupLastNameStartLetterAttribute" ).AsGuid();
                 if ( groupLastNameStartLetterGuid != Guid.Empty )
                 {
-                    var groupLastNameStartLetter = AttributeCache.Read( groupLastNameStartLetterGuid );
+                    var groupLastNameStartLetter = AttributeCache.Get( groupLastNameStartLetterGuid );
                     if ( groupLastNameStartLetter != null )
                     {
                         groupLastNameStartLetterKey = groupLastNameStartLetter.Key;
@@ -142,7 +142,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                 var groupLastNameEndLetterGuid = GetAttributeValue( "GroupLastNameEndLetterAttribute" ).AsGuid();
                 if ( groupLastNameEndLetterGuid != Guid.Empty )
                 {
-                    var groupLastNameEndLetter = AttributeCache.Read( groupLastNameEndLetterGuid );
+                    var groupLastNameEndLetter = AttributeCache.Get( groupLastNameEndLetterGuid );
                     if ( groupLastNameEndLetter != null )
                     {
                         groupLastNameEndLetterKey = groupLastNameEndLetter.Key;
@@ -221,7 +221,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
             ddlGroupType.Items.Add( Rock.Constants.All.ListItem );
 
             // populate the GroupType DropDownList only with GroupTypes with GroupTypePurpose of Checkin Template
-            int groupTypePurposeCheckInTemplateId = DefinedValueCache.Read( new Guid( Rock.SystemGuid.DefinedValue.GROUPTYPE_PURPOSE_CHECKIN_TEMPLATE ) ).Id;
+            int groupTypePurposeCheckInTemplateId = DefinedValueCache.Get( new Guid( Rock.SystemGuid.DefinedValue.GROUPTYPE_PURPOSE_CHECKIN_TEMPLATE ) ).Id;
 
             var rockContext = new RockContext();
 
@@ -246,7 +246,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
             int? categoryId = rFilter.GetUserPreference( "Category" ).AsIntegerOrNull();
             if ( !categoryId.HasValue )
             {
-                var categoryCache = CategoryCache.Read( Rock.SystemGuid.Category.SCHEDULE_SERVICE_TIMES.AsGuid() );
+                var categoryCache = CategoryCache.Get( Rock.SystemGuid.Category.SCHEDULE_SERVICE_TIMES.AsGuid() );
                 categoryId = categoryCache != null ? categoryCache.Id : ( int? ) null;
             }
 
@@ -300,7 +300,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                         itemId = groupTypeIdPageParam.Value;
                     }
 
-                    var groupType = GroupTypeCache.Read( itemId );
+                    var groupType = GroupTypeCache.Get( itemId );
                     if ( groupType != null )
                     {
                         e.Value = groupType.Name;
@@ -420,7 +420,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
             else
             {
                 // if no specific GroupType is specified, show all GroupTypes with GroupTypePurpose of Checkin Template and their descendents (since this blocktype is specifically for Checkin)
-                int groupTypePurposeCheckInTemplateId = DefinedValueCache.Read( new Guid( Rock.SystemGuid.DefinedValue.GROUPTYPE_PURPOSE_CHECKIN_TEMPLATE ) ).Id;
+                int groupTypePurposeCheckInTemplateId = DefinedValueCache.Get( new Guid( Rock.SystemGuid.DefinedValue.GROUPTYPE_PURPOSE_CHECKIN_TEMPLATE ) ).Id;
                 List<int> descendantGroupTypeIds = new List<int>();
                 foreach ( var templateGroupType in groupTypeService.Queryable().Where( a => a.GroupTypePurposeValueId == groupTypePurposeCheckInTemplateId ) )
                 {
@@ -548,7 +548,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                 Literal lAbilityLevel = e.Row.FindControl( "lAbilityLevel" ) as Literal;
                 if ( lAbilityLevel != null )
                 {
-                    lAbilityLevel.Text = group.GetAttributeValues( "AbilityLevel" ).Select( a => DefinedValueCache.Read( a ).Value ).ToList().AsDelimited( ", ", null );
+                    lAbilityLevel.Text = group.GetAttributeValues( "AbilityLevel" ).Select( a => DefinedValueCache.Get( a ).Value ).ToList().AsDelimited( ", ", null );
                 }
 
                 Literal lAge = e.Row.FindControl( "lAge" ) as Literal;
@@ -564,13 +564,13 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                 Literal lGrade = e.Row.FindControl( "lGrade" ) as Literal;
                 if ( lGrade != null )
                 {
-                    var grades = group.GetAttributeValue( "GradeRange" ).SplitDelimitedValues().Select( v => DefinedValueCache.Read( v ).Value.AsInteger() ).ToList();
+                    var grades = group.GetAttributeValue( "GradeRange" ).SplitDelimitedValues().Select( v => DefinedValueCache.Get( v ).Value.AsInteger() ).ToList();
                     List<String> gradesFormatted = new List<string>();
                     foreach ( var grade in grades )
                     {
                         if ( grade >= 0 )
                         {
-                            var schoolGrades = DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.SCHOOL_GRADES.AsGuid() );
+                            var schoolGrades = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.SCHOOL_GRADES.AsGuid() );
                             if ( schoolGrades != null )
                             {
                                 var sortedGradeValues = schoolGrades.DefinedValues.OrderBy( a => a.Value.AsInteger() );

@@ -93,7 +93,7 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
 
         Guid _multiSelectGuid = Rock.SystemGuid.FieldType.MULTI_SELECT.AsGuid();
         Guid _singleSelectGuid = Rock.SystemGuid.FieldType.SINGLE_SELECT.AsGuid();
-        Guid _registrantGuid = EntityTypeCache.Read( "Rock.Model.RegistrationRegistrant" ).Guid; // Rock.Model.RegistrationRegistrant guid
+        Guid _registrantGuid = EntityTypeCache.Get( "Rock.Model.RegistrationRegistrant" ).Guid; // Rock.Model.RegistrationRegistrant guid
 
         #endregion
         #region Base Control Methods
@@ -146,7 +146,7 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void lbEdit_Click( object sender, EventArgs e )
         {
-            var registrationEntityType = EntityTypeCache.Read( "5CD9C0C8-C047-61A0-4E36-0FDB8496F066".AsGuid() );
+            var registrationEntityType = EntityTypeCache.Get( "5CD9C0C8-C047-61A0-4E36-0FDB8496F066".AsGuid() );
 
             if ( registrationEntityType != null )
             {
@@ -408,7 +408,7 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
                 pnlEdit.Visible = false;
                 pnlView.Visible = true;
                 List<int> toRemove = new List<int>();
-                var entityType = EntityTypeCache.Read( "5CD9C0C8-C047-61A0-4E36-0FDB8496F066".AsGuid() );
+                var entityType = EntityTypeCache.Get( "5CD9C0C8-C047-61A0-4E36-0FDB8496F066".AsGuid() );
 
                 if ( entityType != null )
                 {

@@ -126,7 +126,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 int? categoryId = e.Value.AsIntegerOrNull();
                 if ( categoryId.HasValue )
                 {
-                    var category = Rock.Web.Cache.CategoryCache.Read( categoryId.Value );
+                    var category = Rock.Web.Cache.CategoryCache.Get( categoryId.Value );
                     if ( category != null )
                     {
                         e.Value = category.Name;
@@ -143,7 +143,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 int? campusId = e.Value.AsIntegerOrNull();
                 if ( campusId.HasValue )
                 {
-                    var campus = CampusCache.Read( campusId.Value );
+                    var campus = CampusCache.Get( campusId.Value );
                     if ( campus != null )
                     {
                         e.Value = campus.Name;
@@ -207,7 +207,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             }
 
             gResources.DataSource = qry.OrderBy( r => r.Category.Name ).ThenBy( r => r.Name ).ToList();
-            gResources.EntityTypeId = EntityTypeCache.Read<Resource>().Id;
+            gResources.EntityTypeId = EntityTypeCache.Get<Resource>().Id;
             gResources.DataBind();
 
         }

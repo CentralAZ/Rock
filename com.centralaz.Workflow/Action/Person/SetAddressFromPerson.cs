@@ -94,7 +94,7 @@ namespace com.centralaz.Workflow.Action.Groups
                 addressTypeGuid = new Guid( Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME );
             }
 
-            var addressType = DefinedValueCache.Read( addressTypeGuid );
+            var addressType = DefinedValueCache.Get( addressTypeGuid );
             if ( addressType != null )
             {
                 var groupLocation = new PersonService( new RockContext() ).GetFirstLocation( person.Id, addressType.Id );
@@ -108,7 +108,7 @@ namespace com.centralaz.Workflow.Action.Groups
             {
                 // get the address attribute where we'll store the person's address.
                 var addressAttributeGuid = GetAttributeValue( action, "Address" ).AsGuid();
-                var addressAttribute = AttributeCache.Read( addressAttributeGuid, rockContext );
+                var addressAttribute = AttributeCache.Get( addressAttributeGuid, rockContext );
                 if ( addressAttribute != null )
                 {
                     SetWorkflowAttributeValue( action, addressAttribute.Guid, address.Guid.ToStringSafe() );

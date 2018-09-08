@@ -93,8 +93,7 @@
                     var $div = $('<div/>').attr('class', 'radio'),
 
                         $label = $('<label/>')
-                            .html(item.Name + inactiveWarning + quickSummaryInfo + ' <i class="fa fa-refresh fa-spin margin-l-md loading-notification" style="display: none; opacity: .4;"></i>')
-                            .addClass('rollover-container')
+                            .html('<span class="label-text">' + item.Name + inactiveWarning + quickSummaryInfo + '</span><i class="fa fa-refresh fa-spin margin-l-md loading-notification" style="display: none; opacity: .4;"></i>')
                             .prependTo($div),
 
                         $radio = $('<input type="radio" name="person-id" />')
@@ -138,7 +137,8 @@
 
             $('#' + controlId + ' a.picker-label').click(function (e) {
                 e.preventDefault();
-                $('#' + controlId).find('.picker-menu').first().slideToggle(function () {
+                $(this).toggleClass("active");
+                $('#' + controlId).find('.picker-menu').first().toggle(0, function () {
                     exports.personPickers[controlId].updateScrollbar();
                     $(this).find('.picker-search').focus();
                 });

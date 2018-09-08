@@ -170,7 +170,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
             foreach ( var label in printFromServer.OrderBy( l => l.Order ) )
             {
                 labelIndex++;
-                var labelCache = KioskLabel.Read( label.FileGuid );
+                var labelCache = KioskLabel.Get( label.FileGuid );
                 if ( labelCache != null )
                 {
                     if ( !string.IsNullOrWhiteSpace( label.PrinterAddress ) )
@@ -267,7 +267,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
 
             // Get the device from cache
             var currentGroupTypeIds = ( Session["CheckInGroupTypeIds"] != null ) ? Session["CheckInGroupTypeIds"] as List<int> : new List<int>();
-            KioskDevice kioskDevice = KioskDevice.Read( deviceId.GetValueOrDefault(), currentGroupTypeIds );
+            KioskDevice kioskDevice = KioskDevice.Get( deviceId.GetValueOrDefault(), currentGroupTypeIds );
             hasCutter = kioskDevice.Device.GetAttributeValue( "HasCutter" ).AsBoolean();
 
             // also check the Description for the w/Cutter keywords

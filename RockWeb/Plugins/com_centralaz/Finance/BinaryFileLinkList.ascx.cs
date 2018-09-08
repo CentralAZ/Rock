@@ -151,8 +151,8 @@ namespace RockWeb.Plugins.com_centralaz.Finance
 
                 if ( clearDeviceCache )
                 {
-                    Rock.CheckIn.KioskDevice.FlushAll();
-                    Rock.CheckIn.KioskLabel.Flush( guid );
+                    Rock.CheckIn.KioskDevice.Clear();
+                    Rock.CheckIn.KioskLabel.Remove( guid );
                 }
             }
 

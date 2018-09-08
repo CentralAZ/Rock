@@ -25,6 +25,7 @@ using Rock.Data;
 using Rock.Model;
 using Rock.Security;
 using Rock.Web;
+using Rock.Web.Cache;
 using Rock.Web.UI;
 
 namespace RockWeb.Plugins.com_centralaz.Accountability
@@ -274,8 +275,8 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
                 group = new GroupService( rockContext ).Get( groupMember.GroupId );
                 if ( group.IsSecurityRole || group.GroupType.Guid.Equals( Rock.SystemGuid.GroupType.GROUPTYPE_SECURITY_ROLE.AsGuid() ) )
                 {
-                    Rock.Security.Role.Flush( group.Id );
-                    Rock.Security.Authorization.Flush();
+                    RoleCache.Remove( group.Id );
+                    Authorization.Clear();
                 }
             }
             Dictionary<string, string> qryString = new Dictionary<string, string>();

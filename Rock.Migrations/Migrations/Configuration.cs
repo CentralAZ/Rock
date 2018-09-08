@@ -37,7 +37,7 @@ namespace Rock.Migrations
             // column (MediumDataJson) to specific columns. This method will update all of the communication templates, and the most 
             // recent 50 communications. A job will runto convert the remaining communications. This can be removed after every 
             // customer has migrated past v7
-            Jobs.MigrateCommunicationMediumData.UpdateCommunicationRecords( true, 50 );
+            Jobs.MigrateCommunicationMediumData.UpdateCommunicationRecords( true, 50, null );
 
             // MP: Populate AnalyticsSourceDate (if it isn't already)
             if ( !context.AnalyticsSourceDates.AsQueryable().Any() )
@@ -45,6 +45,24 @@ namespace Rock.Migrations
                 var analyticsStartDate = new DateTime( RockDateTime.Today.AddYears( -150 ).Year, 1, 1 );
                 var analyticsEndDate = new DateTime( RockDateTime.Today.AddYears( 101 ).Year, 1, 1 ).AddDays( -1 );
                 Rock.Model.AnalyticsSourceDate.GenerateAnalyticsSourceDateData( 1, false, analyticsStartDate, analyticsEndDate );
+            }
+
+            // Run the attendance occurrence migration job if it exists.
+            RunJob( SystemGuid.ServiceJob.MIGRATE_ATTENDANCE_OCCURRENCE, context );
+
+            // Run the family check-in identifier occurrence migration job if it exists.
+            RunJob( SystemGuid.ServiceJob.MIGRATE_FAMILY_CHECKIN_IDS, context );
+        }
+
+        private void RunJob( string JobGuid, Data.RockContext context )
+        {
+            // Check to see if there is a valid service job
+            var job = new Model.ServiceJobService( context ).Get( JobGuid.AsGuid() );
+            if ( job != null )
+            {
+                // Run the job on another thread
+                var transaction = new Transactions.RunJobNowTransaction( job.Id );
+                System.Threading.Tasks.Task.Run( () => transaction.Execute() );
             }
         }
     }

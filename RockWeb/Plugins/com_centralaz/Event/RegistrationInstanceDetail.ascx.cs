@@ -742,8 +742,8 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
                         return;
                     }
 
-                    var changes = new List<string>();
-                    changes.Add( "Deleted registration" );
+                    var changes = new History.HistoryChangeList();
+                    changes.Add( new History.HistoryChange( History.HistoryVerb.Delete, History.HistoryChangeType.Record, "Registration" ) );
 
                     rockContext.WrapTransaction( () =>
                     {
@@ -958,7 +958,7 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
                         int? campusId = e.Value.AsIntegerOrNull();
                         if ( campusId.HasValue )
                         {
-                            var campus = CampusCache.Read( campusId.Value );
+                            var campus = CampusCache.Get( campusId.Value );
                             e.Value = campus != null ? campus.Name : string.Empty;
                         }
                         else
@@ -972,7 +972,7 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
                         int? dvId = e.Value.AsIntegerOrNull();
                         if ( dvId.HasValue )
                         {
-                            var maritalStatus = DefinedValueCache.Read( dvId.Value );
+                            var maritalStatus = DefinedValueCache.Get( dvId.Value );
                             e.Value = maritalStatus != null ? maritalStatus.Value : string.Empty;
                         }
                         else
@@ -1075,7 +1075,7 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
                                 var campusNames = new List<string>();
                                 foreach ( int campusId in campusIds )
                                 {
-                                    var campus = CampusCache.Read( campusId );
+                                    var campus = CampusCache.Get( campusId );
                                     if ( campus != null )
                                     {
                                         campusNames.Add( campus.Name );
@@ -1493,7 +1493,7 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
             if ( keys.Any() )
             {
                 var entitySet = new Rock.Model.EntitySet();
-                entitySet.EntityTypeId = Rock.Web.Cache.EntityTypeCache.Read<Rock.Model.RegistrationRegistrant>().Id;
+                entitySet.EntityTypeId = Rock.Web.Cache.EntityTypeCache.Get<Rock.Model.RegistrationRegistrant>().Id;
                 entitySet.ExpireDateTime = RockDateTime.Now.AddMinutes( 20 );
 
                 foreach ( var key in keys )
@@ -1717,7 +1717,7 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
                             int? campusId = e.Value.AsIntegerOrNull();
                             if ( campusId.HasValue )
                             {
-                                var campus = CampusCache.Read( campusId.Value );
+                                var campus = CampusCache.Get( campusId.Value );
                                 e.Value = campus != null ? campus.Name : string.Empty;
                             }
                             else
@@ -1731,7 +1731,7 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
                             int? dvId = e.Value.AsIntegerOrNull();
                             if ( dvId.HasValue )
                             {
-                                var maritalStatus = DefinedValueCache.Read( dvId.Value );
+                                var maritalStatus = DefinedValueCache.Get( dvId.Value );
                                 e.Value = maritalStatus != null ? maritalStatus.Value : string.Empty;
                             }
                             else
@@ -1813,7 +1813,7 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
                                 var campusNames = new List<string>();
                                 foreach ( int campusId in campusIds )
                                 {
-                                    var campus = CampusCache.Read( campusId );
+                                    var campus = CampusCache.Get( campusId );
                                     if ( campus != null )
                                     {
                                         campusNames.Add( campus.Name );
@@ -2294,7 +2294,7 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
                     !r.IsTemporary )
                 .Select( r => r.Id );
 
-            var registrationEntityType = EntityTypeCache.Read( typeof( Rock.Model.Registration ) );
+            var registrationEntityType = EntityTypeCache.Get( typeof( Rock.Model.Registration ) );
             hfHasPayments.Value = new FinancialTransactionDetailService( rockContext )
                 .Queryable().AsNoTracking()
                 .Where( d =>
@@ -2332,7 +2332,7 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
             {
                 using ( var rockContext = new RockContext() )
                 {
-                    var registrationEntityType = EntityTypeCache.Read( typeof( Rock.Model.Registration ) );
+                    var registrationEntityType = EntityTypeCache.Get( typeof( Rock.Model.Registration ) );
 
                     var instance = new RegistrationInstanceService( rockContext ).Get( instanceId.Value );
                     decimal cost = instance.RegistrationTemplate.Cost;
@@ -2520,7 +2520,7 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
                             .ToList();
                     }
 
-                    var discountCodeHeader = gRegistrations.Columns.GetColumnByHeaderText( "Discount Code" );
+                    var discountCodeHeader = gRegistrations.GetColumnByHeaderText( "Discount Code" );
                     if ( discountCodeHeader != null )
                     {
                         discountCodeHeader.Visible = GetAttributeValue( "DisplayDiscountCodes" ).AsBoolean();
@@ -3115,7 +3115,7 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
                                 new RegistrantFormField
                                 {
                                     FieldSource = formField.FieldSource,
-                                    Attribute = AttributeCache.Read( formField.AttributeId.Value )
+                                    Attribute = AttributeCache.Get( formField.AttributeId.Value )
                                 } );
                         }
                     }
@@ -3397,14 +3397,14 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
                             case RegistrationPersonFieldType.MaritalStatus:
                                 {
                                     var ddlMaritalStatusFilter = new RockDropDownList();
-                                    ddlMaritalStatusFilter.BindToDefinedType( DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.PERSON_MARITAL_STATUS.AsGuid() ), true );
+                                    ddlMaritalStatusFilter.BindToDefinedType( DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.PERSON_MARITAL_STATUS.AsGuid() ), true );
                                     ddlMaritalStatusFilter.ID = "ddlMaritalStatusFilter";
                                     ddlMaritalStatusFilter.Label = "Marital Status";
                                     ddlMaritalStatusFilter.SetValue( fRegistrants.GetUserPreference( "Marital Status" ) );
                                     phRegistrantFormFieldFilters.Controls.Add( ddlMaritalStatusFilter );
 
                                     var ddlMaritalStatusFilter2 = new RockDropDownList();
-                                    ddlMaritalStatusFilter2.BindToDefinedType( DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.PERSON_MARITAL_STATUS.AsGuid() ), true );
+                                    ddlMaritalStatusFilter2.BindToDefinedType( DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.PERSON_MARITAL_STATUS.AsGuid() ), true );
                                     ddlMaritalStatusFilter2.ID = "ddlMaritalStatusFilter";
                                     ddlMaritalStatusFilter2.Label = "Marital Status";
                                     ddlMaritalStatusFilter2.SetValue( fRegistrants.GetUserPreference( "WL-Marital Status" ) );
@@ -3552,7 +3552,7 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
                             boundField3.AttributeId = attribute.Id;
                             boundField3.HeaderText = attribute.Name;
 
-                            var attributeCache = Rock.Web.Cache.AttributeCache.Read( attribute.Id );
+                            var attributeCache = AttributeCache.Get( attribute.Id );
                             if ( attributeCache != null )
                             {
                                 boundField.ItemStyle.HorizontalAlign = attributeCache.FieldType.Field.AlignValue;
@@ -3610,7 +3610,7 @@ namespace RockWeb.Plugins.com_CentralAZ.Event
                     var creditCardTypes = new Dictionary<int, string>();
 
                     // If configured for a registration and registration is null, return
-                    int registrationEntityTypeId = EntityTypeCache.Read( typeof( Rock.Model.Registration ) ).Id;
+                    int registrationEntityTypeId = EntityTypeCache.Get( typeof( Rock.Model.Registration ) ).Id;
 
                     // Get all the registrations for this instance
                     PaymentRegistrations = new RegistrationService( rockContext )

@@ -151,7 +151,7 @@ namespace RockWeb.Plugins.com_centralaz.HumanResources
             if ( salary != null )
             {
                 int salaryId = salary.Id;
-                var changes = new List<string>();
+                var changes = new History.HistoryChangeList();
 
                 service.Delete( salary );
                 History.EvaluateChange( changes, "Salary", salary.IsSalariedEmployee ? salary.Amount.FormatAsCurrency() + "/yr" : salary.Amount.FormatAsCurrency() + "/hr", "" );
@@ -216,7 +216,7 @@ namespace RockWeb.Plugins.com_centralaz.HumanResources
             var rockContext = new RockContext();
             var service = new SalaryService( rockContext );
             Salary salary = null;
-            var changes = new List<string>();
+            var changes = new History.HistoryChangeList();
 
             if ( salaryId != 0 )
             {
@@ -227,7 +227,7 @@ namespace RockWeb.Plugins.com_centralaz.HumanResources
             {
                 salary = new Salary();
                 service.Add( salary );
-                changes.Add( "Added new Salary" );
+                changes.Add( new History.HistoryChange( History.HistoryVerb.Add, History.HistoryChangeType.Record, "Salary" ) );
             }
 
             History.EvaluateChange( changes, "Salary", salary.PersonAliasId, Person.PrimaryAliasId.Value );
@@ -318,7 +318,7 @@ namespace RockWeb.Plugins.com_centralaz.HumanResources
                     ReviewedDate = c.ReviewedDate.HasValue ? c.ReviewedDate.Value.ToShortDateString() : "",
                 } ).ToList();
 
-            gSalaries.EntityTypeId = EntityTypeCache.Read<com.centralaz.HumanResources.Model.Salary>().Id;
+            gSalaries.EntityTypeId = EntityTypeCache.Get<com.centralaz.HumanResources.Model.Salary>().Id;
             gSalaries.DataBind();
         }
 

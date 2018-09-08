@@ -212,9 +212,9 @@ namespace com.centralaz.GeneralJobs.Jobs
             try
             {
                 var rockContext = new RockContext();
-                var workflowType = new WorkflowTypeService( rockContext ).Get( _workflowType );
                 var workflowService = new Rock.Model.WorkflowService( rockContext );
 
+                var workflowType = WorkflowTypeCache.Get( _workflowType );
                 if ( workflowType != null )
                 {
                     var workflow = Workflow.Activate( workflowType, "Email To Workflow" );

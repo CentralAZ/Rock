@@ -130,7 +130,7 @@ namespace com.centralaz.GeneralJobs.Jobs
 
             if ( _personAttributeGuid != null )
             {
-                _personAttribute = AttributeCache.Read( _personAttributeGuid.Value );
+                _personAttribute = AttributeCache.Get( _personAttributeGuid.Value );
                 _personAttributeKey = _personAttribute.Key;
             }
             else
@@ -142,7 +142,7 @@ namespace com.centralaz.GeneralJobs.Jobs
             var _personDisableAutoTopicSubscriptionGuid = dataMap.Get( "DisableAutoTopicSubscriptionAttribute" ).ToString().AsGuidOrNull();
             if ( _personDisableAutoTopicSubscriptionGuid != null )
             {
-                _personDisableAutoTopicSubscriptionAttribute = AttributeCache.Read( _personDisableAutoTopicSubscriptionGuid.Value );
+                _personDisableAutoTopicSubscriptionAttribute = AttributeCache.Get( _personDisableAutoTopicSubscriptionGuid.Value );
             }
             else
             { 

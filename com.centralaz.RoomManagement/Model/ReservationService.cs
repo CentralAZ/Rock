@@ -453,7 +453,10 @@ namespace com.centralaz.RoomManagement.Model
 
                     if ( recipients.Any() )
                     {
-                        Email.Send( reservation.ReservationType.NotificationEmail.Guid, recipients, string.Empty, string.Empty, reservation.ReservationType.IsCommunicationHistorySaved );
+                        var message = new RockEmailMessage( reservation.ReservationType.NotificationEmail.Guid );
+                        message.CreateCommunicationRecord = reservation.ReservationType.IsCommunicationHistorySaved;
+                        message.SetRecipients( recipients );
+                        message.Send();
                     }
                 }
             }

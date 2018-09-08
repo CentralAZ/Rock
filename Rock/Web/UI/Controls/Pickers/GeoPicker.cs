@@ -693,7 +693,7 @@ namespace Rock.Web.UI.Controls
 
             try
             {
-                DefinedValueCache dvcMapStyle = DefinedValueCache.Read( this.MapStyleValueGuid );
+                DefinedValueCache dvcMapStyle = DefinedValueCache.Get( this.MapStyleValueGuid );
                 if ( dvcMapStyle != null )
                 {
                     mapStyle = dvcMapStyle.GetAttributeValue( "DynamicMapStyle" );
@@ -716,7 +716,7 @@ namespace Rock.Web.UI.Controls
             else
             {
                 // If no centerpoint was defined, try to get it from organization address
-                var globalAttributes = Rock.Web.Cache.GlobalAttributesCache.Read();
+                var globalAttributes = GlobalAttributesCache.Get();
                 Guid guid = globalAttributes.GetValue( "OrganizationAddress" ).AsGuid();
                 if ( !guid.Equals( Guid.Empty ) )
                 {

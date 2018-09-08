@@ -131,7 +131,7 @@ namespace RockWeb.Plugins.com_centralaz.HumanResources
             if ( contributionElection != null )
             {
                 int contributionElectionId = contributionElection.Id;
-                var changes = new List<string>();
+                var changes = new History.HistoryChangeList();
 
                 service.Delete( contributionElection );
                 History.EvaluateChange( changes, "Contribution Election", contributionElection.IsFixedAmount ? contributionElection.Amount.FormatAsCurrency() : contributionElection.Amount.ToString( "P" ), "" );
@@ -217,7 +217,7 @@ namespace RockWeb.Plugins.com_centralaz.HumanResources
             var rockContext = new RockContext();
             var service = new ContributionElectionService( rockContext );
             ContributionElection contributionElection = null;
-            var changes = new List<string>();
+            var changes = new History.HistoryChangeList();
 
             if ( contributionElectionId != 0 )
             {
@@ -228,7 +228,7 @@ namespace RockWeb.Plugins.com_centralaz.HumanResources
             {
                 contributionElection = new ContributionElection();
                 service.Add( contributionElection );
-                changes.Add( "Added new Contribution Election" );
+                changes.Add( new History.HistoryChange( History.HistoryVerb.Add, History.HistoryChangeType.Record, "Contribution Election" ) );
             }
 
             History.EvaluateChange( changes, "Contribution Election", contributionElection.PersonAliasId, Person.PrimaryAliasId.Value );
@@ -316,7 +316,7 @@ namespace RockWeb.Plugins.com_centralaz.HumanResources
                     InactiveDate = c.InactiveDate.HasValue ? c.InactiveDate.Value.ToShortDateString() : "",
                 } ).ToList();
 
-            gContributionElections.EntityTypeId = EntityTypeCache.Read<com.centralaz.HumanResources.Model.ContributionElection>().Id;
+            gContributionElections.EntityTypeId = EntityTypeCache.Get<com.centralaz.HumanResources.Model.ContributionElection>().Id;
             gContributionElections.DataBind();
         }
 

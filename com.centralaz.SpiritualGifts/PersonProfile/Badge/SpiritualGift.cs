@@ -56,7 +56,7 @@ namespace com.centralaz.SpiritualGifts.PersonProfile.Badge
             DefinedValueCache giftingValue = null;
             if ( !string.IsNullOrEmpty( gifting ) )
             {
-                giftingValue = DefinedTypeCache.Read( com.centralaz.SpiritualGifts.SystemGuid.DefinedType.SPRITUAL_GIFTS_DEFINED_TYPE.AsGuid() ).DefinedValues.Where( v => v.Value == gifting ).FirstOrDefault();
+                giftingValue = DefinedTypeCache.Get( com.centralaz.SpiritualGifts.SystemGuid.DefinedType.SPRITUAL_GIFTS_DEFINED_TYPE.AsGuid() ).DefinedValues.Where( v => v.Value == gifting ).FirstOrDefault();
                 if ( giftingValue != null )
                 {
                     description = giftingValue.Description;
@@ -67,7 +67,7 @@ namespace com.centralaz.SpiritualGifts.PersonProfile.Badge
             string detailPageUrl = string.Empty;
             if ( !String.IsNullOrEmpty( GetAttributeValue( badge, "SpiritualGiftResultDetail" ) ) )
             {
-                int pageId = Rock.Web.Cache.PageCache.Read( Guid.Parse( GetAttributeValue( badge, "SpiritualGiftResultDetail" ) ) ).Id;
+                int pageId = PageCache.Get( Guid.Parse( GetAttributeValue( badge, "SpiritualGiftResultDetail" ) ) ).Id;
                 detailPageUrl = System.Web.VirtualPathUtility.ToAbsolute( String.Format( "~/page/{0}?Person={1}", pageId, Person.UrlEncodedKey ) );
             }
 

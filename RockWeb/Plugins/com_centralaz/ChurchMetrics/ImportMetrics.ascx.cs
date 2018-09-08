@@ -94,10 +94,10 @@ namespace RockWeb.Plugins.com_centralaz.ChurchMetrics
             var metricService = new MetricService( rockContext );
             var metricCategoryService = new MetricCategoryService( rockContext );            
 
-            var manualSourceTypeId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.METRIC_SOURCE_VALUE_TYPE_MANUAL.AsGuid() ).Id;
+            var manualSourceTypeId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.METRIC_SOURCE_VALUE_TYPE_MANUAL.AsGuid() ).Id;
             var categoryId = new CategoryService( rockContext ).Get( GetAttributeValue( "DefaultCategory" ).AsGuid() ).Id;
-            var campusEntityTypeId = EntityTypeCache.Read( "00096BED-9587-415E-8AD4-4E076AE8FBF0".AsGuid() ).Id;
-            var scheduleEntityTypeId = EntityTypeCache.Read( Rock.SystemGuid.EntityType.SCHEDULE.AsGuid() ).Id;
+            var campusEntityTypeId = EntityTypeCache.Get( "00096BED-9587-415E-8AD4-4E076AE8FBF0".AsGuid() ).Id;
+            var scheduleEntityTypeId = EntityTypeCache.Get( Rock.SystemGuid.EntityType.SCHEDULE.AsGuid() ).Id;
 
             dynamic metricResults = new List<ExpandoObject>();
 

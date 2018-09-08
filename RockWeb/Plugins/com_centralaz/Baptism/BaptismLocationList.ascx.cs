@@ -126,7 +126,7 @@ namespace RockWeb.Plugins.com_centralaz.Baptism
                 bool isSecurityRoleGroup = group.IsSecurityRole || group.GroupType.Guid.Equals( Rock.SystemGuid.GroupType.GROUPTYPE_SECURITY_ROLE.AsGuid() );
                 if ( isSecurityRoleGroup )
                 {
-                    Rock.Security.Role.Flush( group.Id );
+                    RoleCache.Remove( group.Id );
                     foreach ( var auth in authService.Queryable().Where( a => a.GroupId == group.Id ).ToList() )
                     {
                         authService.Delete( auth );
@@ -139,7 +139,7 @@ namespace RockWeb.Plugins.com_centralaz.Baptism
 
                 if ( isSecurityRoleGroup )
                 {
-                    Rock.Security.Authorization.Flush();
+                    Authorization.Clear();
                 }
             }
 

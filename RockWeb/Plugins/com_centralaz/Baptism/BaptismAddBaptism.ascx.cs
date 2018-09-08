@@ -166,7 +166,7 @@ namespace RockWeb.Plugins.com_centralaz.Baptism
                 }
             }
 
-            var changes = new List<string>();
+            var changes = new History.HistoryChangeList();
             BaptismContext baptismContext = new BaptismContext();
             BaptizeeService baptizeeService = new BaptizeeService( baptismContext );
             RockContext rockContext = new RockContext();
@@ -263,7 +263,7 @@ namespace RockWeb.Plugins.com_centralaz.Baptism
                     baptismContext.SaveChanges();
 
                     // Create the history records
-                    var changes = new List<string>();
+                    var changes = new History.HistoryChangeList();
 
                     History.EvaluateChange( changes, "Baptizer 1", ( _baptizee.Baptizer1 != null ) ? _baptizee.Baptizer1.Person.FullName : "", "" );
                     History.EvaluateChange( changes, "Baptizer 2", ( _baptizee.Baptizer2 != null ) ? _baptizee.Baptizer2.Person.FullName : "", "" );
@@ -305,7 +305,7 @@ namespace RockWeb.Plugins.com_centralaz.Baptism
             group.LoadAttributes();
 
             Guid categoryguid = group.GetAttributeValue( "ServiceTimes" ).AsGuid();
-            CategoryCache category = CategoryCache.Read( categoryguid );
+            CategoryCache category = CategoryCache.Get( categoryguid );
             List<Schedule> serviceSchedules = new ScheduleService( new RockContext() ).Queryable()
                 .Where( s => s.CategoryId == category.Id )
                 .ToList();
@@ -344,7 +344,7 @@ namespace RockWeb.Plugins.com_centralaz.Baptism
             Group group = new GroupService( new RockContext() ).Get( PageParameter( "GroupId" ).AsInteger() );
             group.LoadAttributes();
             Guid categoryguid = group.GetAttributeValue( "BlackoutDates" ).AsGuid();
-            CategoryCache category = CategoryCache.Read( categoryguid );
+            CategoryCache category = CategoryCache.Get( categoryguid );
             _blackoutDates = new ScheduleService( new RockContext() ).Queryable()
                 .Where( s => s.CategoryId == category.Id )
                 .ToList();

@@ -136,7 +136,7 @@ namespace RockWeb.Plugins.com_centralaz.Utility
                     return;
                 }
 
-                var personAttribute = Rock.Web.Cache.AttributeCache.Read( frequencyAttribute.Value );
+                var personAttribute = Rock.Web.Cache.AttributeCache.Get( frequencyAttribute.Value );
                 if ( personAttribute == null )
                 {
                     nbConfigurationError.Visible = true;
@@ -154,7 +154,7 @@ namespace RockWeb.Plugins.com_centralaz.Utility
                         return;
                     }
 
-                    var definedType = DefinedTypeCache.Read( int.Parse( qualifierValue.Value ) );
+                    var definedType = DefinedTypeCache.Get( int.Parse( qualifierValue.Value ) );
                     if ( definedType == null )
                     {
                         nbConfigurationError.Visible = true;

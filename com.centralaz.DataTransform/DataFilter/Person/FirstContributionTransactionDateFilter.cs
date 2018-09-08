@@ -245,7 +245,7 @@ function() {
             var accountIdList = new FinancialAccountService( (RockContext)serviceInstance.Context ).GetByGuids( accountGuids ).Select( a => a.Id ).ToList();
             bool includeEndDate = selectionValues[3].AsBoolean();
 
-            int transactionTypeContributionId = Rock.Web.Cache.DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_CONTRIBUTION.AsGuid() ).Id;
+            int transactionTypeContributionId = Rock.Web.Cache.DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_CONTRIBUTION.AsGuid() ).Id;
 
             var financialTransactionsQry = new FinancialTransactionService( rockContext ).Queryable()
                 .Where( xx => xx.TransactionTypeValueId == transactionTypeContributionId );

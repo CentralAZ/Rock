@@ -79,7 +79,7 @@ namespace com.centralaz.DataTransform.DataFilter
         /// </value>
         public override string GetTitle( Type entityType )
         {
-            return "Compare " + EntityTypeCache.Read( entityType ).FriendlyName + " Attributes";
+            return "Compare " + EntityTypeCache.Get( entityType ).FriendlyName + " Attributes";
         }
 
         /// <summary>
@@ -164,7 +164,7 @@ function() {
                 bool isAuthorized = false;
                 if ( entityField.FieldKind == FieldKind.Attribute && entityField.AttributeGuid.HasValue )
                 {
-                    var attribute = AttributeCache.Read( entityField.AttributeGuid.Value );
+                    var attribute = AttributeCache.Get( entityField.AttributeGuid.Value );
                     if ( attribute != null && rockBlock != null )
                     {
                         // only show the Attribute field in the drop down if they have VIEW Auth to it

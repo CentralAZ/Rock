@@ -245,7 +245,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
             }
 
             // try to find matching kiosk by REMOTE_ADDR (ip/name).
-            var checkInDeviceTypeId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.DEVICE_TYPE_CHECKIN_KIOSK ).Id;
+            var checkInDeviceTypeId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.DEVICE_TYPE_CHECKIN_KIOSK ).Id;
             using ( var rockContext = new RockContext() )
             {
                 bool enableReverseLookup = GetAttributeValue( "EnableReverseLookup" ).AsBoolean( false );
@@ -286,7 +286,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
         private void AttemptKioskMatchByIpOrName()
         {
             // try to find matching kiosk by REMOTE_ADDR (ip/name).
-            var checkInDeviceTypeId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.DEVICE_TYPE_CHECKIN_KIOSK ).Id;
+            var checkInDeviceTypeId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.DEVICE_TYPE_CHECKIN_KIOSK ).Id;
             using ( var rockContext = new RockContext() )
             {
                 bool enableReverseLookup = GetAttributeValue( "EnableReverseLookup" ).AsBoolean( false );
@@ -653,7 +653,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                     }
                     else
                     {
-                        var groupType = GroupTypeCache.Read( Rock.SystemGuid.GroupType.GROUPTYPE_WEEKLY_SERVICE_CHECKIN_AREA.AsGuid() );
+                        var groupType = GroupTypeCache.Get( Rock.SystemGuid.GroupType.GROUPTYPE_WEEKLY_SERVICE_CHECKIN_AREA.AsGuid() );
                         if ( groupType != null  )
                         {
                             ddlCheckinType.SetValue( groupType.Id );
@@ -666,10 +666,10 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
         private GroupTypeCache GetCheckinType( int? groupTypeId )
         {
             Guid templateTypeGuid = Rock.SystemGuid.DefinedValue.GROUPTYPE_PURPOSE_CHECKIN_TEMPLATE.AsGuid();
-            var templateType = DefinedValueCache.Read( templateTypeGuid );
+            var templateType = DefinedValueCache.Get( templateTypeGuid );
             if ( templateType != null )
             {
-                return GetCheckinType( GroupTypeCache.Read( groupTypeId.Value ), templateType.Id );
+                return GetCheckinType( GroupTypeCache.Get( groupTypeId.Value ), templateType.Id );
             }
 
             return null;
@@ -759,7 +759,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
                 {
                     var deviceGroupTypes = GetDeviceGroupTypes( ddlKiosk.SelectedValueAsInt() ?? 0, rockContext );
 
-                    var primaryGroupTypeIds = GetDescendentGroupTypes( GroupTypeCache.Read( ddlCheckinType.SelectedValueAsInt() ?? 0 ) ).Select( t => t.Id ).ToList();
+                    var primaryGroupTypeIds = GetDescendentGroupTypes( GroupTypeCache.Get( ddlCheckinType.SelectedValueAsInt() ?? 0 ) ).Select( t => t.Id ).ToList();
 
                     cblPrimaryGroupTypes.DataSource = deviceGroupTypes.Where( t => primaryGroupTypeIds.Contains( t.Id ) ).ToList();
                     cblPrimaryGroupTypes.DataBind();
@@ -826,7 +826,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
         {
             double latitude = double.Parse( sLatitude );
             double longitude = double.Parse( sLongitude );
-            var checkInDeviceTypeId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.DEVICE_TYPE_CHECKIN_KIOSK ).Id;
+            var checkInDeviceTypeId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.DEVICE_TYPE_CHECKIN_KIOSK ).Id;
 
             // We need to use the DeviceService until we can get the GeoFence to JSON Serialize/Deserialize.
             using ( var rockContext = new RockContext() )

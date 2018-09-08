@@ -97,7 +97,7 @@ namespace RockWeb.Blocks.Core
         /// </summary>
         protected void LoadDropdowns()
         {
-            var campusEntityType = EntityTypeCache.Read( typeof( Campus ) );
+            var campusEntityType = EntityTypeCache.Get( typeof( Campus ) );
             var currentCampus = RockPage.GetCurrentContext( campusEntityType ) as Campus;
 
             var campusIdString = Request.QueryString["campusId"];

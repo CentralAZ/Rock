@@ -128,7 +128,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
 
                         // consider skipping if the person is at top level?
 
-                        var abilityLevelDType = DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.PERSON_ABILITY_LEVEL_TYPE.AsGuid() );
+                        var abilityLevelDType = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.PERSON_ABILITY_LEVEL_TYPE.AsGuid() );
                         if ( abilityLevelDType != null )
                         {
                             rSelection.DataSource = abilityLevelDType.DefinedValues.ToList();
@@ -248,7 +248,7 @@ namespace RockWeb.Plugins.com_centralaz.CheckIn
 
         protected void rSelection_ItemDataBound( object sender, RepeaterItemEventArgs e )
         {
-            var dvalue = e.Item.DataItem as CachedModel<DefinedValue>;
+            var dvalue = e.Item.DataItem as DefinedValueCache;
             var guid = dvalue.Guid.ToString().ToUpper();
 
             // Once we've hit the person's ability level -OR- if their level is not yet set, 

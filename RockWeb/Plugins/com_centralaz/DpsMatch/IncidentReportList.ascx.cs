@@ -328,7 +328,7 @@ namespace RockWeb.Plugins.com_centralaz.DpsMatch
                     .ThenBy( a => a.Order )
                     .ThenBy( a => a.Name ) )
                 {
-                    AvailableAttributes.Add( AttributeCache.Read( attributeModel ) );
+                    AvailableAttributes.Add( AttributeCache.Get( attributeModel ) );
                 }
             }
         }
@@ -392,7 +392,7 @@ namespace RockWeb.Plugins.com_centralaz.DpsMatch
                         boundField.HeaderText = attribute.Name;
                         boundField.Condensed = false;
 
-                        var attributeCache = Rock.Web.Cache.AttributeCache.Read( attribute.Id );
+                        var attributeCache = AttributeCache.Get( attribute.Id );
                         if ( attributeCache != null )
                         {
                             boundField.ItemStyle.HorizontalAlign = attributeCache.FieldType.Field.AlignValue;
@@ -545,7 +545,7 @@ namespace RockWeb.Plugins.com_centralaz.DpsMatch
                         FormattedValue = String.Format( "<li><a href='{0}?workflowId={1}'>{2}</li>", LinkedPageUrl( "DetailPage" ), s.Id, s.WorkflowId )
                     } );
 
-                gWorkflows.EntityTypeId = EntityTypeCache.Read<Workflow>().Id;
+                gWorkflows.EntityTypeId = EntityTypeCache.Get<Workflow>().Id;
                 var qryGrid = workflowObjectQry.ToList().Select( w => new
                 {
                     w.Id,

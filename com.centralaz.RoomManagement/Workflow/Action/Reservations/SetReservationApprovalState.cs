@@ -93,7 +93,7 @@ namespace com.centralaz.RoomManagement.Workflow.Actions.Reservations
 
             if ( oldValue != reservation.ApprovalState )
             {
-                var changes = new List<string>();
+                var changes = new History.HistoryChangeList();
                 History.EvaluateChange(
                     changes,
                     "Approval State",
@@ -102,7 +102,7 @@ namespace com.centralaz.RoomManagement.Workflow.Actions.Reservations
 
                 if ( changes.Any() )
                 {
-                    changes.Add( string.Format( "<em>(Updated by the '{0}' workflow)</em>", action.ActionTypeCache.ActivityType.WorkflowType.Name ) );
+                    changes.Add( new History.HistoryChange( History.HistoryVerb.Modify, History.HistoryChangeType.Record, string.Format( "Updated by the '{0}' workflow", action.ActionTypeCache.ActivityType.WorkflowType.Name ) ) );
                     HistoryService.SaveChanges( rockContext, typeof( Reservation ), com.centralaz.RoomManagement.SystemGuid.Category.HISTORY_RESERVATION_CHANGES.AsGuid(), reservation.Id, changes, false );
                 }
 

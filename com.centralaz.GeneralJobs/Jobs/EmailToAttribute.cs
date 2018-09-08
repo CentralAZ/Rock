@@ -99,7 +99,7 @@ namespace com.centralaz.GeneralJobs.Jobs
 
             if ( personAttributeGuid != null )
             {
-                _personAttribute = AttributeCache.Read( personAttributeGuid.Value );
+                _personAttribute = AttributeCache.Get( personAttributeGuid.Value );
             }
             else
             {

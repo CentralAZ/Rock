@@ -192,7 +192,7 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
                 var campusId = e.Value.AsIntegerOrNull();
                 if ( campusId.HasValue )
                 {
-                    var campusCache = CampusCache.Read( campusId.Value );
+                    var campusCache = CampusCache.Get( campusId.Value );
                     e.Value = campusCache.Name;
                 }
                 else

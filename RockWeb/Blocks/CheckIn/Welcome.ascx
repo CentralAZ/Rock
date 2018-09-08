@@ -5,7 +5,7 @@
         top: 200px;
     }
 </style>
-<script> 
+<script>
     var timeout = 0;
 </script>
 
@@ -75,7 +75,7 @@
                                 $('#hfSearchEntry').val(keyboardBuffer);
                                 keyboardBuffer = '';
                                 swipeProcessing = true;
-                                __doPostBack('hfSearchEntry', 'Wedge_Entry');
+                                window.location = "javascript:__doPostBack('hfSearchEntry', 'Wedge_Entry')";
                             }
                         }
                         else {
@@ -93,14 +93,14 @@
                                 keyboardBuffer = '';
                                 swipeProcessing = true;
                                 console.log('processing');
-                                __doPostBack('hfSearchEntry', 'Wedge_Entry');
+                                window.location = "javascript:__doPostBack('hfSearchEntry', 'Wedge_Entry')";
                             }
                         }
 
                         // stop the keypress
                         e.preventDefault();
 
-                    } 
+                    }
 
                     lastKeyPress = date.getTime();
 
@@ -108,7 +108,7 @@
 
                 function submitFamilyIdSearch( familyIds ) {
                     $('#hfSearchEntry').val(familyIds);
-                    __doPostBack('hfWedgeEntry', 'Family_Id_Search');
+                    window.location = "javascript:__doPostBack('hfWedgeEntry', 'Family_Id_Search')";
                 }
 
                 if ($('.js-manager-login').is(':visible')) {
@@ -304,7 +304,7 @@
                                     </div>
 
                                     <div class="checkin-actions">
-                                        <asp:LinkButton ID="lbLogin" runat="server" OnClick="lbLogin_Click" CssClass="btn btn-primary">Login</asp:LinkButton>
+                                        <asp:LinkButton ID="lbLogin" runat="server" OnClick="lbLogin_Click" CssClass="btn btn-primary pull-left">Login</asp:LinkButton>
                                     </div>
                                 </div>
                             </div>
@@ -325,7 +325,7 @@
             <div class="checkin-footer">
 
                 <div class="checkin-actions">
-                    <asp:LinkButton ID="lbCancel" runat="server" CausesValidation="false" OnClick="lbCancel_Click" CssClass="btn btn-default">Cancel</asp:LinkButton>
+                    <asp:LinkButton ID="lbCancel" runat="server" CausesValidation="false" OnClick="lbCancel_Click" CssClass="btn btn-default btn-cancel">Cancel</asp:LinkButton>
                 </div>
             </div>
 

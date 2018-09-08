@@ -345,7 +345,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             }
 
             // Filter by Approval
-            List<ReservationApprovalState> approvalValues = cblApproval.Items.OfType<System.Web.UI.WebControls.ListItem>().Where( l => l.Selected ).Select( a => a.Value.ConvertToEnum<ReservationApprovalState>() ).Where( a => a != null ).ToList();
+            List<ReservationApprovalState> approvalValues = cblApproval.Items.OfType<System.Web.UI.WebControls.ListItem>().Where( l => l.Selected ).Select( a => a.Value.ConvertToEnum<ReservationApprovalState>() ).ToList();
             if ( approvalValues.Any() )
             {
                 qry = qry
@@ -411,7 +411,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 ApprovalState = r.ApprovalState.ConvertToString()
             } )
             .OrderBy( r => r.ReservationStartDateTime ).ToList();
-            gReservations.EntityTypeId = EntityTypeCache.Read<Reservation>().Id;
+            gReservations.EntityTypeId = EntityTypeCache.Get<Reservation>().Id;
             gReservations.DataBind();
         }
 

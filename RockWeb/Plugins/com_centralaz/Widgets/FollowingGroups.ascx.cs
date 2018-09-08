@@ -101,7 +101,7 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
 
         protected void LoadContent()
         {
-            var entityType = EntityTypeCache.Read( Rock.SystemGuid.EntityType.GROUP.AsGuid() );
+            var entityType = EntityTypeCache.Get( Rock.SystemGuid.EntityType.GROUP.AsGuid() );
 
             if ( entityType != null )
             {

@@ -14,19 +14,14 @@
 // limitations under the License.
 // </copyright>
 //
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
-using System.IO;
 
 using Rock.Attribute;
-using Rock.Model;
-using Rock.Web.UI.Controls;
-using Rock.Data;
-using System.Collections.Generic;
-using System.Data;
-using System;
-using System.Diagnostics;
 using Rock.Web.Cache;
+using Rock.Model;
+using Rock.Web;
 
 namespace Rock.PersonProfile.Badge
 {
@@ -47,23 +42,16 @@ namespace Rock.PersonProfile.Badge
         /// <param name="writer">The writer.</param>
         public override void Render( PersonBadgeCache badge, System.Web.UI.HtmlTextWriter writer )
         {
-
-            //  create url for link to details
-            string detailPageUrl = string.Empty;
-
-            if ( !String.IsNullOrEmpty( GetAttributeValue( badge, "PersonalDevicesDetail" ) ) )
+            if ( Person != null )
             {
-                int pageId = Rock.Web.Cache.PageCache.Read( Guid.Parse( GetAttributeValue( badge, "PersonalDevicesDetail" ) ) ).Id;
+                //  create url for link to details
+                string detailPageUrl = new PageReference( GetAttributeValue( badge, "PersonalDevicesDetail" ), new Dictionary<string, string> { { "PersonGuid", Person.Guid.ToString() } } ).BuildUrl();
 
-                // NOTE: Since this block shows a history of sites a person visited in Rock, use Person.Guid instead of Person.Id to reduce the risk of somebody manually editing the URL to see somebody else pageview history
-                detailPageUrl = System.Web.VirtualPathUtility.ToAbsolute( $"~/page/{pageId}?PersonGuid={Person.Guid}" );
-            }
+                writer.Write( $"<div class='badge badge-personaldevice badge-id-{badge.Id}' data-toggle='tooltip' data-original-title=''>" );
 
-            writer.Write( $"<div class='badge badge-personaldevice badge-id-{badge.Id}' data-toggle='tooltip' data-original-title=''>" );
+                writer.Write( "</div>" );
 
-            writer.Write( "</div>" );
-
-            writer.Write( $@"
+                writer.Write( $@"
                 <script>
                     Sys.Application.add_load(function () {{
                                                 
@@ -81,7 +69,11 @@ namespace Rock.PersonProfile.Badge
 
                                         if (devicesNumber > 0) {{
         
-                                            labelContent = devicesNumber + ' device found.';                                    
+                                            if ( devicesNumber > 1 ) {{
+                                                labelContent = 'There are ' + devicesNumber + ' devices linked to this individual.';                                 
+                                            }} else {{
+                                                labelContent = 'There is 1 device linked to this individual.';
+                                            }}
         
                                             if (linkUrl != '') {{
                                                 badgeContent = '<a href=\'' + linkUrl + '\'><div class=\'badge-content \'><i class=\'fa fa-mobile badge-icon\'></i><span class=\'deviceCount\'>' + devicesNumber + '</span></div></a>';
@@ -100,10 +92,11 @@ namespace Rock.PersonProfile.Badge
                                         
                                     }}
                                 }},
+                            }});
                         }});
-                    }});
-                </script>
-            " );
+                    </script>
+                " );
+            }
         }
     }
 }

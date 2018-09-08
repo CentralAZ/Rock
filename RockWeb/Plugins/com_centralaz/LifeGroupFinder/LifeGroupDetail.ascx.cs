@@ -213,10 +213,10 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
                     Group family = null;
                     Group secondFamily = null;
 
-                    var changes = new List<string>();
-                    var secondPersonChanges = new List<string>();
-                    var familyChanges = new List<string>();
-                    var secondFamilyChanges = new List<string>();
+                    var changes = new History.HistoryChangeList();
+                    var secondPersonChanges = new History.HistoryChangeList();
+                    var familyChanges = new History.HistoryChangeList();
+                    var secondFamilyChanges = new History.HistoryChangeList();
 
                     // Only use current person if the name entered matches the current person's name
                     if ( CurrentPerson != null &&
@@ -229,7 +229,7 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
                     // Try to find person by name/email 
                     if ( person == null )
                     {
-                        var matches = personService.GetByMatch( tbFirstName.Text.Trim(), tbLastName.Text.Trim(), tbEmail.Text.Trim() );
+                        var matches = personService.FindPersons( tbFirstName.Text.Trim(), tbLastName.Text.Trim(), tbEmail.Text.Trim() );
                         if ( matches.Count() == 1 )
                         {
                             person = matches.First();
@@ -246,7 +246,7 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
                         person.Email = tbEmail.Text.Trim();
                         person.IsEmailActive = true;
                         person.EmailPreference = EmailPreference.EmailAllowed;
-                        person.RecordTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
+                        person.RecordTypeValueId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
                         person.ConnectionStatusValueId = _dvcConnectionStatus.Id;
                         person.RecordStatusValueId = _dvcRecordStatus.Id;
                         person.Gender = Gender.Unknown;
@@ -272,7 +272,7 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
                         // Try to find second person by name/email 
                         if ( secondPerson == null )
                         {
-                            var matches = personService.GetByMatch( tbSecondFirstName.Text.Trim(), tbSecondLastName.Text.Trim(), tbSecondEmail.Text.Trim() );
+                            var matches = personService.FindPersons( tbSecondFirstName.Text.Trim(), tbSecondLastName.Text.Trim(), tbSecondEmail.Text.Trim() );
                             if ( matches.Count() == 1 )
                             {
                                 secondPerson = matches.First();
@@ -289,7 +289,7 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
                             secondPerson.Email = tbSecondEmail.Text.Trim();
                             secondPerson.IsEmailActive = true;
                             secondPerson.EmailPreference = EmailPreference.EmailAllowed;
-                            secondPerson.RecordTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
+                            secondPerson.RecordTypeValueId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
                             secondPerson.ConnectionStatusValueId = _dvcConnectionStatus.Id;
                             secondPerson.RecordStatusValueId = _dvcRecordStatus.Id;
                             secondPerson.Gender = Gender.Unknown;
@@ -328,12 +328,11 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
                     }
 
                     // Check to see if a workflow should be launched for each person
-                    WorkflowType workflowType = null;
+                    WorkflowTypeCache workflowType = null;
                     Guid? workflowTypeGuid = GetAttributeValue( "Workflow" ).AsGuidOrNull();
                     if ( workflowTypeGuid.HasValue )
                     {
-                        var workflowTypeService = new WorkflowTypeService( rockContext );
-                        workflowType = workflowTypeService.Get( workflowTypeGuid.Value );
+                        workflowType = WorkflowTypeCache.Get( workflowTypeGuid.Value );
                     }
 
                     // Save the registrations ( and launch workflows )
@@ -449,8 +448,8 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
                 Person person = null;
                 Group family = null;
 
-                var changes = new List<string>();
-                var familyChanges = new List<string>();
+                var changes = new History.HistoryChangeList();
+                var familyChanges = new History.HistoryChangeList();
 
                 // Only use current person if the name entered matches the current person's name
                 if ( CurrentPerson != null &&
@@ -463,7 +462,7 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
                 // Try to find person by name/email 
                 if ( person == null )
                 {
-                    var matches = personService.GetByMatch( tbFirstName.Text.Trim(), tbLastName.Text.Trim(), tbEmail.Text.Trim() );
+                    var matches = personService.FindPersons( tbFirstName.Text.Trim(), tbLastName.Text.Trim(), tbEmail.Text.Trim() );
                     if ( matches.Count() == 1 )
                     {
                         person = matches.First();
@@ -480,7 +479,7 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
                     person.Email = tbEmail.Text.Trim();
                     person.IsEmailActive = true;
                     person.EmailPreference = EmailPreference.EmailAllowed;
-                    person.RecordTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
+                    person.RecordTypeValueId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
                     person.ConnectionStatusValueId = _dvcConnectionStatus.Id;
                     person.RecordStatusValueId = _dvcRecordStatus.Id;
                     person.Gender = Gender.Unknown;
@@ -509,12 +508,11 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
                     Rock.SystemGuid.Category.HISTORY_PERSON_FAMILY_CHANGES.AsGuid(), person.Id, familyChanges );
 
                 // Check to see if a workflow should be launched for each person
-                WorkflowType workflowType = null;
+                WorkflowTypeCache workflowType = null;
                 Guid? workflowTypeGuid = GetAttributeValue( "EmailWorkflow" ).AsGuidOrNull();
                 if ( workflowTypeGuid.HasValue )
                 {
-                    var workflowTypeService = new WorkflowTypeService( rockContext );
-                    workflowType = workflowTypeService.Get( workflowTypeGuid.Value );
+                    workflowType = WorkflowTypeCache.Get( workflowTypeGuid.Value );
                 }
 
                 // Save the registrations ( and launch workflows )
@@ -729,10 +727,10 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
         {
             String mapString = String.Empty;
             // Get Map Style           
-            var mapStyleValue = DefinedValueCache.Read( GetAttributeValue( "MapStyle" ) );
+            var mapStyleValue = DefinedValueCache.Get( GetAttributeValue( "MapStyle" ) );
             if ( mapStyleValue == null )
             {
-                mapStyleValue = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.MAP_STYLE_ROCK );
+                mapStyleValue = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.MAP_STYLE_ROCK );
             }
 
             if ( mapStyleValue != null )
@@ -778,7 +776,7 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
         /// <param name="person">The person.</param>
         /// <param name="workflowType">Type of the workflow.</param>
         /// <param name="groupMembers">The group members.</param>
-        private void AddPersonToGroup( RockContext rockContext, Person person, WorkflowType workflowType, List<GroupMember> groupMembers, bool emailOnly )
+        private void AddPersonToGroup( RockContext rockContext, Person person, WorkflowTypeCache workflowType, List<GroupMember> groupMembers, bool emailOnly )
         {
             if ( person != null )
             {
@@ -877,7 +875,7 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
                 return false;
             }
 
-            _dvcConnectionStatus = DefinedValueCache.Read( GetAttributeValue( "ConnectionStatus" ).AsGuid() );
+            _dvcConnectionStatus = DefinedValueCache.Get( GetAttributeValue( "ConnectionStatus" ).AsGuid() );
             if ( _dvcConnectionStatus == null )
             {
                 nbNotice.Heading = "Invalid Connection Status";
@@ -885,7 +883,7 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
                 return false;
             }
 
-            _dvcRecordStatus = DefinedValueCache.Read( GetAttributeValue( "RecordStatus" ).AsGuid() );
+            _dvcRecordStatus = DefinedValueCache.Get( GetAttributeValue( "RecordStatus" ).AsGuid() );
             if ( _dvcRecordStatus == null )
             {
                 nbNotice.Heading = "Invalid Record Status";
@@ -893,9 +891,9 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
                 return false;
             }
 
-            _married = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_MARITAL_STATUS_MARRIED.AsGuid() );
-            _homeAddressType = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME.AsGuid() );
-            _familyType = GroupTypeCache.Read( Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY.AsGuid() );
+            _married = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_MARITAL_STATUS_MARRIED.AsGuid() );
+            _homeAddressType = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_HOME.AsGuid() );
+            _familyType = GroupTypeCache.Get( Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY.AsGuid() );
             _adultRole = _familyType.Roles.FirstOrDefault( r => r.Guid.Equals( Rock.SystemGuid.GroupRole.GROUPROLE_FAMILY_MEMBER_ADULT.AsGuid() ) );
 
             if ( _married == null || _homeAddressType == null || _familyType == null || _adultRole == null )
@@ -918,9 +916,9 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
         /// <param name="cbSms">The cb SMS.</param>
         /// <param name="phoneTypeGuid">The phone type unique identifier.</param>
         /// <param name="changes">The changes.</param>
-        private void SetPhoneNumber( RockContext rockContext, Person person, PhoneNumberBox pnbNumber, RockCheckBox cbSms, Guid phoneTypeGuid, List<string> changes )
+        private void SetPhoneNumber( RockContext rockContext, Person person, PhoneNumberBox pnbNumber, RockCheckBox cbSms, Guid phoneTypeGuid, History.HistoryChangeList changes )
         {
-            var phoneType = DefinedValueCache.Read( phoneTypeGuid );
+            var phoneType = DefinedValueCache.Get( phoneTypeGuid );
             if ( phoneType != null )
             {
                 var phoneNumber = person.PhoneNumbers.FirstOrDefault( n => n.NumberTypeValueId == phoneType.Id );

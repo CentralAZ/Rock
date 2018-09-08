@@ -143,7 +143,7 @@ namespace Rockweb.Plugins.com_centralaz.SpiritualGifts
 
         private void ShowExplaination( string gifting )
         {
-            var giftingValue = DefinedTypeCache.Read( com.centralaz.SpiritualGifts.SystemGuid.DefinedType.SPRITUAL_GIFTS_DEFINED_TYPE.AsGuid() ).DefinedValues.Where( v => v.Value == gifting ).FirstOrDefault();
+            var giftingValue = DefinedTypeCache.Get( com.centralaz.SpiritualGifts.SystemGuid.DefinedType.SPRITUAL_GIFTS_DEFINED_TYPE.AsGuid() ).DefinedValues.Where( v => v.Value == gifting ).FirstOrDefault();
             if ( giftingValue != null )
             {
                 lDescription.Text = giftingValue.Description;

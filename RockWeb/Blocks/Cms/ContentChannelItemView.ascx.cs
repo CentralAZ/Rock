@@ -122,6 +122,17 @@ namespace RockWeb.Blocks.Cms
                 tglStatus.Checked = GetUserPreference( STATUS_FILTER_SETTING ).AsBoolean();
 
                 SelectedChannelId = PageParameter( "contentChannelId" ).AsIntegerOrNull();
+
+                if ( !SelectedChannelId.HasValue )
+                {
+                    var selectedChannelGuid = PageParameter( "contentChannelGuid" ).AsGuidOrNull();
+
+                    if ( selectedChannelGuid.HasValue )
+                    {
+                        SelectedChannelId = ContentChannelCache.Get( selectedChannelGuid.Value ).Id;
+                    }
+                }
+
                 if ( !SelectedChannelId.HasValue )
                 {
                     SelectedChannelId = GetUserPreference( SELECTED_CHANNEL_SETTING ).AsIntegerOrNull();
@@ -336,6 +347,7 @@ namespace RockWeb.Blocks.Cms
             var rockContext = new RockContext();
             var contentItemService = new ContentChannelItemService( rockContext );
             var contentItemAssociationService = new ContentChannelItemAssociationService( rockContext );
+            var contentItemSlugService = new ContentChannelItemSlugService( rockContext );
 
             var contentItem = contentItemService.Get( e.RowKeyId );
             if ( contentItem != null )
@@ -351,6 +363,7 @@ namespace RockWeb.Blocks.Cms
                 {
                     contentItemAssociationService.DeleteRange( contentItem.ChildItems );
                     contentItemAssociationService.DeleteRange( contentItem.ParentItems );
+                    contentItemSlugService.DeleteRange( contentItem.ContentChannelItemSlugs );
                     contentItemService.Delete( contentItem );
                     rockContext.SaveChanges();
                 } );
@@ -447,7 +460,7 @@ namespace RockWeb.Blocks.Cms
                 contentChannelsQry = contentChannelsQry.Where( a => !contentChannelTypeGuidsExclude.Contains( a.ContentChannelType.Guid ) );
             }
 
-            var contentChannelsList = contentChannelsQry.OrderBy( w => w.Name ).ToList();                
+            var contentChannelsList = contentChannelsQry.OrderBy( w => w.Name ).ToList();
 
             // Create variable for storing authorized channels and the count of active items
             var channelCounts = new Dictionary<int, int>();
@@ -461,7 +474,7 @@ namespace RockWeb.Blocks.Cms
 
             // Get the pending approval item counts for each channel (if the channel requires approval)
             itemService.Queryable()
-                .Where( i => 
+                .Where( i =>
                     channelCounts.Keys.Contains( i.ContentChannelId ) &&
                     i.Status == ContentChannelItemStatus.PendingApproval && i.ContentChannel.RequiresApproval )
                 .GroupBy( i => i.ContentChannelId )
@@ -497,7 +510,7 @@ namespace RockWeb.Blocks.Cms
             if ( SelectedChannelId.HasValue )
             {
                 selectedChannel = contentChannelsList
-                    .Where( w => 
+                    .Where( w =>
                         w.Id == SelectedChannelId.Value &&
                         channelCounts.Keys.Contains( SelectedChannelId.Value ) )
                     .FirstOrDefault();
@@ -550,7 +563,7 @@ namespace RockWeb.Blocks.Cms
                 if ( selectedChannel.IsTaggingEnabled )
                 {
                     itemTags = items.ToDictionary( i => i.Guid, v => "" );
-                    var entityTypeId = EntityTypeCache.Read( Rock.SystemGuid.EntityType.CONTENT_CHANNEL_ITEM.AsGuid() ).Id;
+                    var entityTypeId = EntityTypeCache.Get( Rock.SystemGuid.EntityType.CONTENT_CHANNEL_ITEM.AsGuid() ).Id;
                     var testedTags = new Dictionary<int, string>();
 
                     foreach ( var taggedItem in new TaggedItemService( rockContext )
@@ -565,7 +578,7 @@ namespace RockWeb.Blocks.Cms
                             testedTags.Add( taggedItem.TagId, taggedItem.Tag.IsAuthorized( Authorization.VIEW, CurrentPerson ) ? taggedItem.Tag.Name : string.Empty );
                         }
 
-                        if ( testedTags[taggedItem.TagId].IsNotNullOrWhitespace() )
+                        if ( testedTags[taggedItem.TagId].IsNotNullOrWhiteSpace() )
                         {
                             itemTags[taggedItem.EntityGuid] += string.Format( "<span class='tag'>{0}</span>", testedTags[taggedItem.TagId] );
                         }
@@ -610,7 +623,9 @@ namespace RockWeb.Blocks.Cms
 
             var items = new List<ContentChannelItem>();
 
-            var itemQry = new ContentChannelItemService( rockContext ).Queryable()
+            var contentChannelItemService = new ContentChannelItemService( rockContext );
+
+            var itemQry = contentChannelItemService.Queryable()
                 .Where( i => i.ContentChannelId == selectedChannel.Id );
 
             var drp = new DateRangePicker();
@@ -658,28 +673,10 @@ namespace RockWeb.Blocks.Cms
             // Filter query by any configured attribute filters
             if ( AvailableAttributes != null && AvailableAttributes.Any() )
             {
-                var attributeValueService = new AttributeValueService( rockContext );
-                var parameterExpression = attributeValueService.ParameterExpression;
-
                 foreach ( var attribute in AvailableAttributes )
                 {
                     var filterControl = phAttributeFilters.FindControl( "filter_" + attribute.Id.ToString() );
-                    if ( filterControl != null )
-                    {
-                        var filterValues = attribute.FieldType.Field.GetFilterValues( filterControl, attribute.QualifierValues, Rock.Reporting.FilterMode.SimpleFilter );
-                        var expression = attribute.FieldType.Field.AttributeFilterExpression( attribute.QualifierValues, filterValues, parameterExpression );
-                        if ( expression != null )
-                        {
-                            var attributeValues = attributeValueService
-                                .Queryable()
-                                .Where( v => v.Attribute.Id == attribute.Id );
-
-                            attributeValues = attributeValues.Where( parameterExpression, expression, null );
-
-                            isFiltered = true;
-                            itemQry = itemQry.Where( w => attributeValues.Select( v => v.EntityId ).Contains( w.Id ) );
-                        }
-                    }
+                    itemQry = attribute.FieldType.Field.ApplyAttributeQueryFilter( itemQry, filterControl, attribute, contentChannelItemService, Rock.Reporting.FilterMode.SimpleFilter );
                 }
             }
 
@@ -708,7 +705,7 @@ namespace RockWeb.Blocks.Cms
         protected void BindAttributes( ContentChannel channel )
         {
             AvailableAttributes = new List<AttributeCache>();
-            int entityTypeId = EntityTypeCache.Read( typeof( Rock.Model.ContentChannelItem ) ).Id;
+            int entityTypeId = EntityTypeCache.Get( typeof( Rock.Model.ContentChannelItem ) ).Id;
             string channelId = channel.Id.ToString();
             string channelTypeId = channel.ContentChannelTypeId.ToString();
             foreach ( var attributeModel in new AttributeService( new RockContext() ).Queryable()
@@ -724,7 +721,7 @@ namespace RockWeb.Blocks.Cms
                 .OrderBy( a => a.Order )
                 .ThenBy( a => a.Name ) )
             {
-                AvailableAttributes.Add( Rock.Web.Cache.AttributeCache.Read( attributeModel ) );       
+                AvailableAttributes.Add( Rock.Web.Cache.AttributeCache.Get( attributeModel ) );       
             }
         }
 
@@ -748,7 +745,7 @@ namespace RockWeb.Blocks.Cms
                 gContentChannelItems.Columns.Add( titleField );
 
                 // Add Attribute columns
-                int entityTypeId = EntityTypeCache.Read( typeof( Rock.Model.ContentChannelItem ) ).Id;
+                int entityTypeId = EntityTypeCache.Get( typeof( Rock.Model.ContentChannelItem ) ).Id;
                 string channelId = channel.Id.ToString();
                 string channelTypeId = channel.ContentChannelTypeId.ToString();
                 foreach ( var attribute in AvailableAttributes )
@@ -909,7 +906,7 @@ namespace RockWeb.Blocks.Cms
 
             return string.Format( "<span class='label label-{0}'>{1}</span>", labelType, contentItemStatus.ConvertToString() );
         }
-        
+
         #endregion
 
     }

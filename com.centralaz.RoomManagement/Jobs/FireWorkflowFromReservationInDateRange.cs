@@ -28,6 +28,7 @@ using Rock;
 using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
+using Rock.Web.Cache;
 using Rock.Web.UI.Controls;
 
 namespace com.centralaz.RoomManagement.Jobs
@@ -73,12 +74,12 @@ namespace com.centralaz.RoomManagement.Jobs
             }
 
             var rockContext = new RockContext();
-            WorkflowType workflowType = null;
+            WorkflowTypeCache workflowType = null;
             Guid? workflowTypeGuid = dataMap.Get( "WorkflowType" ).ToStringSafe().AsGuidOrNull();
             if ( workflowTypeGuid.HasValue )
             {
                 var workflowTypeService = new WorkflowTypeService( rockContext );
-                workflowType = workflowTypeService.Get( workflowTypeGuid.Value );
+                workflowType = WorkflowTypeCache.Get( workflowTypeGuid.Value );
             }
 
             if ( workflowType != null && ( workflowType.IsActive ?? true ) )

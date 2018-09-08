@@ -171,7 +171,7 @@ namespace com.centralaz.DpsMatch.Transactions
 
         private void LaunchWorkflow( RockContext rockContext, Guid workflowTypeGuid )
         {
-            var workflowType = Rock.Web.Cache.WorkflowTypeCache.Read( workflowTypeGuid );
+            var workflowType = Rock.Web.Cache.WorkflowTypeCache.Get( workflowTypeGuid );
             if ( workflowType != null && ( workflowType.IsActive ?? true ) )
             {
 

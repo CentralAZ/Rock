@@ -65,7 +65,7 @@ namespace com.centralaz.Workflow.Action.CheckIn
                 bool canPrintLabelMultipleTimes = true;
                 if ( checkInState.CheckinTypeId.HasValue )
                 {
-                    var checkinType = GroupTypeCache.Read( checkInState.CheckinTypeId.Value );
+                    var checkinType = GroupTypeCache.Get( checkInState.CheckinTypeId.Value );
                     if ( checkinType != null )
                     {
                         var guidList = GetAttributeValue( action, "CheckinTypesToLimit" ).SplitDelimitedValues().AsGuidList();
@@ -129,17 +129,13 @@ namespace com.centralaz.Workflow.Action.CheckIn
                                             var primaryAlias = personAliasService.GetPrimaryAlias( person.Person.Id );
                                             if ( primaryAlias != null )
                                             {
-                                                attendance = rockContext.Attendances.Create();
-                                                attendance.LocationId = location.Location.Id;
-                                                attendance.CampusId = location.CampusId;
-                                                attendance.ScheduleId = schedule.Schedule.Id;
-                                                attendance.GroupId = group.Group.Id;
+                                                attendance = attendanceService.AddOrUpdate( primaryAlias.Id, startDateTime.Date, group.Group.Id,
+                                                    location.Location.Id, schedule.Schedule.Id, location.CampusId,
+                                                    checkInState.Kiosk.Device.Id, checkInState.CheckIn.SearchType.Id,
+                                                    checkInState.CheckIn.SearchValue, family.Group.Id, attendanceCode.Id );
+
                                                 attendance.PersonAlias = primaryAlias;
-                                                attendance.PersonAliasId = primaryAlias.Id;
-                                                attendance.DeviceId = checkInState.Kiosk.Device.Id;
-                                                attendance.SearchTypeValueId = checkInState.CheckIn.SearchType.Id;
-                                                attendanceService.Add( attendance );
-                                                
+
                                                 canPrintLabel.AddOrReplace( person.Person.Id, true );
                                             }
                                         }
@@ -148,11 +144,16 @@ namespace com.centralaz.Workflow.Action.CheckIn
                                             canPrintLabel.AddOrReplace( person.Person.Id, canPrintLabelMultipleTimes );
                                         }
 
-                                        attendance.CreatedDateTime = RockDateTime.Now;
+                                        attendance.DeviceId = checkInState.Kiosk.Device.Id;
+                                        attendance.SearchTypeValueId = checkInState.CheckIn.SearchType.Id;
+                                        attendance.SearchValue = checkInState.CheckIn.SearchValue;
+                                        attendance.CheckedInByPersonAliasId = checkInState.CheckIn.CheckedInByPersonAliasId;
+                                        attendance.SearchResultGroupId = family.Group.Id;
                                         attendance.AttendanceCodeId = attendanceCode.Id;
                                         attendance.StartDateTime = startDateTime;
                                         attendance.EndDateTime = null;
                                         attendance.DidAttend = true;
+                                        attendance.Note = group.Notes;
 
                                         KioskLocationAttendance.AddAttendance( attendance );
                                     }
@@ -176,7 +177,7 @@ namespace com.centralaz.Workflow.Action.CheckIn
             Guid guid = GetAttributeValue( action, "WillLabelPrintAttribute" ).AsGuid();
             if ( !guid.IsEmpty() )
             {
-                var attribute = AttributeCache.Read( guid, rockContext );
+                var attribute = AttributeCache.Get( guid, rockContext );
                 if ( attribute != null )
                 {
                     if ( attribute.EntityTypeId == new Rock.Model.Workflow().TypeId )

@@ -101,8 +101,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             gWorkflowTriggers.Actions.AddClick += gWorkflowTriggers_Add;
             gWorkflowTriggers.GridRebind += gWorkflowTriggers_GridRebind;
 
-            btnDelete.Attributes["onclick"] = string.Format( "javascript: return Rock.dialogs.confirmDelete(event, '{0}', 'This will also delete all the reservation opportunities! Are you sure you wish to continue with the delete?');", ReservationType.FriendlyTypeName );
-            btnSecurity.EntityTypeId = EntityTypeCache.Read( typeof( com.centralaz.RoomManagement.Model.ReservationType ) ).Id;
+            btnSecurity.EntityTypeId = EntityTypeCache.Get( typeof( com.centralaz.RoomManagement.Model.ReservationType ) ).Id;
 
             this.BlockUpdated += Block_BlockUpdated;
             this.AddConfigurationUpdateTrigger( upReservationType );
@@ -216,17 +215,15 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                         return;
                     }
 
-                    string errorMessage;
-                    if ( !reservationTypeService.CanDelete( reservationType, out errorMessage ) )
-                    {
-                        mdDeleteWarning.Show( errorMessage, ModalAlertType.Information );
-                        return;
-                    }
+                    // Currently the Cascade delete isn't working, so this is temp code to force the issue.
+                    var reservationService = new ReservationService( rockContext );
+                    var reservationQry = reservationService.Queryable().Where( r => r.ReservationTypeId == reservationType.Id );
+                    reservationService.DeleteRange( reservationQry );
 
                     reservationTypeService.Delete( reservationType );
                     rockContext.SaveChanges();
 
-                    ReservationWorkflowService.FlushCachedTriggers();
+                    ReservationWorkflowService.RemoveCachedTriggers();
                 }
             }
 
@@ -302,6 +299,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
                 reservationType.Name = tbName.Text;
                 reservationType.Description = tbDescription.Text;
+                //reservationType.IsActive = cbActive.Checked;
+                reservationType.IsActive = true;
                 reservationType.IconCssClass = tbIconCssClass.Text;
                 reservationType.FinalApprovalGroupId = ddlFinalApprovalGroup.SelectedValueAsId();
                 reservationType.SuperAdminGroupId = ddlSuperAdminGroup.SelectedValueAsId();
@@ -374,7 +373,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     }
                 } );
 
-                ReservationWorkflowService.FlushCachedTriggers();
+                ReservationWorkflowService.RemoveCachedTriggers();
 
                 var qryParams = new Dictionary<string, string>();
                 qryParams["ReservationTypeId"] = reservationType.Id.ToString();
@@ -833,21 +832,24 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     nbEditModeMessage.Text = EditModeMessage.ReadOnlyEditActionNotAllowed( ReservationType.FriendlyTypeName );
                 }
 
+                // Security won't be enabled until 1.3.1/1.4
+                btnSecurity.Visible = false;
+
                 if ( readOnly )
                 {
                     btnEdit.Visible = false;
                     btnDelete.Visible = false;
-                    btnSecurity.Visible = false;
+                    // btnSecurity.Visible = false;
                     ShowReadonlyDetails( reservationType );
                 }
                 else
                 {
                     btnEdit.Visible = true;
                     btnDelete.Visible = true;
-                    btnSecurity.Visible = true;
+                    // btnSecurity.Visible = true;
 
-                    btnSecurity.Title = "Secure " + reservationType.Name;
-                    btnSecurity.EntityId = reservationType.Id;
+                    // btnSecurity.Title = "Secure " + reservationType.Name;
+                    // btnSecurity.EntityId = reservationType.Id;
 
                     if ( !reservationTypeId.Equals( 0 ) )
                     {
@@ -887,7 +889,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             tbName.Text = reservationType.Name;
             tbDescription.Text = reservationType.Description;
             tbIconCssClass.Text = reservationType.IconCssClass;
-            cbActive.Checked = reservationType.IsActive;
+            //cbActive.Checked = reservationType.IsActive;
             cbIsCommunicationHistorySaved.Checked = reservationType.IsCommunicationHistorySaved;
             cbIsContactDetailsRequired.Checked = reservationType.IsContactDetailsRequired;
             cbIsNumberAttendingRequired.Checked = reservationType.IsNumberAttendingRequired;

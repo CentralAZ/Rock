@@ -70,7 +70,7 @@ namespace com.centralaz.Workflow.Action.CheckIn
                 var ageRangeAttributeGuid = GetAttributeValue( action, "GroupAgeRangeAttribute" ).AsGuid();
                 if ( ageRangeAttributeGuid != Guid.Empty )
                 {
-                    ageRangeAttributeKey = AttributeCache.Read( ageRangeAttributeGuid, rockContext ).Key;
+                    ageRangeAttributeKey = AttributeCache.Get( ageRangeAttributeGuid, rockContext ).Key;
                 }
 
                 // log a warning if the attribute is missing or invalid
@@ -164,8 +164,8 @@ namespace com.centralaz.Workflow.Action.CheckIn
             DefinedValueCache maxGradeDefinedValue = null;
             if ( gradeOffsetRangePair.Length == 2 )
             {
-                minGradeDefinedValue = gradeOffsetRangePair[0].HasValue ? DefinedValueCache.Read( gradeOffsetRangePair[0].Value ) : null;
-                maxGradeDefinedValue = gradeOffsetRangePair[1].HasValue ? DefinedValueCache.Read( gradeOffsetRangePair[1].Value ) : null;
+                minGradeDefinedValue = gradeOffsetRangePair[0].HasValue ? DefinedValueCache.Get( gradeOffsetRangePair[0].Value ) : null;
+                maxGradeDefinedValue = gradeOffsetRangePair[1].HasValue ? DefinedValueCache.Get( gradeOffsetRangePair[1].Value ) : null;
             }
 
             /*

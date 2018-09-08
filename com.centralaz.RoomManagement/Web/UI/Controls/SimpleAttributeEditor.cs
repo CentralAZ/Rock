@@ -466,7 +466,7 @@ namespace com.centralaz.RoomManagement.Web.UI.Controls
             get
             {
                 int[] excludedFieldTypeIds = this.ViewState["ExcludedFieldTypeIds"] as int[];
-                return excludedFieldTypeIds?.Select( a => FieldTypeCache.Read( a ) ).ToArray() ?? new FieldTypeCache[0];
+                return excludedFieldTypeIds?.Select( a => FieldTypeCache.Get( a ) ).ToArray() ?? new FieldTypeCache[0];
             }
             set
             {
@@ -488,7 +488,7 @@ namespace com.centralaz.RoomManagement.Web.UI.Controls
             get
             {
                 int[] includedFieldTypeIds = this.ViewState["IncludedFieldTypeIds"] as int[];
-                return includedFieldTypeIds?.Select( a => FieldTypeCache.Read( a ) ).ToArray() ?? new FieldTypeCache[0];
+                return includedFieldTypeIds?.Select( a => FieldTypeCache.Get( a ) ).ToArray() ?? new FieldTypeCache[0];
             }
             set
             {
@@ -837,7 +837,7 @@ namespace com.centralaz.RoomManagement.Web.UI.Controls
                 _cpCategories.ID = "cpCategories_" + this.ID.ToString();
                 _cpCategories.Label = "Categories";
                 _cpCategories.AllowMultiSelect = true;
-                _cpCategories.EntityTypeId = EntityTypeCache.Read( typeof( Rock.Model.Attribute ) ).Id;
+                _cpCategories.EntityTypeId = EntityTypeCache.Get( typeof( Rock.Model.Attribute ) ).Id;
                 _cpCategories.EntityTypeQualifierColumn = "EntityTypeId";
                 Controls.Add( _cpCategories );
 
@@ -961,7 +961,7 @@ namespace com.centralaz.RoomManagement.Web.UI.Controls
 
             if ( Page.IsPostBack && FieldTypeId.HasValue )
             {
-                var field = Rock.Web.Cache.FieldTypeCache.Read( FieldTypeId.Value ).Field;
+                var field = FieldTypeCache.Get( FieldTypeId.Value ).Field;
                 var qualifierControls = new List<Control>();
                 foreach ( Control control in _phQualifiers.Controls )
                 {
@@ -1253,7 +1253,7 @@ namespace com.centralaz.RoomManagement.Web.UI.Controls
 
             if ( objectType != null )
             {
-                this.AttributeEntityTypeId = Rock.Web.Cache.EntityTypeCache.Read( objectType ).Id;
+                this.AttributeEntityTypeId = EntityTypeCache.Get( objectType ).Id;
 
                 ObjectPropertyNames = new List<string>();
                 foreach ( var propInfo in objectType.GetProperties() )
@@ -1326,7 +1326,7 @@ namespace com.centralaz.RoomManagement.Web.UI.Controls
 
             if ( fieldTypeId.HasValue )
             {
-                var field = Rock.Web.Cache.FieldTypeCache.Read( fieldTypeId.Value ).Field;
+                var field = FieldTypeCache.Get( fieldTypeId.Value ).Field;
 
                 var configControls = field.ConfigurationControls();
                 if ( recreate )

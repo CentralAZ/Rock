@@ -232,7 +232,7 @@ $('.groupsearch-filter > .panel-body').on('validation-error', function() {
             }
 
             cblChildren.Items.Clear();
-            cblChildren.BindToDefinedType( DefinedTypeCache.Read( "512F355E-9441-4C47-BE47-7FFE19209496".AsGuid() ) );
+            cblChildren.BindToDefinedType( DefinedTypeCache.Get( "512F355E-9441-4C47-BE47-7FFE19209496".AsGuid() ) );
             if ( ParameterState.ContainsKey( "Children" ) )
             {
                 cblChildren.SetValues( ParameterState["Children"].Split( ';' ).ToList() );

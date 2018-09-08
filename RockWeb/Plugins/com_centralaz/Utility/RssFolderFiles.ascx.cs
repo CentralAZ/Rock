@@ -127,12 +127,11 @@ namespace RockWeb.Plugins.com_centralaz.Utility
                 string relativeFolder = Path.Combine( webRootContentFolder, baseFolder, requestedFolder );
                 string physicalContentFolderPath = Request.MapPath( relativeFolder );
 
-                ObjectCache feedCache = RockMemoryCache.Default;
-
                 string output;
-                if ( feedCache[GetFeedCacheKey( physicalContentFolderPath )] != null )
+                var cachedFeed = RockCache.Get( GetFeedCacheKey( physicalContentFolderPath ) );
+                if ( cachedFeed != null )
                 {
-                    output = (string)feedCache[GetFeedCacheKey( physicalContentFolderPath )];
+                    output = (string)cachedFeed;
                 }
                 else
                 {
@@ -140,12 +139,13 @@ namespace RockWeb.Plugins.com_centralaz.Utility
                     if ( ! string.IsNullOrEmpty ( output ) )
                     {
                         int timeToLive = GetAttributeValue( "TimeToLive" ).AsInteger();
-                        feedCache.Set( GetFeedCacheKey( physicalContentFolderPath ), output, DateTimeOffset.Now.AddMinutes( timeToLive ) );
+                        var expiration = RockDateTime.Now.AddMinutes( timeToLive );
+                        RockCache.AddOrUpdate( GetFeedCacheKey( physicalContentFolderPath ), string.Empty, output, expiration );
                     }
                 }
 
                 // Don't send RSS feed if the person is a page editor.
-                var currentPage = Rock.Web.Cache.PageCache.Read( RockPage.PageId );
+                var currentPage = Rock.Web.Cache.PageCache.Get( RockPage.PageId );
                 if ( ! string.IsNullOrEmpty( debug ) || currentPage.IsAuthorized( Rock.Security.Authorization.EDIT, CurrentPerson ) )
                 {
                     lDebug.Text = HttpUtility.HtmlEncode( output );
@@ -199,10 +199,8 @@ namespace RockWeb.Plugins.com_centralaz.Utility
 
         public static void ClearCachedFeed( string feedUrl )
         {
-            ObjectCache cache = RockMemoryCache.Default;
             string cacheKey = GetFeedCacheKey( feedUrl );
-
-            cache.Remove( cacheKey );
+            RockCache.Remove( cacheKey );
         }
 
         private static string GetFeedCacheKey( string feedUrl )

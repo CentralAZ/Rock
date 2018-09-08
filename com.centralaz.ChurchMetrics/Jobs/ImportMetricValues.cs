@@ -72,15 +72,15 @@ namespace com.centralaz.ChurchMetrics.Jobs
             try
             {
                 //Get Records
-                var campusAttribute = AttributeCache.Read( dataMap.Get( "CampusForeignIdAttribute" ).ToString().AsGuid() );
+                var campusAttribute = AttributeCache.Get( dataMap.Get( "CampusForeignIdAttribute" ).ToString().AsGuid() );
 
                 // Get the schedules
-                var ahwatukeeCategoryId = CategoryCache.Read( dataMap.Get( "AhwatukeeServiceTimes" ).ToString().AsGuid() ).Id;
-                var gilbertCategoryId = CategoryCache.Read( dataMap.Get( "GilbertServiceTimes" ).ToString().AsGuid() ).Id;
-                var glendaleCategoryId = CategoryCache.Read( dataMap.Get( "GlendaleServiceTimes" ).ToString().AsGuid() ).Id;
-                var mesaCategoryId = CategoryCache.Read( dataMap.Get( "MesaServiceTimes" ).ToString().AsGuid() ).Id;
-                var queenCreekCategoryId = CategoryCache.Read( dataMap.Get( "QueenCreekServiceTimes" ).ToString().AsGuid() ).Id;
-                var eventCategoryId = CategoryCache.Read( dataMap.Get( "EventSchedules" ).ToString().AsGuid() ).Id;
+                var ahwatukeeCategoryId = CategoryCache.Get( dataMap.Get( "AhwatukeeServiceTimes" ).ToString().AsGuid() ).Id;
+                var gilbertCategoryId = CategoryCache.Get( dataMap.Get( "GilbertServiceTimes" ).ToString().AsGuid() ).Id;
+                var glendaleCategoryId = CategoryCache.Get( dataMap.Get( "GlendaleServiceTimes" ).ToString().AsGuid() ).Id;
+                var mesaCategoryId = CategoryCache.Get( dataMap.Get( "MesaServiceTimes" ).ToString().AsGuid() ).Id;
+                var queenCreekCategoryId = CategoryCache.Get( dataMap.Get( "QueenCreekServiceTimes" ).ToString().AsGuid() ).Id;
+                var eventCategoryId = CategoryCache.Get( dataMap.Get( "EventSchedules" ).ToString().AsGuid() ).Id;
 
                 var ahwatukeeServiceTimes = scheduleService.Queryable()
                     .Where( s => s.CategoryId == ahwatukeeCategoryId )
@@ -142,7 +142,7 @@ namespace com.centralaz.ChurchMetrics.Jobs
                                         {
                                             Schedule schedule = null;
                                             var metricServiceDateTime = recordDateTime.Value.AddHours( -7 );
-                                            var campus = CampusCache.Read( mappedCampusAttributeValue.EntityId.Value );
+                                            var campus = CampusCache.Get( mappedCampusAttributeValue.EntityId.Value );
                                             if ( record.@event == null )
                                             {
                                                 switch ( campus.Name )

@@ -58,7 +58,7 @@ namespace com.centralaz.RoomManagement.Field.Types
 
             if ( !string.IsNullOrWhiteSpace( value ) )
             {
-                var reportTemplate = EntityTypeCache.Read( value.AsGuid() );
+                var reportTemplate = EntityTypeCache.Get( value.AsGuid() );
                 if ( reportTemplate != null )
                 {
                     formattedValue = reportTemplate.FriendlyName;
@@ -116,7 +116,7 @@ namespace com.centralaz.RoomManagement.Field.Types
                 int? reportTemplateId = reportTemplatePicker.SelectedReportTemplateId;
                 if ( reportTemplateId.HasValue )
                 {
-                    var reportTemplate = EntityTypeCache.Read( reportTemplateId.Value );
+                    var reportTemplate = EntityTypeCache.Get( reportTemplateId.Value );
                     if ( reportTemplate != null )
                     {
                         return reportTemplate.Guid.ToString();
@@ -143,7 +143,7 @@ namespace com.centralaz.RoomManagement.Field.Types
                 Guid guid = value.AsGuid();
 
                 // get the item (or null) and set it
-                var reportTemplate = EntityTypeCache.Read( guid );
+                var reportTemplate = EntityTypeCache.Get( guid );
                 reportTemplatePicker.SetValue( reportTemplate == null ? "0" : reportTemplate.Id.ToString() );
             }
         }
@@ -221,7 +221,7 @@ namespace com.centralaz.RoomManagement.Field.Types
                 .Where( v => v.Value.IsActive == true )
                 .Select( v => v.Value.EntityType );
 
-            var reportTemplateList = reportTemplateGuids.Select( a => EntityTypeCache.Read( a ) ).Where( c => c != null );
+            var reportTemplateList = reportTemplateGuids.Select( a => EntityTypeCache.Get( a ) ).Where( c => c != null );
 
             return reportTemplateList.Select( a => a.FriendlyName ).ToList().AsDelimited( ", ", " or " );
         }
@@ -336,7 +336,7 @@ namespace com.centralaz.RoomManagement.Field.Types
         public int? GetEditValueAsEntityId( System.Web.UI.Control control, Dictionary<string, ConfigurationValue> configurationValues )
         {
             Guid guid = GetEditValue( control, configurationValues ).AsGuid();
-            var item = EntityTypeCache.Read( guid );
+            var item = EntityTypeCache.Get( guid );
             return item != null ? item.Id : ( int? ) null;
         }
 
@@ -351,7 +351,7 @@ namespace com.centralaz.RoomManagement.Field.Types
             EntityTypeCache item = null;
             if ( id.HasValue )
             {
-                item = EntityTypeCache.Read( id.Value );
+                item = EntityTypeCache.Get( id.Value );
             }
             string guidValue = item != null ? item.Guid.ToString() : string.Empty;
             SetEditValue( control, configurationValues, guidValue );
@@ -378,7 +378,7 @@ namespace com.centralaz.RoomManagement.Field.Types
             Guid? guid = value.AsGuidOrNull();
             if ( guid.HasValue )
             {
-                return EntityTypeCache.Read( guid.Value ) as IEntity;
+                return EntityTypeCache.Get( guid.Value ) as IEntity;
             }
 
             return null;

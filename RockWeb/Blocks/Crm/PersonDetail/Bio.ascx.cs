@@ -33,7 +33,7 @@ using Rock.Web.UI.Controls;
 namespace RockWeb.Blocks.Crm.PersonDetail
 {
     /// <summary>
-    /// The main Person Profile block the main information about a peron 
+    /// The main Person Profile block the main information about a person 
     /// </summary>
     [DisplayName( "Person Bio" )]
     [Category( "CRM > Person Detail" )]
@@ -101,7 +101,7 @@ Because the contents of this setting will be rendered inside a &lt;ul&gt; elemen
                 pnlFollow.Visible = GetAttributeValue( "AllowFollowing" ).AsBoolean();
 
                 // Record Type - this is always "business". it will never change.
-                if ( Person.RecordTypeValueId == DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_BUSINESS.AsGuid() ).Id )
+                if ( Person.RecordTypeValueId == DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_BUSINESS.AsGuid() ).Id )
                 {
                     var parms = new Dictionary<string, string>();
                     parms.Add( "businessId", Person.Id.ToString() );
@@ -124,7 +124,7 @@ Because the contents of this setting will be rendered inside a &lt;ul&gt; elemen
                         Guid guid = badgeGuid.AsGuid();
                         if ( guid != Guid.Empty )
                         {
-                            var personBadge = PersonBadgeCache.Read( guid );
+                            var personBadge = PersonBadgeCache.Get( guid );
                             if ( personBadge != null )
                             {
                                 blStatus.PersonBadges.Add( personBadge );
@@ -211,33 +211,41 @@ Because the contents of this setting will be rendered inside a &lt;ul&gt; elemen
                     if ( Person.BirthDate.HasValue )
                     {
                         var formattedAge = Person.FormatAge();
-                        if ( formattedAge.IsNotNullOrWhitespace() )
+                        if ( formattedAge.IsNotNullOrWhiteSpace() )
                         {
                             formattedAge += " old";
                         }
 
-                        lAge.Text = string.Format( "{0} <small>({1})</small><br/>", formattedAge, ( Person.BirthYear.HasValue && Person.BirthYear != DateTime.MinValue.Year ) ? Person.BirthDate.Value.ToShortDateString() : Person.BirthDate.Value.ToMonthDayString() );
+                        lAge.Text = string.Format( "<dd>{0} <small>({1})</small></dd>", formattedAge, ( Person.BirthYear.HasValue && Person.BirthYear != DateTime.MinValue.Year ) ? Person.BirthDate.Value.ToShortDateString() : Person.BirthDate.Value.ToMonthDayString() );
                     }
 
-                    lGender.Text = Person.Gender.ToString();
+                    lGender.Text = string.Format( "<dd>{0}</dd>", Person.Gender.ToString() );
 
                     if ( GetAttributeValue( "DisplayGraduation" ).AsBoolean() )
                     {
                         if ( Person.GraduationYear.HasValue && Person.HasGraduated.HasValue )
                         {
                             lGraduation.Text = string.Format(
-                                "<small>({0} {1})</small>",
+                                "<dd><small>{0} {1}</small></dd>",
                                 Person.HasGraduated.Value ? "Graduated " : "Graduates ",
                                 Person.GraduationYear.Value );
                         }
                         lGrade.Text = Person.GradeFormatted;
                     }
 
-                    lMaritalStatus.Text = Person.MaritalStatusValueId.DefinedValue();
                     if ( Person.AnniversaryDate.HasValue && GetAttributeValue("DisplayAnniversaryDate").AsBoolean() )
                     {
-                        lAnniversary.Text = string.Format( "{0} yrs <small>({1})</small>", Person.AnniversaryDate.Value.Age(), Person.AnniversaryDate.Value.ToMonthDayString() );
+                        lMaritalStatus.Text = string.Format( "<dd>{0}",  Person.MaritalStatusValueId.DefinedValue() );
+                        lAnniversary.Text = string.Format( "{0} yrs <small>({1})</small></dd>", Person.AnniversaryDate.Value.Age(), Person.AnniversaryDate.Value.ToMonthDayString() );
                     }
+                    else
+                    {
+                        if ( Person.MaritalStatusValueId.HasValue )
+                        {
+                        lMaritalStatus.Text = string.Format( "<dd>{0}</dd>",  Person.MaritalStatusValueId.DefinedValue() );
+                        }
+                    }
+
 
                     if ( Person.PhoneNumbers != null )
                     {
@@ -247,7 +255,7 @@ Because the contents of this setting will be rendered inside a &lt;ul&gt; elemen
                     
                     var communicationLinkedPageValue = this.GetAttributeValue( "CommunicationPage" );
                     Rock.Web.PageReference communicationPageReference;
-                    if ( communicationLinkedPageValue.IsNotNullOrWhitespace() )
+                    if ( communicationLinkedPageValue.IsNotNullOrWhiteSpace() )
                     {
                         communicationPageReference = new Rock.Web.PageReference( communicationLinkedPageValue );
                     }
@@ -271,51 +279,7 @@ Because the contents of this setting will be rendered inside a &lt;ul&gt; elemen
                         taglPersonTags.Visible = false;
                     }
 
-                    StringBuilder sbActions = new StringBuilder();
-                    var workflowActions = GetAttributeValue( "WorkflowActions" );
-                    if ( !string.IsNullOrWhiteSpace( workflowActions ) )
-                    {
-                        using ( var rockContext = new RockContext() )
-                        {
-                            var workflowTypeService = new WorkflowTypeService( rockContext );
-                            foreach ( string guidValue in workflowActions.Split( new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries ) )
-                            {
-                                Guid? guid = guidValue.AsGuidOrNull();
-                                if ( guid.HasValue )
-                                {
-                                    var workflowType = workflowTypeService.Get( guid.Value );
-                                    if ( workflowType != null && workflowType.IsAuthorized( Authorization.VIEW, CurrentPerson ) )
-                                    {
-                                        string url = string.Format( "~/WorkflowEntry/{0}?PersonId={1}", workflowType.Id, Person.Id );
-                                        sbActions.AppendFormat(
-                                            "<li><a href='{0}'><i class='fa-fw {1}'></i> {2}</a></li>",
-                                            ResolveRockUrl( url ),
-                                            workflowType.IconCssClass,
-                                            workflowType.Name );
-                                        sbActions.AppendLine();
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    var actions = GetAttributeValue( "Actions" );
-                    if ( !string.IsNullOrWhiteSpace( actions ) )
-                    {
-                        string appRoot = ResolveRockUrl( "~/" );
-                        string themeRoot = ResolveRockUrl( "~~/" );
-                        actions = actions.Replace( "~~/", themeRoot ).Replace( "~/", appRoot );
-
-                        if ( actions.Contains( "{0}" ) )
-                        {
-                            actions = string.Format( actions, Person.Id );
-                        }
-
-                        sbActions.Append( actions );
-                    }
-
-                    lActions.Text = sbActions.ToString();
-                    ulActions.Visible = !string.IsNullOrWhiteSpace( lActions.Text );
+                    CreateActionMenu();
 
                     string customContent = GetAttributeValue( "CustomContent" );
                     if ( !string.IsNullOrWhiteSpace( customContent ) )
@@ -332,6 +296,72 @@ Because the contents of this setting will be rendered inside a &lt;ul&gt; elemen
                     pnlContent.Visible = false;
                 }
             }
+        }
+
+        protected void CreateActionMenu()
+        {
+            StringBuilder sbActions = new StringBuilder();
+            
+            // First list the actions manually entered as html in the block settting
+            var actions = GetAttributeValue( "Actions" );
+            if ( !string.IsNullOrWhiteSpace( actions ) )
+            {
+                string appRoot = ResolveRockUrl( "~/" );
+                string themeRoot = ResolveRockUrl( "~~/" );
+                actions = actions.Replace( "~~/", themeRoot ).Replace( "~/", appRoot );
+
+                if ( actions.Contains( "{0}" ) )
+                {
+                    actions = string.Format( actions, Person.Id );
+                }
+
+                sbActions.Append( "<li role=\"separator\" class=\"divider\"></li>" );
+                sbActions.Append( actions );
+            }
+
+            // Next list the workflow actions selected in the picker
+            var workflowActions = GetAttributeValue( "WorkflowActions" );
+            if ( !string.IsNullOrWhiteSpace( workflowActions ) )
+            {
+                List<WorkflowType> workflowTypes = new List<WorkflowType>();
+
+                using ( var rockContext = new RockContext() )
+                {
+                    var workflowTypeService = new WorkflowTypeService( rockContext );
+                    foreach ( string guidValue in workflowActions.Split( new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries ) )
+                    {
+                        Guid? guid = guidValue.AsGuidOrNull();
+                        if ( guid.HasValue )
+                        {
+                            var workflowType = workflowTypeService.Get( guid.Value );
+                            if ( workflowType != null && (workflowType.IsActive ?? true) && workflowType.IsAuthorized( Authorization.VIEW, CurrentPerson ) )
+                            {
+                                workflowTypes.Add( workflowType );
+                            }
+                        }
+                    }
+                }
+
+                workflowTypes = workflowTypes.OrderBy( w => w.Name ).ToList();
+
+                if ( workflowTypes.Count() > 0 )
+                {
+                    sbActions.Append( "<li role=\"separator\" class=\"divider\"></li>" );
+                }
+
+                foreach ( var workflowType in workflowTypes )
+                {
+                    string url = string.Format( "~/WorkflowEntry/{0}?PersonId={1}", workflowType.Id, Person.Id );
+                    sbActions.AppendFormat(
+                        "<li><a href='{0}'><i class='fa-fw {1}'></i> {2}</a></li>",
+                        ResolveRockUrl( url ),
+                        workflowType.IconCssClass,
+                        workflowType.Name );
+                    sbActions.AppendLine();
+                }
+            }
+
+            lActions.Text = sbActions.ToString();
         }
 
         /// <summary>
@@ -356,7 +386,7 @@ Because the contents of this setting will be rendered inside a &lt;ul&gt; elemen
 
             if ( Person.RecordTypeValueId.HasValue )
             {
-                int recordTypeValueIdBusiness = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_BUSINESS.AsGuid() ).Id;
+                int recordTypeValueIdBusiness = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_BUSINESS.AsGuid() ).Id;
 
                 isBusiness = ( Person.RecordTypeValueId.Value == recordTypeValueIdBusiness );
             }
@@ -372,17 +402,17 @@ Because the contents of this setting will be rendered inside a &lt;ul&gt; elemen
             {
                 if (GetAttributeValue( "DisplayMiddleName" ).AsBoolean() && !String.IsNullOrWhiteSpace(Person.MiddleName))
                 {
-                    nameText = string.Format( "<span class='first-word'>{0}</span> <span class='middlename'>{1}</span> <span class='lastname'>{2}</span>", Person.NickName, Person.MiddleName, Person.LastName );
+                    nameText = string.Format( "<span class='first-word nickname'>{0}</span> <span class='middlename'>{1}</span> <span class='lastname'>{2}</span>", Person.NickName, Person.MiddleName, Person.LastName );
                 }
                 else
                 {
-                    nameText = string.Format( "<span class='first-word'>{0}</span> <span class='lastname'>{1}</span>", Person.NickName, Person.LastName );
+                    nameText = string.Format( "<span class='first-word nickname'>{0}</span> <span class='lastname'>{1}</span>", Person.NickName, Person.LastName );
                 }
 
                 // Prefix with Title if they have a Title with IsFormal=True
                 if ( Person.TitleValueId.HasValue )
                 {
-                    var personTitleValue = DefinedValueCache.Read( Person.TitleValueId.Value );
+                    var personTitleValue = DefinedValueCache.Get( Person.TitleValueId.Value );
                     if ( personTitleValue != null && personTitleValue.GetAttributeValue( "IsFormal" ).AsBoolean() )
                     {
                         nameText = string.Format( "<span class='title'>{0}</span> ", personTitleValue.Value ) + nameText;
@@ -401,7 +431,7 @@ Because the contents of this setting will be rendered inside a &lt;ul&gt; elemen
                 // Add Suffix.
                 if ( Person.SuffixValueId.HasValue )
                 {
-                    var suffix = DefinedValueCache.Read( Person.SuffixValueId.Value );
+                    var suffix = DefinedValueCache.Get( Person.SuffixValueId.Value );
                     if ( suffix != null )
                     {
                         nameText += " " + suffix.Value;
@@ -512,7 +542,7 @@ Because the contents of this setting will be rendered inside a &lt;ul&gt; elemen
                 }
             }
 
-            var phoneType = DefinedValueCache.Read( phoneNumberTypeId );
+            var phoneType = DefinedValueCache.Get( phoneNumberTypeId );
             if ( phoneType != null )
             {
                 string phoneMarkup = formattedNumber;

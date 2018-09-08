@@ -446,7 +446,7 @@ namespace RockWeb.Plugins.com_centralaz.Utility
                 return definedType;
             }
 
-            var personAttribute = Rock.Web.Cache.AttributeCache.Read( attributeGuid.Value );
+            var personAttribute = AttributeCache.Get( attributeGuid.Value );
             if ( personAttribute == null )
             {
                 return definedType;
@@ -462,7 +462,7 @@ namespace RockWeb.Plugins.com_centralaz.Utility
                     return definedType;
                 }
 
-                definedType = DefinedTypeCache.Read( int.Parse( qualifierValue.Value ) );
+                definedType = DefinedTypeCache.Get( int.Parse( qualifierValue.Value ) );
             }
 
             return definedType;
@@ -483,7 +483,7 @@ namespace RockWeb.Plugins.com_centralaz.Utility
                 Guid? theAttributesGuid = GetAttributeValue( "DisableAutoTopicSubscriptionAttribute" ).AsGuidOrNull();
                 if ( theAttributesGuid != null && theAttributesGuid.HasValue )
                 {
-                    var theDisableAutoTopicAttribute = Rock.Web.Cache.AttributeCache.Read( theAttributesGuid.Value );
+                    var theDisableAutoTopicAttribute = AttributeCache.Get( theAttributesGuid.Value );
                     _person.SetAttributeValue( theDisableAutoTopicAttribute.Key, "True" );
                 }
 

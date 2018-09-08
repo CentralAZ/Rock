@@ -87,20 +87,20 @@ namespace RockWeb.Plugins.com_centralaz.Finance
         private static readonly string FUND_ACCOUNT_MAPPINGS = "FundAccountMappings";
         private List<ShelbyContribution> _errorElements = new List<ShelbyContribution>();
         private Stopwatch _stopwatch;
-        private int _personRecordTypeId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
-        private int _personStatusPending = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_PENDING.AsGuid() ).Id;
-        private int _transactionTypeIdContribution = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_CONTRIBUTION.AsGuid() ).Id;
+        private int _personRecordTypeId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
+        private int _personStatusPending = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_PENDING.AsGuid() ).Id;
+        private int _transactionTypeIdContribution = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.TRANSACTION_TYPE_CONTRIBUTION.AsGuid() ).Id;
 
         private Regex reOnlyDigits = new Regex( @"^[0-9-\/\.]+$" );
 
         // Home Number type phone
-        private int _homePhoneDefinedValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_PHONE_TYPE_HOME ).Id;
+        private int _homePhoneDefinedValueId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_PHONE_TYPE_HOME ).Id;
 
         // Connection Status
         private int connectionStatusDefinedValueId = -1;
 
         // Shelby Marital statuses: U, W, M, D, P, S
-        private DefinedTypeCache _maritalStatusDefinedType = DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.PERSON_MARITAL_STATUS.AsGuid() );
+        private DefinedTypeCache _maritalStatusDefinedType = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.PERSON_MARITAL_STATUS.AsGuid() );
 
         // Holds the Fund Account Mappings block attribute as a dictionary (Shelby Purpose Counter -> Rock Account Id)
         private Dictionary<String, String> _fundAccountMappingDictionary = new Dictionary<string, string>();
@@ -163,7 +163,7 @@ namespace RockWeb.Plugins.com_centralaz.Finance
             _fundAccountMappingDictionary = Regex.Matches( GetAttributeValue( FUND_ACCOUNT_MAPPINGS ), @"\s*(.*?)\s*=\s*(.*?)\s*(;|,|$)" )
                 .OfType<Match>()
                 .ToDictionary( m => m.Groups[1].Value, m => m.Groups[2].Value );
-            connectionStatusDefinedValueId = DefinedValueCache.Read( GetAttributeValue( "ConnectionStatus" ).AsGuid() ).Id;
+            connectionStatusDefinedValueId = DefinedValueCache.Get( GetAttributeValue( "ConnectionStatus" ).AsGuid() ).Id;
         }
 
         /// <summary>
@@ -825,19 +825,19 @@ WHERE [BatchNu] BETWEEN {0} and {1}", nreBatchRange.LowerValue, nreBatchRange.Up
                     // Hardcoded junk...
                     if ( shelbyContribution.CheckNu.Contains( "cash" ) )
                     {
-                        financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_ONSITE_COLLECTION.AsGuid() ).Id;
+                        financialTransaction.SourceTypeValueId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_ONSITE_COLLECTION.AsGuid() ).Id;
                     }
                     else if ( shelbyContribution.CheckNu.Contains( "kiosk" ) )
                     {
-                        financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_KIOSK.AsGuid() ).Id;
+                        financialTransaction.SourceTypeValueId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_KIOSK.AsGuid() ).Id;
                     }
                     else if ( shelbyContribution.CheckNu.StartsWith( "on" ) )
                     {
-                        financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_WEBSITE.AsGuid() ).Id;
+                        financialTransaction.SourceTypeValueId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_WEBSITE.AsGuid() ).Id;
                     }
                     else
                     {
-                        financialTransaction.SourceTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_ONSITE_COLLECTION.AsGuid() ).Id;
+                        financialTransaction.SourceTypeValueId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.FINANCIAL_SOURCE_TYPE_ONSITE_COLLECTION.AsGuid() ).Id;
                     }
 
                     // set up the necessary Financial Payment Detail record
@@ -852,19 +852,19 @@ WHERE [BatchNu] BETWEEN {0} and {1}", nreBatchRange.LowerValue, nreBatchRange.Up
                         // Get the tender type and put in cache if we've not encountered it before.
                         if ( shelbyContribution.CheckNu.Contains( "cash" ) )
                         {
-                            financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CASH.AsGuid() ).Id;
+                            financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CASH.AsGuid() ).Id;
                         }
                         else if ( reOnlyDigits.IsMatch( shelbyContribution.CheckNu ) )
                         {
-                            financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CHECK.AsGuid() ).Id;
+                            financialTransaction.FinancialPaymentDetail.CurrencyTypeValueId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_CHECK.AsGuid() ).Id;
                         }
                         else
                         {
-                            var nonCash = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_NONCASH.AsGuid() );
+                            var nonCash = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.CURRENCY_TYPE_NONCASH.AsGuid() );
                             // For some reason our production system does not have the above system GUID.
                             if ( nonCash == null )
                             {
-                                nonCash = DefinedValueCache.Read( "6E4DA648-EF54-4375-A9FF-B675E6239E78".AsGuid() );
+                                nonCash = DefinedValueCache.Get( "6E4DA648-EF54-4375-A9FF-B675E6239E78".AsGuid() );
                             }
 
                             if ( nonCash != null )
@@ -1156,7 +1156,7 @@ WHERE [BatchNu] BETWEEN {0} and {1}", nreBatchRange.LowerValue, nreBatchRange.Up
                 } );
 
                 gBatchList.SetLinqDataSource( batchRowQry.AsNoTracking() );
-                gBatchList.EntityTypeId = EntityTypeCache.Read<Rock.Model.FinancialBatch>().Id;
+                gBatchList.EntityTypeId = EntityTypeCache.Get<Rock.Model.FinancialBatch>().Id;
                 gBatchList.DataBind();
 
                 gBatchList.Actions.ShowExcelExport = false;

@@ -60,6 +60,8 @@
             var scrollIndicator = scrollbPage.find('.track');
                 <%=pnlTreeviewContent.ClientID%>IScroll = new IScroll(scrollContainer[0], {
                     mouseWheel: false,
+                    eventPassthrough: true,
+                    preventDefault: false,
                     scrollX: true,
                     scrollY: false,
                     indicators: {
@@ -116,6 +118,7 @@
                     if (itemSearch) {
                         var locationUrl = window.location.href.split('?')[0] + itemSearch;
                         locationUrl += "&ExpandedIds=" + encodeURIComponent(expandedDataIds).toLowerCase();
+                        locationUrl += "&Redirect=false"
                         if (window.location != locationUrl) {
                             window.location = locationUrl;
                         }

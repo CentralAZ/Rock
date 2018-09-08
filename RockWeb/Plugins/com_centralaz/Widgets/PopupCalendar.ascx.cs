@@ -204,7 +204,7 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
                         m.EventItem.IsActive );
 
             // Filter by campus
-            var contextCampus = RockPage.GetCurrentContext( EntityTypeCache.Read( "Rock.Model.Campus" ) ) as Campus;
+            var contextCampus = RockPage.GetCurrentContext( EntityTypeCache.Get( "Rock.Model.Campus" ) ) as Campus;
             if ( contextCampus != null )
             {
                 qry = qry

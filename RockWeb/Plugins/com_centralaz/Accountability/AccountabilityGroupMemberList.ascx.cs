@@ -229,8 +229,8 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
                 if ( group.IsSecurityRole || group.GroupType.Guid.Equals( Rock.SystemGuid.GroupType.GROUPTYPE_SECURITY_ROLE.AsGuid() ) )
                 {
                     // person removed from SecurityRole, Flush
-                    Rock.Security.Role.Flush( group.Id );
-                    Rock.Security.Authorization.Flush();
+                    RoleCache.Remove( group.Id );
+                    Authorization.Clear();
                 }
             }
             _responseSets = new ResponseSetService( new AccountabilityContext() ).GetResponseSetsForGroup( PageParameter( "GroupId" ).AsInteger() );
@@ -310,7 +310,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
                         boundField.HeaderText = attribute.Name;
                         boundField.SortExpression = string.Empty;
 
-                        var attributeCache = Rock.Web.Cache.AttributeCache.Read( attribute.Id );
+                        var attributeCache = AttributeCache.Get( attribute.Id );
                         if ( attributeCache != null )
                         {
                             boundField.ItemStyle.HorizontalAlign = attributeCache.FieldType.Field.AlignValue;

@@ -29,22 +29,7 @@ namespace Rock.SystemKey
         public const string GENDER_AUTO_FILL_CONFIDENCE = "core_GenderAutoFillConfidence";
 
         /// <summary>
-        /// Thetext to use when the postback is completed.
-        /// </summary>
-        public const string BOOTSTRAP_BUTTON_COMPLETE_TEXT = "core_BootstrapCompleteText";
-
-        /// <summary>
-        /// The text to use when the button has been clicked.
-        /// </summary>
-        public const string BOOTSTRAP_BUTTON_DATA_LOADING_TEXT = "core_BootstrapButtonDataLoadingText";
-
-        /// <summary>
-        /// The time in millisecond to reset the button text back to original after setting the Completed text.
-        /// </summary>
-        public const string BOOTSTRAP_BUTTON_COMPLETED_TIMEOUT = "core_BootstrapButtonCompletedTimeout";
-
-        /// <summary>
-        /// The minimum distance in miles person/family has to have moved before automatically inactivatingn their record
+        /// The minimum distance in miles person/family has to have moved before automatically inactivating their record
         /// </summary>
         public const string NCOA_MINIMUM_MOVE_DISTANCE_TO_INACTIVATE = "core_MinimumMoveDistanceToInactivate";
 
@@ -71,7 +56,22 @@ namespace Rock.SystemKey
         /// <summary>
         /// Settings for if/when a family's campus should be updated
         /// </summary>
-        public const string DATA_AUTOMATION_UPDATE_FAMILY_CAMPUS = "core_DataAutomationUpdateFamilyCampus";
+        public const string DATA_AUTOMATION_CAMPUS_UPDATE = "core_DataAutomationUpdateFamilyCampus";
+
+        /// <summary>
+        /// Settings for if/when adult children should be moved to their own family
+        /// </summary>
+        public const string DATA_AUTOMATION_ADULT_CHILDREN = "core_DataAutomationAdultChildren";
+
+        /// <summary>
+        /// Settings for Updating Person Connection Status
+        /// </summary>
+        public const string DATA_AUTOMATION_UPDATE_PERSON_CONNECTION_STATUS = "core_DataAutomationUpdatePersonConnectionStatus";
+
+        /// <summary>
+        /// Settings for Updating Family Status
+        /// </summary>
+        public const string DATA_AUTOMATION_UPDATE_FAMILY_STATUS = "core_DataAutomationUpdateFamilyStatus";
 
         /// <summary>
         /// The font awesome pro key
@@ -82,5 +82,41 @@ namespace Rock.SystemKey
         /// Enable multi time zone support. Default is false
         /// </summary>
         public const string ENABLE_MULTI_TIME_ZONE_SUPPORT = "core_EnableMultiTimeZoneSupport";
+
+        /// <summary>
+        /// Enable a redis cache cluster
+        /// </summary>
+        public const string REDIS_ENABLE_CACHE_CLUSTER = "EnableRedisCacheCluster";
+
+        /// <summary>
+        /// The redis connection string
+        /// </summary>
+        [Obsolete("Use REDIS_ENDPOINT_LIST, REDIS_PASSWORD, and REDIS_DATABASE_NUMBER instead.")]
+        public const string REDIS_CONNECTION_STRING = "RedisConnectionString";
+
+        /// <summary>
+        /// Comma separated list of Redis endpoints (e.g. server.com:6379)
+        /// </summary>
+        public const string REDIS_ENDPOINT_LIST = "RedisEndpointList";
+
+        /// <summary>
+        /// The redis password
+        /// </summary>
+        public const string REDIS_PASSWORD = "RedisPassword";
+
+        /// <summary>
+        /// The redis database index number
+        /// </summary>
+        public const string REDIS_DATABASE_NUMBER = "RedisDatabaseNumber";
+
+        /// <summary>
+        /// Settings for Spark Data NCOA
+        /// </summary>
+        public const string SPARK_DATA_NCOA = "core_SparkDataNcoa";
+
+        /// <summary>
+        /// Settings for Spark Data
+        /// </summary>
+        public const string SPARK_DATA = "core_SparkData";
     }
 }

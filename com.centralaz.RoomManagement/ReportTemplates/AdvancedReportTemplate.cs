@@ -327,11 +327,9 @@ public class TwoColumnHeaderFooter : PdfPageEventHelper
             cb = writer.DirectContent;
             template = cb.CreateTemplate( 50, 50 );
         }
-        catch ( DocumentException de )
+        catch 
         {
-        }
-        catch ( System.IO.IOException ioe )
-        {
+            // not implemented
         }
     }
 

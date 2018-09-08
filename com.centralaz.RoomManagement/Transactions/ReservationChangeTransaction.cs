@@ -159,7 +159,7 @@ namespace com.centralaz.RoomManagement.Transactions
 
         private void LaunchWorkflow( RockContext rockContext, ReservationWorkflowTrigger reservationWorkflowTrigger, string name )
         {
-            var workflowType = Rock.Web.Cache.WorkflowTypeCache.Read( reservationWorkflowTrigger.WorkflowTypeId.Value );
+            var workflowType = Rock.Web.Cache.WorkflowTypeCache.Get( reservationWorkflowTrigger.WorkflowTypeId.Value );
             if ( workflowType != null && ( workflowType.IsActive ?? true ) )
             {
                 Reservation reservation = null;

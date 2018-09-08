@@ -391,8 +391,8 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
             Group group = new GroupService( rockContext ).Get( groupMember.GroupId );
             if ( group.IsSecurityRole || group.GroupType.Guid.Equals( Rock.SystemGuid.GroupType.GROUPTYPE_SECURITY_ROLE.AsGuid() ) )
             {
-                Rock.Security.Role.Flush( group.Id );
-                Rock.Security.Authorization.Flush();
+                RoleCache.Remove( group.Id );
+                Authorization.Clear();
             }
 
             pnlEditGroupMember.Visible = false;
@@ -799,7 +799,7 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
             var rockContext = new RockContext();
             ddlMember.Items.Clear();
 
-            var groupType = GroupTypeCache.Read( group.GroupTypeId );
+            var groupType = GroupTypeCache.Get( group.GroupTypeId );
             if ( groupType != null )
             {
                 // only allow editing groups with single locations

@@ -215,7 +215,7 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
                         var campuses = new List<string>();
                         foreach ( var campusId in person.CampusIds )
                         {
-                            var campus = CampusCache.Read( campusId );
+                            var campus = CampusCache.Get( campusId );
                             if ( campus != null )
                             {
                                 campuses.Add( campus.Name );
@@ -259,7 +259,7 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
                             }
 
                             string format = string.Empty;
-                            var countryValue = Rock.Web.Cache.DefinedTypeCache.Read( Rock.SystemGuid.DefinedType.LOCATION_COUNTRIES.AsGuid() )
+                            var countryValue = Rock.Web.Cache.DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.LOCATION_COUNTRIES.AsGuid() )
                                 .DefinedValues
                                 .Where( v => v.Value.Equals( location.Country, StringComparison.OrdinalIgnoreCase ) )
                                 .FirstOrDefault();
@@ -473,7 +473,7 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
                 var attributeModel = new AttributeService( new RockContext() ).Get( attributeId.Value );
                 if ( attributeModel != null )
                 {
-                    AvailableAttribute = AttributeCache.Read( attributeModel );
+                    AvailableAttribute = AttributeCache.Get( attributeModel );
                 }
             }
         }
@@ -554,7 +554,7 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
                                 .Select( gl => gl.Location )
                         } ).ToList();
 
-                        _inactiveStatus = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_INACTIVE );
+                        _inactiveStatus = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_STATUS_INACTIVE );
                         gPeople.EntityTypeId = EntityTypeCache.GetId<Person>();
                         gPeople.DataSource = personList;
                         gPeople.DataBind();
@@ -609,7 +609,7 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
         {
             get
             {
-                int recordTypeValueIdBusiness = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_BUSINESS.AsGuid() ).Id;
+                int recordTypeValueIdBusiness = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_BUSINESS.AsGuid() ).Id;
                 return this.RecordTypeValueId.HasValue && this.RecordTypeValueId.Value == recordTypeValueIdBusiness;
             }
         }
@@ -634,7 +634,7 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
             {
                 if ( RecordTypeValueId.HasValue )
                 {
-                    var recordType = DefinedValueCache.Read( RecordTypeValueId.Value );
+                    var recordType = DefinedValueCache.Get( RecordTypeValueId.Value );
                     if ( recordType != null )
                     {
                         return Person.GetPersonPhotoUrl(this.Id, this.PhotoId, this.Age, this.Gender, recordType.Guid );

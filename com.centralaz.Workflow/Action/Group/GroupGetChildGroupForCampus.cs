@@ -112,7 +112,7 @@ namespace com.centralaz.Workflow.Action.Groups
             if ( group != null )
             {                
                 // get the group attribute where we'll store the matching group.
-                var groupAttribute = AttributeCache.Read( GetAttributeValue( action, "Group" ).AsGuid(), rockContext );
+                var groupAttribute = AttributeCache.Get( GetAttributeValue( action, "Group" ).AsGuid(), rockContext );
                 if ( groupAttribute != null )
                 {
                     SetWorkflowAttributeValue( action, groupAttribute.Guid, group.Guid.ToStringSafe() );

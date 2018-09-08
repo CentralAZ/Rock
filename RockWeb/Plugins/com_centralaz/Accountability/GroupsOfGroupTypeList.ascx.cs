@@ -122,7 +122,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
 
                     int id = e.Value.AsInteger();
 
-                    var groupType = GroupTypeCache.Read( id );
+                    var groupType = GroupTypeCache.Get( id );
                     if ( groupType != null )
                     {
                         e.Value = groupType.Name;
@@ -182,7 +182,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
                 bool isSecurityRoleGroup = group.IsSecurityRole || group.GroupType.Guid.Equals( Rock.SystemGuid.GroupType.GROUPTYPE_SECURITY_ROLE.AsGuid() );
                 if ( isSecurityRoleGroup )
                 {
-                    Rock.Security.Role.Flush( group.Id );
+                    RoleCache.Remove( group.Id );
                     foreach ( var auth in authService.Queryable().Where( a => a.GroupId == group.Id ).ToList() )
                     {
                         authService.Delete( auth );
@@ -195,7 +195,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
 
                 if ( isSecurityRoleGroup )
                 {
-                    Rock.Security.Authorization.Flush();
+                    Authorization.Clear();
                 }
             }
 
@@ -263,7 +263,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
             boolFields["IsSystem"].Visible = showSystemColumn;
 
             // Person context will exist if used on a person detail page
-            int personEntityTypeId = EntityTypeCache.Read( "Rock.Model.Person" ).Id;
+            int personEntityTypeId = EntityTypeCache.Get( "Rock.Model.Person" ).Id;
             if ( ContextTypesRequired.Any( e => e.Id == personEntityTypeId ) )
             {
                 var personContext = ContextEntity<Person>();

@@ -508,6 +508,7 @@ namespace RockWeb.Plugins.com_centralaz.Crm
                     // Build nice neat PersonAttendanceDataRow qry
                     var qry = qryRegistrations
                         .SelectMany( r => r.Registrants )
+                        .OrderBy( rr=> rr.Person.LastName ).ThenBy( rr => rr.Person.FirstName )
                         .Select( rr => new PersonAttendanceDataRow
                         {
                             Id = rr.PersonId.Value,
@@ -534,7 +535,7 @@ namespace RockWeb.Plugins.com_centralaz.Crm
                     qry = qry.Where( p => !( p.AttendedFirstSession && p.AttendedSecondSession && p.AttendedThirdSession ) );
                     var x = qry.ToList();
 
-                    gList.EntityTypeId = EntityTypeCache.Read<Rock.Model.Person>().Id;
+                    gList.EntityTypeId = EntityTypeCache.Get<Rock.Model.Person>().Id;
                     gList.SetLinqDataSource( qry );
                     gList.DataBind();
                 }
@@ -550,7 +551,7 @@ namespace RockWeb.Plugins.com_centralaz.Crm
         /// <param name="entity">The entity.</param>
         private void LaunchWorkflows( WorkflowService workflowService, Guid workflowTypeGuid, string name, object entity )
         {
-            var workflowType = WorkflowTypeCache.Read( workflowTypeGuid );
+            var workflowType = WorkflowTypeCache.Get( workflowTypeGuid );
             if ( workflowType != null )
             {
                 var workflow = Workflow.Activate( workflowType, name );
@@ -597,17 +598,17 @@ namespace RockWeb.Plugins.com_centralaz.Crm
 
             if ( FirstAttributeCache == null )
             {
-                FirstAttributeCache = AttributeCache.Read( GetAttributeValue( "AttendedFirstSessionAttribute" ).AsGuid() );
+                FirstAttributeCache = AttributeCache.Get( GetAttributeValue( "AttendedFirstSessionAttribute" ).AsGuid() );
             }
 
             if ( SecondAttributeCache == null )
             {
-                SecondAttributeCache = AttributeCache.Read( GetAttributeValue( "AttendedSecondSessionAttribute" ).AsGuid() );
+                SecondAttributeCache = AttributeCache.Get( GetAttributeValue( "AttendedSecondSessionAttribute" ).AsGuid() );
             }
 
             if ( ThirdAttributeCache == null )
             {
-                ThirdAttributeCache = AttributeCache.Read( GetAttributeValue( "AttendedThirdSessionAttribute" ).AsGuid() );
+                ThirdAttributeCache = AttributeCache.Get( GetAttributeValue( "AttendedThirdSessionAttribute" ).AsGuid() );
             }
 
             if ( FirstAttributeCache != null && SecondAttributeCache != null && ThirdAttributeCache != null )

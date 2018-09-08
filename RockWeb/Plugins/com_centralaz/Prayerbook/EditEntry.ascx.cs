@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright by Central Christian Church
 //
 // Licensed under the Rock Community License (the "License");
@@ -400,12 +400,14 @@ namespace RockWeb.Plugins.com_centralaz.Prayerbook
             entry.SaveAttributeValues( rockContext );
             contributorGroupMember.SaveAttributeValues( rockContext );
 
+            var changes = new History.HistoryChangeList();
+            changes.Add( new History.HistoryChange( History.HistoryVerb.Modify, History.HistoryChangeType.Record, String.Format( "Modified by {0} on {1}", CurrentPerson.FullName, DateTime.Now.ToString() ) ) );
             HistoryService.SaveChanges(
                         rockContext,
                         typeof( GroupMember ),
                         com.centralaz.Prayerbook.SystemGuid.Category.HISTORY_UPTEAM_ENTRY.AsGuid(),
                         entry.Id,
-                        new List<string> { String.Format( "Modified by {0} on {1}", CurrentPerson.FullName, DateTime.Now.ToString() ) }
+                        changes 
                     );
 
             //navigate to Prayer Book home page

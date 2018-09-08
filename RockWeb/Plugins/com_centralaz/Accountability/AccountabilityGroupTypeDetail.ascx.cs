@@ -228,7 +228,7 @@ namespace RockWeb.Plugins.com_centralaz.Accountability
             groupType.Name = dtbName.Text;
             groupType.Description = dtbDescription.Text;
             groupType.GroupTypePurposeValue = new DefinedValueService( rockContext ).GetByDefinedTypeGuid( Rock.SystemGuid.DefinedType.GROUPTYPE_PURPOSE.AsGuid() ).Where( a => a.Value == "Accountability Group" ).FirstOrDefault();
-            groupType.InheritedGroupTypeId = GroupTypeCache.Read( com.centralaz.Accountability.SystemGuid.GroupType.ACCOUNTABILITY_GROUP_TYPE.AsGuid() ).Id;
+            groupType.InheritedGroupTypeId = GroupTypeCache.Get( com.centralaz.Accountability.SystemGuid.GroupType.ACCOUNTABILITY_GROUP_TYPE.AsGuid() ).Id;
             if ( !Page.IsValid )
             {
                 return;

@@ -284,7 +284,7 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
                 attributeValue.Value = attributeValueThemes.AsDelimited( "," );
                 attributeQualifier.Value = attributeQualifierThemes.AsDelimited( "," );
                 rockContext.SaveChanges();
-                Rock.Web.Cache.BlockCache.Flush( blockId );
+                Rock.Web.Cache.BlockCache.Remove( blockId );
 
                 // Populate Admin Checkbox List
                 cblAllowedThemes.Items.Clear();

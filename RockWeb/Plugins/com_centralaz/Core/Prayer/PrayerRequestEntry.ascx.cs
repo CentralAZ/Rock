@@ -95,7 +95,7 @@ namespace RockWeb.Plugins.com_centralaz.Core.Prayer
                 {
                     
                     Guid defaultCategoryGuid = GetAttributeValue( "DefaultCategory" ).AsGuid();
-                    var defaultCategoryId = CategoryCache.Read( defaultCategoryGuid, rockContext ).Id;
+                    var defaultCategoryId = CategoryCache.Get( defaultCategoryGuid, rockContext ).Id;
 
                     bddlCategory.SetValue( defaultCategoryId );
                 }
@@ -286,12 +286,11 @@ namespace RockWeb.Plugins.com_centralaz.Core.Prayer
         /// <param name="rockContext">The rock context.</param>
         private void StartWorkflow( PrayerRequest prayerRequest, RockContext rockContext )
         {
-            WorkflowType workflowType = null;
             Guid? workflowTypeGuid = GetAttributeValue( "Workflow" ).AsGuidOrNull();
             if ( workflowTypeGuid.HasValue )
             {
                 var workflowTypeService = new WorkflowTypeService( rockContext );
-                workflowType = workflowTypeService.Get( workflowTypeGuid.Value );
+                var workflowType = WorkflowTypeCache.Get( workflowTypeGuid.Value );
                 if ( workflowType != null )
                 {
                     try

@@ -238,7 +238,7 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
 
                     // Add a map item for group
                     var mapItem = new FinderMapItem( groupLocation.Location );
-                    mapItem.EntityTypeId = EntityTypeCache.Read( "Rock.Model.Group" ).Id;
+                    mapItem.EntityTypeId = EntityTypeCache.Get( "Rock.Model.Group" ).Id;
                     mapItem.EntityId = group.Id;
                     mapItem.Name = group.Name;
                     mapItem.InfoWindow = HttpUtility.HtmlEncode( infoWindow.Replace( Environment.NewLine, string.Empty ).Replace( "\n", string.Empty ).Replace( "\t", string.Empty ) );
@@ -266,7 +266,7 @@ namespace RockWeb.Plugins.com_centralaz.LifeGroupFinder
             string styleCode = "null";
             var markerColors = new List<string>();
 
-            DefinedValueCache dvcMapStyle = DefinedValueCache.Read( GetAttributeValue( "MapStyle" ).AsGuid() );
+            DefinedValueCache dvcMapStyle = DefinedValueCache.Get( GetAttributeValue( "MapStyle" ).AsGuid() );
             if ( dvcMapStyle != null )
             {
                 styleCode = dvcMapStyle.GetAttributeValue( "DynamicMapStyle" );

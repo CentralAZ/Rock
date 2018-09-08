@@ -71,7 +71,7 @@ namespace com.centralaz.Workflow.Action.CheckIn
                     Guid guid = GetAttributeValue( action, "WillLabelPrintAttribute" ).AsGuid();
                     if ( !guid.IsEmpty() )
                     {
-                        var attribute = AttributeCache.Read( guid, rockContext );
+                        var attribute = AttributeCache.Get( guid, rockContext );
                         if ( attribute != null )
                         {
                             if ( attribute.EntityTypeId == new Rock.Model.Workflow().TypeId )
@@ -255,7 +255,7 @@ namespace com.centralaz.Workflow.Action.CheckIn
                     {
                         if ( !labels.Any( l => l.Guid == binaryFileGuid.Value ) )
                         {
-                            var labelCache = KioskLabel.Read( binaryFileGuid.Value );
+                            var labelCache = KioskLabel.Get( binaryFileGuid.Value );
                             labelCache.Order = attribute.Value.Order;
                             if ( labelCache != null && (
                                 labelCache.LabelType == KioskLabelType.Family ||

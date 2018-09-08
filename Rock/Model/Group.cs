@@ -20,15 +20,16 @@ using System.Collections.ObjectModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Data.Entity;
+using System.Data.Entity.Infrastructure;
 using System.Data.Entity.ModelConfiguration;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using Rock.Data;
-using Rock.Security;
+using Rock.Web.Cache;
 using Rock.UniversalSearch;
 using Rock.UniversalSearch.IndexModels;
-using Rock.Web.Cache;
+using Rock.Security;
 
 namespace Rock.Model
 {
@@ -44,7 +45,7 @@ namespace Rock.Model
 
     // Support Analytics Tables, but only for GroupType Family
     [Analytics( "GroupTypeId", "10", true, true )]
-    public partial class Group : Model<Group>, IOrdered, IHasActiveFlag, IRockIndexable
+    public partial class Group : Model<Group>, IOrdered, IHasActiveFlag, IRockIndexable, ICacheable
     {
         #region Entity Properties
 
@@ -214,6 +215,52 @@ namespace Rock.Model
         [DataMember]
         public int? RequiredSignatureDocumentTemplateId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the date that this group became inactive
+        /// </summary>
+        /// <value>
+        /// The in active date time.
+        /// </value>
+        [DataMember]
+        public DateTime? InactiveDateTime { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether this group is archived (soft deleted)
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is archived; otherwise, <c>false</c>.
+        /// </value>
+        [DataMember]
+        public bool IsArchived { get; set; } = false;
+
+        /// <summary>
+        /// Gets or sets the date time that this group was archived (soft deleted)
+        /// </summary>
+        /// <value>
+        /// The archived date time.
+        /// </value>
+        [DataMember]
+        public DateTime? ArchivedDateTime { get; set; }
+
+        /// <summary>
+        /// Gets or sets the PersonAliasId that archived (soft deleted) this group
+        /// </summary>
+        /// <value>
+        /// The archived by person alias identifier.
+        /// </value>
+        [DataMember]
+        public int? ArchivedByPersonAliasId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the Group Status Id.  DefinedType depends on this group's <see cref="Rock.Model.GroupType.GroupStatusDefinedType"/>
+        /// </summary>
+        /// <value>
+        /// The status value identifier.
+        /// </value>
+        [DataMember]
+        [DefinedValue]
+        public int? StatusValueId { get; set; }
+
         #endregion
 
         #region Virtual Properties
@@ -264,6 +311,15 @@ namespace Rock.Model
         public virtual SignatureDocumentTemplate RequiredSignatureDocumentTemplate { get; set; }
 
         /// <summary>
+        /// Gets or sets the PersonAlias that archived (soft deleted) this group
+        /// </summary>
+        /// <value>
+        /// The archived by person alias.
+        /// </value>
+        [DataMember]
+        public virtual PersonAlias ArchivedByPersonAlias { get; set; }
+
+        /// <summary>
         /// Gets or sets a collection the Groups that are children of this group.
         /// </summary>
         /// <value>
@@ -280,6 +336,7 @@ namespace Rock.Model
 
         /// <summary>
         /// Gets or sets a collection containing the <see cref="Rock.Model.GroupMember">GroupMembers</see> who are associated with the Group.
+        /// Note that this does not include Archived GroupMembers
         /// </summary>
         /// <value>
         /// A collection of <see cref="Rock.Model.GroupMember">GroupMembers</see> who are associated with the Group.
@@ -385,16 +442,22 @@ namespace Rock.Model
         }
 
         /// <summary>
-        /// Gets the parent authority2.
+        /// An optional additional parent authority.  (i.e for Groups, the GroupType is main parent
+        /// authority, but parent group is an additional parent authority )
         /// </summary>
-        /// <value>
-        /// The parent authority2.
-        /// </value>
         public override Security.ISecured ParentAuthorityPre
         {
             get
             {
-                return this.GroupType;
+                if ( this.GroupTypeId > 0 )
+                {
+                    GroupTypeCache groupType = GroupTypeCache.Get( this.GroupTypeId );
+                    return groupType;
+                }
+                else
+                {
+                    return base.ParentAuthorityPre;
+                }
             }
         }
 
@@ -433,8 +496,35 @@ namespace Rock.Model
                 return _supportedActions;
             }
         }
-
         private Dictionary<string, string> _supportedActions;
+
+        /// <summary>
+        /// Gets or sets the history changes.
+        /// </summary>
+        /// <value>
+        /// The history changes.
+        /// </value>
+        [NotMapped]
+        [Obsolete( "Use HistoryChangeList instead" )]
+        public virtual List<string> HistoryChanges { get; set; }
+
+        /// <summary>
+        /// Gets or sets the history change list.
+        /// </summary>
+        /// <value>
+        /// The history change list.
+        /// </value>
+        [NotMapped]
+        public virtual History.HistoryChangeList HistoryChangeList { get; set; }
+
+        /// <summary>
+        /// Gets or sets the <see cref="Rock.Model.DefinedValue"/> representing the Group's status. DefinedType depends on this group's <see cref="Rock.Model.GroupType.GroupTypePurposeValue"/>
+        /// </summary>
+        /// <value>
+        /// A <see cref="DefinedValue"/> object representing the Group's status.
+        /// </value>
+        [DataMember]
+        public virtual DefinedValue StatusValue { get; set; }
 
         #endregion
 
@@ -449,7 +539,7 @@ namespace Rock.Model
         {
             var roleLimitWarnings = new StringBuilder();
             var group = this;
-            var groupType = GroupTypeCache.Read( group.GroupTypeId );
+            var groupType = GroupTypeCache.Get( group.GroupTypeId );
             if ( groupType?.Roles != null && groupType.Roles.Any() )
             {
                 var groupMemberService = new GroupMemberService( new RockContext() );
@@ -504,7 +594,7 @@ namespace Rock.Model
             if ( !authorized && person != null && ( action == Authorization.VIEW || action == Authorization.MANAGE_MEMBERS || action == Authorization.EDIT ) )
             {
                 // Get the cached group type
-                var groupType = GroupTypeCache.Read( this.GroupTypeId );
+                var groupType = GroupTypeCache.Get( this.GroupTypeId );
                 if ( groupType != null )
                 {
                     // For each occurrence of this person in this group, check to see if their role is valid
@@ -527,7 +617,12 @@ namespace Rock.Model
                                     return true;
                                 }
 
-                                if ( ( action == Authorization.MANAGE_MEMBERS || action == Authorization.EDIT ) && role.CanEdit )
+                                if ( action == Authorization.MANAGE_MEMBERS && ( role.CanEdit || role.CanManageMembers ) )
+                                {
+                                    return true;
+                                }
+
+                                if ( action == Authorization.EDIT && role.CanEdit )
                                 {
                                     return true;
                                 }
@@ -584,35 +679,125 @@ namespace Rock.Model
             return result;
         }
 
-        /// <summary>
-        /// Pres the save changes.
-        /// </summary>
-        /// <param name="dbContext">The database context.</param>
-        /// <param name="state">The state.</param>
-        public override void PreSaveChanges( Rock.Data.DbContext dbContext, System.Data.Entity.EntityState state )
-        {
-            if ( state == System.Data.Entity.EntityState.Deleted )
-            {
-                // manually delete any grouprequirements of this group since it can't be cascade deleted
-                var groupRequirementService = new GroupRequirementService( dbContext as RockContext );
-                var groupRequirements = groupRequirementService.Queryable().Where( a => a.GroupId.HasValue && a.GroupId == this.Id ).ToList();
-                if ( groupRequirements.Any() )
-                {
-                    groupRequirementService.DeleteRange( groupRequirements );
-                }
+        
 
-                // manually set any attendance search group ids to null
-                var attendanceService = new AttendanceService( dbContext as RockContext );
-                foreach ( var attendance in attendanceService.Queryable()
-                    .Where( a =>
-                        a.SearchResultGroupId.HasValue &&
-                        a.SearchResultGroupId.Value == this.Id ) )
-                {
-                    attendance.SearchResultGroupId = null;
-                }
+        /// <summary>
+        /// Method that will be called on an entity immediately before the item is saved by context
+        /// </summary>
+        /// <param name="dbContext"></param>
+        /// <param name="entry"></param>
+        public override void PreSaveChanges( Data.DbContext dbContext, DbEntityEntry entry )
+        {
+            var rockContext = (RockContext)dbContext;
+
+            HistoryChangeList = new History.HistoryChangeList();
+
+            switch ( entry.State )
+            {
+                case System.Data.Entity.EntityState.Added:
+                    {
+                        HistoryChangeList.AddChange( History.HistoryVerb.Add, History.HistoryChangeType.Record, "Group").SetNewValue( Name );
+
+                        History.EvaluateChange( HistoryChangeList, "Name", string.Empty, Name );
+                        History.EvaluateChange( HistoryChangeList, "Description", string.Empty, Description );
+                        History.EvaluateChange( HistoryChangeList, "Group Type", (int?)null, GroupType, GroupTypeId );
+                        History.EvaluateChange( HistoryChangeList, "Campus", (int?)null, Campus, CampusId );
+                        History.EvaluateChange( HistoryChangeList, "Security Role", (bool?)null, IsSecurityRole );
+                        History.EvaluateChange( HistoryChangeList, "Active", (bool?)null, IsActive );
+                        History.EvaluateChange( HistoryChangeList, "Allow Guests", (bool?)null, AllowGuests );
+                        History.EvaluateChange( HistoryChangeList, "Public", (bool?)null, IsPublic );
+                        History.EvaluateChange( HistoryChangeList, "Group Capacity", (int?)null, GroupCapacity );
+
+                        // if this is a new record, but is saved with IsActive=False, set the InactiveDateTime if it isn't set already
+                        if ( !this.IsActive )
+                        {
+                            this.InactiveDateTime = this.InactiveDateTime ?? RockDateTime.Now;
+                        }
+
+                        break;
+                    }
+
+                case System.Data.Entity.EntityState.Modified:
+                    {
+                        var originalIsActive = entry.OriginalValues["IsActive"].ToStringSafe().AsBoolean();
+                        History.EvaluateChange( HistoryChangeList, "Name", entry.OriginalValues["Name"].ToStringSafe(), Name );
+                        History.EvaluateChange( HistoryChangeList, "Description", entry.OriginalValues["Description"].ToStringSafe(), Description );
+                        History.EvaluateChange( HistoryChangeList, "Group Type", entry.OriginalValues["GroupTypeId"].ToStringSafe().AsIntegerOrNull(), GroupType, GroupTypeId );
+                        History.EvaluateChange( HistoryChangeList, "Campus", entry.OriginalValues["CampusId"].ToStringSafe().AsIntegerOrNull(), Campus, CampusId );
+                        History.EvaluateChange( HistoryChangeList, "Security Role", entry.OriginalValues["IsSecurityRole"].ToStringSafe().AsBoolean(), IsSecurityRole );
+                        History.EvaluateChange( HistoryChangeList, "Active", originalIsActive, IsActive );
+                        History.EvaluateChange( HistoryChangeList, "Allow Guests", entry.OriginalValues["AllowGuests"].ToStringSafe().AsBooleanOrNull(), AllowGuests );
+                        History.EvaluateChange( HistoryChangeList, "Public", entry.OriginalValues["IsPublic"].ToStringSafe().AsBoolean(), IsPublic );
+                        History.EvaluateChange( HistoryChangeList, "Group Capacity", entry.OriginalValues["GroupCapacity"].ToStringSafe().AsIntegerOrNull(), GroupCapacity );
+                        History.EvaluateChange( HistoryChangeList, "Archived", entry.OriginalValues["IsArchived"].ToStringSafe().AsBoolean(), this.IsArchived );
+
+                        // IsActive was modified, set the InactiveDateTime if it changed to Inactive, or set it to NULL if it changed to Active
+                        if ( originalIsActive != this.IsActive )
+                        {
+                            if ( !this.IsActive )
+                            {
+                                // if the caller didn't already set InactiveDateTime, set it to now
+                                this.InactiveDateTime = this.InactiveDateTime ?? RockDateTime.Now;
+                            }
+                            else
+                            {
+                                this.InactiveDateTime = null;
+                            }
+                        }
+
+                        break;
+                    }
+
+                case System.Data.Entity.EntityState.Deleted:
+                    {
+                        HistoryChangeList.AddChange( History.HistoryVerb.Delete, History.HistoryChangeType.Record, null );
+
+                        // manually delete any grouprequirements of this group since it can't be cascade deleted
+                        var groupRequirementService = new GroupRequirementService( rockContext );
+                        var groupRequirements = groupRequirementService.Queryable().Where( a => a.GroupId.HasValue && a.GroupId == this.Id ).ToList();
+                        if ( groupRequirements.Any() )
+                        {
+                            groupRequirementService.DeleteRange( groupRequirements );
+                        }
+
+                        // manually set any attendance search group ids to null
+                        var attendanceService = new AttendanceService( rockContext );
+                        var attendancesToNullSearchResultGroupId = attendanceService.Queryable()
+                            .Where( a =>
+                                a.SearchResultGroupId.HasValue &&
+                                a.SearchResultGroupId.Value == this.Id );
+
+                        dbContext.BulkUpdate( attendancesToNullSearchResultGroupId, a => new Attendance { SearchResultGroupId = null } );
+
+                        // since we can't put a CascadeDelete on both Attendance.Occurrence.GroupId and Attendance.OccurrenceId, manually delete all Attendance records associated with this GroupId
+                        var attendancesToDelete = attendanceService.Queryable()
+                            .Where( a =>
+                                a.Occurrence.GroupId.HasValue &&
+                                a.Occurrence.GroupId.Value == this.Id );
+                        if ( attendancesToDelete.Any() )
+                        {
+                            dbContext.BulkDelete( attendancesToDelete );
+                        }
+
+                        break;
+                    }
             }
 
-            base.PreSaveChanges( dbContext, state );
+            base.PreSaveChanges( dbContext, entry );
+        }
+
+        /// <summary>
+        /// Posts the save changes.
+        /// </summary>
+        /// <param name="dbContext">The database context.</param>
+        public override void PostSaveChanges( Data.DbContext dbContext )
+        {
+            if ( HistoryChangeList != null && HistoryChangeList.Any() )
+            {
+                HistoryService.SaveChanges( (RockContext)dbContext, typeof( Group ), Rock.SystemGuid.Category.HISTORY_GROUP_CHANGES.AsGuid(), this.Id, HistoryChangeList, this.Name, null, null,  true, this.ModifiedByPersonAliasId, dbContext.SourceOfChange );
+            }
+
+            base.PostSaveChanges( dbContext );
         }
 
         /// <summary>
@@ -788,6 +973,62 @@ namespace Rock.Model
             return true;
         }
         #endregion
+
+        #region ICacheable
+
+        private int? _originalGroupTypeId;
+        private bool? _originalIsSecurityRole;
+
+        /// <summary>
+        /// Method that will be called on an entity immediately after the item is saved by context
+        /// </summary>
+        /// <param name="dbContext">The database context.</param>
+        /// <param name="entry">The entry.</param>
+        /// <param name="state">The state.</param>
+        public override void PreSaveChanges( Data.DbContext dbContext, DbEntityEntry entry, EntityState state )
+        {
+            if ( state == System.Data.Entity.EntityState.Modified || state == System.Data.Entity.EntityState.Deleted )
+            {
+                _originalGroupTypeId = entry.OriginalValues["GroupTypeId"]?.ToString().AsIntegerOrNull();
+                _originalIsSecurityRole = entry.OriginalValues["IsSecurityRole"]?.ToString().AsBooleanOrNull();
+            }
+
+            base.PreSaveChanges( dbContext, entry, state );
+        }
+
+        /// <summary>
+        /// Gets the cache object associated with this Entity
+        /// </summary>
+        /// <returns></returns>
+        public IEntityCache GetCacheObject()
+        {
+            // doesn't apply
+            return null;
+        }
+
+        /// <summary>
+        /// Updates any Cache Objects that are associated with this entity
+        /// </summary>
+        /// <param name="entityState">State of the entity.</param>
+        /// <param name="dbContext">The database context.</param>
+        public void UpdateCache( System.Data.Entity.EntityState entityState, Rock.Data.DbContext dbContext )
+        {
+            // If the group changed, and it was a security group, flush the security for the group
+            Guid? originalGroupTypeGuid = null;
+            Guid groupTypeScheduleRole = Rock.SystemGuid.GroupType.GROUPTYPE_SECURITY_ROLE.AsGuid();
+            if ( _originalGroupTypeId.HasValue && _originalGroupTypeId != this.GroupTypeId )
+            {
+                originalGroupTypeGuid = GroupTypeCache.Get( _originalGroupTypeId.Value, (RockContext)dbContext )?.Guid;
+            }
+
+            var groupTypeGuid = GroupTypeCache.Get( this.GroupTypeId, (RockContext)dbContext )?.Guid;
+            if ( this.IsSecurityRole || ( _originalIsSecurityRole == true ) || ( groupTypeGuid == groupTypeScheduleRole ) || ( originalGroupTypeGuid == groupTypeScheduleRole ) )
+            {
+                RoleCache.FlushItem( this.Id );
+            }
+        }
+
+        #endregion
     }
 
     #region Entity Configuration
@@ -807,6 +1048,17 @@ namespace Rock.Model
             this.HasOptional( p => p.Campus ).WithMany().HasForeignKey( p => p.CampusId ).WillCascadeOnDelete( false );
             this.HasOptional( p => p.Schedule ).WithMany().HasForeignKey( p => p.ScheduleId ).WillCascadeOnDelete( false );
             this.HasOptional( p => p.RequiredSignatureDocumentTemplate ).WithMany().HasForeignKey( p => p.RequiredSignatureDocumentTemplateId ).WillCascadeOnDelete( false );
+            this.HasOptional( p => p.ArchivedByPersonAlias ).WithMany().HasForeignKey( p => p.ArchivedByPersonAliasId ).WillCascadeOnDelete( false );
+            this.HasOptional( p => p.StatusValue ).WithMany().HasForeignKey( p => p.StatusValueId ).WillCascadeOnDelete( false );
+
+            // Tell EF that we never want archived groups. 
+            // This will prevent archived members from being included in any Groupqueries.
+            // It will also prevent navigation properties of Group from including archived groups.
+            Z.EntityFramework.Plus.QueryFilterManager.Filter<Group>( x => x.Where( m => m.IsArchived == false ) );
+
+            // In the case of Group as a property (not a collection), we DO want to fetch the group record even if it is archived, so ensure that AllowPropertyFilter = false;
+            // NOTE: This is not specific to Group, it is for any Filtered Model (currently just Group and GroupMember)
+            Z.EntityFramework.Plus.QueryFilterManager.AllowPropertyFilter = false;
         }
     }
 

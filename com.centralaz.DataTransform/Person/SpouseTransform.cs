@@ -94,7 +94,7 @@ namespace com.centralaz.DataTransform.Person
         {
             Guid adultGuid = Rock.SystemGuid.GroupRole.GROUPROLE_FAMILY_MEMBER_ADULT.AsGuid();
             Guid marriedGuid = Rock.SystemGuid.DefinedValue.PERSON_MARITAL_STATUS_MARRIED.AsGuid();
-            int marriedDefinedValueId = Rock.Web.Cache.DefinedValueCache.Read( marriedGuid ).Id;
+            int marriedDefinedValueId = Rock.Web.Cache.DefinedValueCache.Get( marriedGuid ).Id;
             Guid familyGuid = Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY.AsGuid();
 
             //// Spouse is determined if all these conditions are met

@@ -58,7 +58,6 @@ namespace RockWeb.Plugins.com_centralaz.Event
     {
         #region Fields
         Dictionary<string, object> mergeFields = Rock.Lava.LavaHelper.GetCommonMergeFields( null );
-        private static readonly int NUMBER_COLUMNS = 3;
         private static string SESSIONKEY_TO_PROCESS = "CentralAZImportEvents";
         private RockContext _rockContext = new RockContext();
 

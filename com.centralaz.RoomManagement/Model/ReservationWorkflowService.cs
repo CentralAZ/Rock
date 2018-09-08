@@ -60,25 +60,7 @@ namespace com.centralaz.RoomManagement.Model
         /// <returns></returns>
         public static List<ReservationWorkflow> GetCachedTriggers()
         {
-            return GetOrAddExisting( () => LoadCache() );
-        }
-
-        private static List<ReservationWorkflow> GetOrAddExisting( Func<List<ReservationWorkflow>> factory )
-        {
-            RockMemoryCache cache = RockMemoryCache.Default;
-
-            var value = cache.Get( CACHE_KEY ) as List<ReservationWorkflow>;
-            if ( value != null )
-            {
-                return value;
-            }
-
-            value = factory();
-            if ( value != null )
-            {
-                cache.Set( CACHE_KEY, value, new CacheItemPolicy() );
-            }
-            return value;
+            return RockCache.GetOrAddExisting( CACHE_KEY, () => LoadCache() ) as List<ReservationWorkflow>;
         }
 
         /// <summary>
@@ -104,12 +86,19 @@ namespace com.centralaz.RoomManagement.Model
         /// <summary>
         /// Flushes the cached triggers.
         /// </summary>
+        [Obsolete( "Use RemoveCachedTriggers() instead." )]
         public static void FlushCachedTriggers()
         {
-            RockMemoryCache cache = RockMemoryCache.Default;
-            cache.Remove( CACHE_KEY );
+            RemoveCachedTriggers();
         }
 
+        /// <summary>
+        /// Flushes the cached triggers.
+        /// </summary>
+        public static void RemoveCachedTriggers()
+        {
+            RockCache.Remove( CACHE_KEY );
+        }
 
     }
     public static partial class ConnectionRequestWorkflowExtensionMethods

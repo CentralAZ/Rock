@@ -219,14 +219,14 @@ namespace RockWeb.Plugins.com_centralaz.HumanResources
             {
                 if ( ViewMode == VIEW_MODE_EDIT )
                 {
-                    int personEntityTypeId = EntityTypeCache.Read( typeof( Person ) ).Id;
+                    int personEntityTypeId = EntityTypeCache.Get( typeof( Person ) ).Id;
 
                     var rockContext = new RockContext();
 
-                    var changes = new List<string>();
+                    var changes = new History.HistoryChangeList();
                     foreach ( int attributeId in AttributeList )
                     {
-                        var attribute = AttributeCache.Read( attributeId );
+                        var attribute = AttributeCache.Get( attributeId );
 
                         if ( Person != null &&
                             attribute.IsAuthorized( Authorization.EDIT, CurrentPerson ) )
@@ -302,7 +302,7 @@ namespace RockWeb.Plugins.com_centralaz.HumanResources
             Guid guid = Guid.Empty;
             if ( Guid.TryParse( categoryGuid, out guid ) )
             {
-                var category = CategoryCache.Read( guid );
+                var category = CategoryCache.Get( guid );
                 if ( category != null )
                 {
                     if ( !string.IsNullOrWhiteSpace( category.IconCssClass ) )
@@ -356,7 +356,7 @@ namespace RockWeb.Plugins.com_centralaz.HumanResources
             {
                 foreach ( int attributeId in AttributeList )
                 {
-                    var attribute = AttributeCache.Read( attributeId );
+                    var attribute = AttributeCache.Get( attributeId );
                     string attributeValue = Person.GetAttributeValue( attribute.Key );
                     string formattedValue = string.Empty;
 

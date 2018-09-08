@@ -62,7 +62,7 @@ namespace com.centralaz.Baptism.Model
                 .Where( b =>
                     ( b.BaptismDateTime >= startDate && b.BaptismDateTime <= endDate ) &&
                     b.GroupId == groupId &&
-                    ( b.IsDeleted == false || b.IsDeleted == null || showDeleted ) )
+                    ( b.IsDeleted == false || showDeleted ) )
                     .OrderBy( b => b.BaptismDateTime )
                 .ToList();
             return baptizeeList;

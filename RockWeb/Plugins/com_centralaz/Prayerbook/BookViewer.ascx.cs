@@ -336,7 +336,7 @@ namespace RockWeb.Plugins.com_centralaz.Prayerbook
                 // Convert to human readable name
                 if ( !string.IsNullOrEmpty( em.Ministry ) )
                 {
-                    var ministry = DefinedValueCache.Read( em.Ministry );
+                    var ministry = DefinedValueCache.Get( em.Ministry );
                     em.Ministry = ministry.Value;
                     em.Order = ministry.Order;
                 }
@@ -348,7 +348,7 @@ namespace RockWeb.Plugins.com_centralaz.Prayerbook
 
                 if ( !string.IsNullOrEmpty( em.SubMinistry ) )
                 {
-                    var sm = DefinedValueCache.Read( em.SubMinistry );
+                    var sm = DefinedValueCache.Get( em.SubMinistry );
                     if ( sm != null && !string.IsNullOrEmpty( sm.Value ) )
                     {
                         em.SubMinistry = sm.Value;

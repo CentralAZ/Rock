@@ -1,4 +1,4 @@
-﻿// <copyright>uns   
+﻿// <copyright>
 // Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
@@ -26,7 +26,9 @@ using Rock;
 using Rock.Attribute;
 using Rock.Data;
 using Rock.Model;
+using Rock.Utility;
 using Rock.Web;
+using Rock.Web.Cache;
 using Rock.Web.UI;
 using Rock.Web.UI.Controls;
 
@@ -105,7 +107,7 @@ namespace RockWeb.Blocks.Crm
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void gfNcoaFilter_ApplyFilterClick( object sender, EventArgs e )
         {
-            gfNcoaFilter.SaveUserPreference( "Processed", ddlProcessed.SelectedValue );
+            gfNcoaFilter.SaveUserPreference( "Processed", ddlProcessed.SelectedValue.IsNullOrWhiteSpace() ? Processed.All.ConvertToInt().ToString() : ddlProcessed.SelectedValue );
             gfNcoaFilter.SaveUserPreference( "Move Date", sdpMoveDate.DelimitedValues );
             gfNcoaFilter.SaveUserPreference( "NCOA Processed Date", sdpProcessedDate.DelimitedValues );
             gfNcoaFilter.SaveUserPreference( "Move Type", ddlMoveType.SelectedValue );
@@ -113,8 +115,9 @@ namespace RockWeb.Blocks.Crm
             gfNcoaFilter.SaveUserPreference( "Address Invalid Reason", ddlInvalidReason.SelectedValue );
             gfNcoaFilter.SaveUserPreference( "Last Name", tbLastName.Text );
             gfNcoaFilter.SaveUserPreference( "Move Distance", nbMoveDistance.Text );
+            gfNcoaFilter.SaveUserPreference( "Campus", cpCampus.SelectedValue );
 
-            ShowView();
+            NavigateToCurrentPage();
         }
 
         /// <summary>
@@ -136,7 +139,7 @@ namespace RockWeb.Blocks.Crm
                 case "Processed":
                     {
                         var processed = e.Value.ConvertToEnumOrNull<Processed>();
-                        if ( processed.HasValue )
+                        if ( processed.HasValue && processed.Value != Processed.All )
                         {
                             e.Value = processed.ConvertToString();
                         }
@@ -192,6 +195,19 @@ namespace RockWeb.Blocks.Crm
 
                         break;
                     }
+                case "Campus":
+                    {
+                        var campus = CampusCache.Get( e.Value.AsInteger() );
+                        if ( campus != null )
+                        {
+                            e.Value = campus.Name;
+                        }
+                        else
+                        {
+                            e.Value = string.Empty;
+                        }
+                        break;
+                    }
             }
         }
 
@@ -221,6 +237,9 @@ namespace RockWeb.Blocks.Crm
                 else
                 {
                     mmembers.Add( "Other Family Members", ncoaRow.FamilyMembers.Select( a => a.FullName ).ToList().AsDelimited( "<Br/>" ) );
+
+                    var warninglabel = e.Item.FindControl( "lWarning" ) as Literal;
+                    warninglabel.Text = "Auto processing this move would result in a split family.";
                 }
             }
             familyMembers.Text = mmembers.Html;
@@ -228,21 +247,91 @@ namespace RockWeb.Blocks.Crm
         }
 
         /// <summary>
+        /// Handles the ItemDataBound event of the rptNcoaResultsFamily control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RepeaterItemEventArgs"/> instance containing the event data.</param>
+        protected void rptNcoaResultsFamily_ItemDataBound( object sender, RepeaterItemEventArgs e )
+        {
+            if ( e.Item.ItemType == ListItemType.Item || e.Item.ItemType == ListItemType.AlternatingItem )
+            {
+                Repeater childRepeater = ( Repeater ) e.Item.FindControl( "rptNcoaResults" );
+                childRepeater.DataSource = ( e.Item.DataItem as IGrouping<string, NcoaRow> );
+                childRepeater.DataBind();
+            }
+        }
+
+        /// <summary>
         /// Handles the ItemCommand event of the rptNcoaResults control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="RepeaterCommandEventArgs"/> instance containing the event data.</param>
-        protected void rptNcoaResults_ItemCommand( object Sender, RepeaterCommandEventArgs e )
+        protected void rptNcoaResults_ItemCommand( object sender, RepeaterCommandEventArgs e )
         {
-            var ncoaHistoryId = e.CommandArgument.ToString().AsIntegerOrNull();
+            var ncoaHistoryId = e.CommandArgument.ToStringSafe().AsIntegerOrNull();
+            if (!ncoaHistoryId.HasValue)
+            {
+                return;
+            }
+
             if ( e.CommandName == "MarkAddressAsPrevious" )
             {
-                
-            }
-            if ( e.CommandName == "MarkProcessed" )
-            {
+                using ( var rockContext = new RockContext() )
+                {
+                    var ncoaHistory = new NcoaHistoryService( rockContext ).Get( ncoaHistoryId.Value );
+                    if ( ncoaHistory != null )
+                    {
+                        var groupService = new GroupService( rockContext );
+                        var groupLocationService = new GroupLocationService( rockContext );
 
+                        var changes = new History.HistoryChangeList();
+
+                        Ncoa ncoa = new Ncoa();
+                        var previousValue = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.GROUP_LOCATION_TYPE_PREVIOUS.AsGuid() );
+                        int? previousValueId = previousValue == null ? ( int? ) null : previousValue.Id;
+                        var previousGroupLocation = ncoa.MarkAsPreviousLocation( ncoaHistory, groupLocationService, previousValueId, changes );
+                        if ( previousGroupLocation != null )
+                        {
+                            ncoaHistory.Processed = Processed.Complete;
+
+                            // If there were any changes, write to history
+                            if ( changes.Any() )
+                            {
+                                var family = groupService.Get( ncoaHistory.FamilyId );
+                                if ( family != null )
+                                {
+                                    foreach ( var fm in family.Members )
+                                    {
+                                        HistoryService.SaveChanges(
+                                            rockContext,
+                                            typeof( Person ),
+                                            Rock.SystemGuid.Category.HISTORY_PERSON_FAMILY_CHANGES.AsGuid(),
+                                            fm.PersonId,
+                                            changes,
+                                            family.Name,
+                                            typeof( Group ),
+                                            family.Id,
+                                            false );
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    rockContext.SaveChanges();
+                }
             }
+            else if ( e.CommandName == "MarkProcessed" )
+            {
+                using ( RockContext rockContext = new RockContext() )
+                {
+                    var ncoa = ( new NcoaHistoryService( rockContext ) ).Get( ncoaHistoryId.Value );
+                    ncoa.Processed = Processed.Complete;
+                    rockContext.SaveChanges();
+                }
+            }
+
+            NcoaResults_BlockUpdated( null, null );
         }
 
         #endregion
@@ -254,11 +343,19 @@ namespace RockWeb.Blocks.Crm
         /// </summary>
         private void BindFilter()
         {
-            ddlProcessed.BindToEnum<Processed>( true );
+            ddlProcessed.BindToEnum<Processed>( true, new Processed[] { Processed.All } );
             int? processedId = gfNcoaFilter.GetUserPreference( "Processed" ).AsIntegerOrNull();
             if ( processedId.HasValue )
             {
-                ddlProcessed.SetValue( processedId.Value.ToString() );
+                if ( processedId.Value != Processed.All.ConvertToInt() )
+                {
+                    ddlProcessed.SetValue( processedId.Value.ToString() );
+                }
+            }
+            else
+            {
+                ddlProcessed.SetValue( Processed.ManualUpdateRequiredOrNotProcessed.ConvertToInt().ToString() );
+                gfNcoaFilter.SaveUserPreference( "Processed", ddlProcessed.SelectedValue );
             }
 
             sdpMoveDate.DelimitedValues = gfNcoaFilter.GetUserPreference( "Move Date" );
@@ -292,6 +389,8 @@ namespace RockWeb.Blocks.Crm
             string moveDistanceFilter = gfNcoaFilter.GetUserPreference( "Move Distance" );
             nbMoveDistance.Text = moveDistanceFilter.ToString();
 
+            cpCampus.SetValue( gfNcoaFilter.GetUserPreference( "Campus" ) );
+
         }
 
         /// <summary>
@@ -316,11 +415,15 @@ namespace RockWeb.Blocks.Crm
             var processed = gfNcoaFilter.GetUserPreference( "Processed" ).ConvertToEnumOrNull<Processed>();
             if ( processed.HasValue )
             {
-                query = query.Where( i => i.Processed == processed );
-            }
-            else
-            {
-                query = query.Where( i => i.Processed == Processed.NotProcessed || i.Processed == Processed.ManualUpdateRequired );
+                if ( processed.Value != Processed.All && processed.Value != Processed.ManualUpdateRequiredOrNotProcessed )
+                {
+                    query = query.Where( i => i.Processed == processed );
+                }
+                else if ( processed.Value == Processed.ManualUpdateRequiredOrNotProcessed )
+                {
+                    query = query.Where( i => i.Processed == Processed.ManualUpdateRequired || i.Processed == Processed.NotProcessed );
+                }
+
             }
 
             var moveDateRange = SlidingDateRangePicker.CalculateDateRangeFromDelimitedValues( gfNcoaFilter.GetUserPreference( "Move Date" ) );
@@ -343,7 +446,7 @@ namespace RockWeb.Blocks.Crm
                 query = query.Where( e => e.NcoaRunDateTime < ncoaDateRange.End.Value );
             }
 
-            var moveType = gfNcoaFilter.GetUserPreference( "Move type" ).ConvertToEnumOrNull<MoveType>();
+            var moveType = gfNcoaFilter.GetUserPreference( "Move Type" ).ConvertToEnumOrNull<MoveType>();
             if ( moveType.HasValue )
             {
                 query = query.Where( i => i.MoveType == moveType );
@@ -364,7 +467,7 @@ namespace RockWeb.Blocks.Crm
             decimal? moveDistance = gfNcoaFilter.GetUserPreference( "Move Distance" ).AsDecimalOrNull();
             if ( moveDistance.HasValue )
             {
-                query = query.Where( i => i.MoveDistance == moveDistance.Value );
+                query = query.Where( i => i.MoveDistance <= moveDistance.Value );
             }
 
             string lastName = gfNcoaFilter.GetUserPreference( "Last Name" );
@@ -377,6 +480,23 @@ namespace RockWeb.Blocks.Crm
                         p.Person.LastName.Contains( lastName ) )
                     .Select( p => p.Id );
                 query = query.Where( i => personAliasQuery.Contains( i.PersonAliasId ) );
+            }
+
+            var campusId = gfNcoaFilter.GetUserPreference( "Campus" ).AsIntegerOrNull();
+            if ( campusId.HasValue )
+            {
+                var familyGroupType = GroupTypeCache.Get( Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY.AsGuid() );
+                var personAliasQuery = new PersonAliasService( rockContext ).Queryable().AsNoTracking();
+                var campusQuery = new GroupMemberService( rockContext )
+                    .Queryable().AsNoTracking()
+                    .Where( m =>
+                        m.Group.GroupTypeId == familyGroupType.Id &&
+                        m.Group.CampusId.HasValue &&
+                        m.Group.CampusId.Value == campusId.Value )
+                    .Select( m => m.PersonId )
+                    .Join( personAliasQuery, m => m, p => p.PersonId, ( m, p ) => p.Id );
+
+                query = query.Where( i => campusQuery.Contains( i.PersonAliasId ) );
             }
 
             var filteredRecords = query.ToList();
@@ -438,7 +558,7 @@ namespace RockWeb.Blocks.Crm
                                          ncoaHistoryRecord.OriginalCity, ncoaHistoryRecord.OriginalState, ncoaHistoryRecord.OriginalPostalCode )
                                          .ConvertCrLfToHtmlBr();
                 ncoaRow.Status = ncoaHistoryRecord.Processed == Processed.Complete ? "Processed" : "Not Processed";
-                ncoaRow.StatusCssClass = ncoaHistoryRecord.Processed == Processed.Complete ? "label-success" : "label-warning";
+                ncoaRow.StatusCssClass = ncoaHistoryRecord.Processed == Processed.Complete ? "label-success" : "label-default";
                 ncoaRow.ShowButton = false;
 
                 var family = new GroupService( rockContext ).Get( ncoaHistoryRecord.FamilyId );
@@ -507,9 +627,8 @@ namespace RockWeb.Blocks.Crm
 
             }
 
-            rptNcoaResults.DataSource = pagedNcoaRows.Take( resultCount );
-            rptNcoaResults.DataBind();
-
+            rptNcoaResultsFamily.DataSource = pagedNcoaRows.Take( resultCount ).GroupBy( n => n.FamilyName );
+            rptNcoaResultsFamily.DataBind();
 
             if ( pagedNcoaRows.Count() > resultCount )
             {
@@ -540,6 +659,15 @@ namespace RockWeb.Blocks.Crm
 
         }
 
+        /// <summary>
+        /// Formats the address.
+        /// </summary>
+        /// <param name="street1">The street1.</param>
+        /// <param name="street2">The street2.</param>
+        /// <param name="city">The city.</param>
+        /// <param name="state">The state.</param>
+        /// <param name="postalCode">The postal code.</param>
+        /// <returns>The formated address</returns>
         private string FormattedAddress( string street1, string street2, string city, string state, string postalCode )
         {
             if ( string.IsNullOrWhiteSpace( street1 ) &&
@@ -620,7 +748,6 @@ namespace RockWeb.Blocks.Crm
         }
 
         #endregion
-
 
     }
 }

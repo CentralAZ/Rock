@@ -9,7 +9,7 @@
 <asp:UpdatePanel ID="upReservationType" runat="server">
     <ContentTemplate>
         <asp:Panel ID="pnlDeleteConfirm" runat="server" CssClass="panel panel-body" Visible="false">
-            <Rock:NotificationBox ID="nbDeleteConfirm" runat="server" NotificationBoxType="Warning" Text="Deleting a site will delete all the layouts and pages associated with the site. Are you sure you want to delete the site?" />
+            <Rock:NotificationBox ID="nbDeleteConfirm" runat="server" NotificationBoxType="Warning" Text="Deleting a Reservation Type will delete all the reservations associated with the type. Are you sure you want to delete the type?" />
             <asp:LinkButton ID="btnDeleteConfirm" runat="server" Text="Confirm Delete" CssClass="btn btn-danger" OnClick="btnDeleteConfirm_Click" />
             <asp:LinkButton ID="btnDeleteCancel" runat="server" Text="Cancel" CssClass="btn btn-primary" OnClick="btnDeleteCancel_Click" />
         </asp:Panel>
@@ -48,9 +48,9 @@
                         <div class="col-md-6">
                             <Rock:DataTextBox ID="tbName" runat="server" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="Name" />
                         </div>
-                        <div class="col-md-6">
+<%--                        <div class="col-md-6">
                             <Rock:RockCheckBox ID="cbActive" runat="server" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="IsActive" Label="Active" Checked="true" Text="Yes" />
-                        </div>
+                        </div>--%>
                     </div>
 
                     <Rock:DataTextBox ID="tbDescription" runat="server" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="Description" TextMode="MultiLine" Rows="4" />

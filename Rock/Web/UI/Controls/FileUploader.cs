@@ -279,7 +279,15 @@ namespace Rock.Web.UI.Controls
             set
             {
                 EnsureChildControls();
-                _hfBinaryFileId.Value = value.ToString();
+
+                if ( value.HasValue )
+                {
+                    _hfBinaryFileId.Value = value.ToString();
+                }
+                else
+                {
+                    _hfBinaryFileId.Value = "0";
+                }
             }
         }
 
@@ -626,7 +634,7 @@ namespace Rock.Web.UI.Controls
         }
 
         /// <summary>
-        /// This is where you implment the simple aspects of rendering your control.  The rest
+        /// This is where you implement the simple aspects of rendering your control.  The rest
         /// will be handled by calling RenderControlHelper's RenderControl() method.
         /// </summary>
         /// <param name="writer">The writer.</param>
@@ -844,11 +852,12 @@ Rock.controls.fileUploader.initialize({{
 
             if ( eventArgument == "FileRemoved" )
             {
+                int? deletedBinaryFileId = this.BinaryFileId;
                 this.BinaryFileId = 0;
 
                 if ( FileRemoved != null )
                 {
-                    FileRemoved( this, new FileUploaderEventArgs( this.BinaryFileId ) );
+                    FileRemoved( this, new FileUploaderEventArgs( deletedBinaryFileId ) );
                 }
             }
         }

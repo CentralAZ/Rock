@@ -80,7 +80,7 @@ namespace Rock.Rest.Controllers
             var locationIdsList = locationIds.SplitDelimitedValues().AsIntegerList();
             var includedCategoryIdList = includedCategoryIds.SplitDelimitedValues().AsIntegerList().Except( new List<int> { 0 } ).ToList();
             var excludedCategoryIdList = excludedCategoryIds.SplitDelimitedValues().AsIntegerList().Except( new List<int> { 0 } ).ToList();
-            int entityTypeId = EntityTypeCache.Read( com.centralaz.RoomManagement.SystemGuid.EntityType.RESOURCE.AsGuid() ).Id;
+            int entityTypeId = EntityTypeCache.Get( com.centralaz.RoomManagement.SystemGuid.EntityType.RESOURCE.AsGuid() ).Id;
             defaultIconCssClass = defaultIconCssClass ?? "fa fa-list-ol";
 
             IQueryable<Category> qry = Get().AsNoTracking();

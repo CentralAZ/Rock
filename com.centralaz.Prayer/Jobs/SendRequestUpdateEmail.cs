@@ -69,7 +69,7 @@ namespace com.centralaz.Prayer.Jobs
                     Guid? categoryGuid = dataMap.GetString( "Category" ).AsGuidOrNull();
                     if ( categoryGuid != null )
                     {
-                        var categoryId = CategoryCache.Read( categoryGuid.Value, rockContext ).Id;
+                        var categoryId = CategoryCache.Get( categoryGuid.Value, rockContext ).Id;
 
                         // Get all prayer requests that expire today
                         var prayerRequestQry = prayerRequestService.GetByCategoryIds( categoryIds: new List<int> { categoryId }, onlyApproved: false, onlyUnexpired: false ).Where(
@@ -98,8 +98,12 @@ namespace com.centralaz.Prayer.Jobs
                             }
                         }
 
-                        var appRoot = Rock.Web.Cache.GlobalAttributesCache.Read( rockContext ).GetValue( "ExternalApplicationRoot" );
-                        Email.Send( systemEmail.Guid, recipients, appRoot );
+                        var appRoot = GlobalAttributesCache.Value( "ExternalApplicationRoot" );
+
+                        var emailMessage = new RockEmailMessage( systemEmail.Guid );
+                        emailMessage.SetRecipients( recipients );
+                        emailMessage.AppRoot = appRoot;
+                        emailMessage.Send();
                     }
                 }
             }

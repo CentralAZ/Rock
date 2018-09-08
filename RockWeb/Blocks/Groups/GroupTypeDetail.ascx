@@ -41,7 +41,7 @@
 
                 <div id="pnlEditDetails" runat="server">
 
-                    <asp:ValidationSummary ID="valGroupTypeDetail" runat="server" HeaderText="Please Correct the Following" CssClass="alert alert-danger" />
+                    <asp:ValidationSummary ID="valGroupTypeDetail" runat="server" HeaderText="Please correct the following:" CssClass="alert alert-validation" />
                     <asp:CustomValidator ID="cvGroupType" runat="server" Display="None" />
 
                     <div class="row">
@@ -88,6 +88,7 @@
 
                                 <Rock:RockCheckBox ID="cbGroupsRequireCampus" runat="server" Label="Groups Require a Campus" Text="Yes"
                                     Help="This setting will require that all groups of this type have a campus when adding and editing." />
+                                <Rock:RockDropDownList ID="ddlGroupStatusDefinedType" runat="server" Label="Group Status Defined Type" Help="Select the defined type to use when setting the group's status. Leave this blank if you don't want groups to prompt for group status." EnhanceForLongLists="true" />
                             </div>
                             <div class="col-md-6">
                                 <div class="row">
@@ -120,15 +121,19 @@
                          <div class="row">
                            <div class="col-xs-6">
                                 <Rock:RockCheckBox ID="cbAllowSpecificGroupMemberAttributes" runat="server" Label="Allow Specific Group Member Attributes"
-                                    Help="Determine if groups of this type are allowed to have their own Group Member Attributes. This will show/hide the Member Attributes section on the Group Details block. If a group of this type already has specific group member attributes they will be kept." />
+                                    Help="Determines if groups of this type are allowed to have their own Group Member Attributes. This will show/hide the Member Attributes section on the Group Details block. If a group of this type already has specific group member attributes they will be kept." />
                                 <Rock:RockCheckBox ID="cbEnableSpecificGroupReq" runat="server" Label="Enable Specific Group Requirements"
-                                    Help="Determine if groups of this type are allowed to have Group Requirements. This will show/hide the Group Requirements section on the Group Details block. If a group of this type already has specific group member attributes they will be kept." />
+                                    Help="Determines if groups of this type are allowed to have Group Requirements. This will show/hide the Group Requirements section on the Group Details block. If a group of this type already has specific group member attributes they will be kept." />
+                               <Rock:NotificationBox ID="nbGroupHistoryWarning" runat="server" NotificationBoxType="Warning" Text="Turning off group history will delete history for all groups and group members of this group type." Visible="false" />
+                                <Rock:RockCheckBox ID="cbEnableGroupHistory" runat="server" Label="Enable Group History" 
+                                    Help="Determines if groups of this type will keep a history of group and group member changes." AutoPostBack="true" OnCheckedChanged="cbEnableGroupHistory_CheckedChanged" />
                            </div>
                            <div class="col-xs-6">
                                 <Rock:RockCheckBox ID="cbAllowGroupSync" runat="server" Label="Allow Group Sync"
-                                    Help="Determine if groups of this type are allowed have Group Syncs. This will show/hide the 'Group Sync Settings' section on the Group Details block. If a group of this type already has group syncs the will be kept. Unchecking this box will NOT prevent them from running." />
+                                    Help="Determines if groups of this type are allowed have Group Syncs. This will show/hide the 'Group Sync Settings' section on the Group Details block. If a group of this type already has group syncs the will be kept. Unchecking this box will NOT prevent them from running." />
                                 <Rock:RockCheckBox ID="cbAllowSpecificGrpMemWorkFlows" runat="server" Label="Allow Specific Group Member Workflows"
-                                    Help="Determine if groups of this type should be allowed to have Group Member Workflows. This would show/hide the 'Group Member Workflows' section on the Group Details block. If a group of this type already has specific group member workflows they will be kept." />
+                                    Help="Determines if groups of this type should be allowed to have Group Member Workflows. This would show/hide the 'Group Member Workflows' section on the Group Details block. If a group of this type already has specific group member workflows they will be kept." />
+                               
                            </div>
                         </div>
                             </div>
@@ -203,6 +208,7 @@
                                     <Rock:BoolField DataField="ReceiveRequirementsNotifications" HeaderText="Receives Requirements Notifications" />
                                     <Rock:BoolField DataField="CanView" HeaderText="Can View" />
                                     <Rock:BoolField DataField="CanEdit" HeaderText="Can Edit" />
+                                    <Rock:BoolField DataField="CanManageMembers" HeaderText="Can Manage Members" />
                                     <Rock:RockBoundField DataField="MinCount" HeaderText="Minimum Required" DataFormatString="{0:N0}" />
                                     <Rock:RockBoundField DataField="MaxCount" HeaderText="Maximum Allowed" DataFormatString="{0:N0}" />
                                     <Rock:RockTemplateField HeaderText="Default">
@@ -356,7 +362,9 @@
                                 <Rock:DataTextBox ID="tbGroupMemberTerm" runat="server" SourceTypeName="Rock.Model.GroupType, Rock" PropertyName="GroupMemberTerm" Required="true"
                                     Help="The term to use for members in groups of this group type." />
                                 <Rock:DataTextBox ID="tbIconCssClass" runat="server" SourceTypeName="Rock.Model.GroupType, Rock" PropertyName="IconCssClass"
-                                    Help="The Font Awesome icon class to use when displaying groups of thie group type." />
+                                    Help="The Font Awesome icon class to use when displaying groups of this group type." />
+                                <Rock:ColorPicker ID="cpGroupTypeColor" runat="server" Label="Group Type Color" 
+                                    Help="The color used to visually distinguish groups on lists." />
                             </div>
                             <div class="col-md-6">
                                 <Rock:RockCheckBox ID="cbShowInGroupList" runat="server" Label="Show in Group Lists" Text="Yes"
@@ -366,11 +374,11 @@
                                 <Rock:RockCheckBox ID="cbShowConnectionStatus" runat="server" Label="Show Connection Status" Text="Yes"
                                     Help="Check this option to show the person's connection status as a column in the group member list." />
                                 <Rock:RockCheckBox ID="cbShowMaritalStatus" runat="server" Label="Show Marital Status" Text="Yes"
-                                    Help="Check this option to show the person's martial status as a column in the group member list." />
+                                    Help="Check this option to show the person's marital status as a column in the group member list." />
                             </div>
                         </div>
 
-                        <Rock:CodeEditor ID="ceGroupLavaTemplate" Visible="True" runat="server" Label="Group View Lava Template" EditorMode="Lava" EditorHeight="275" Help="This Lava template will be used by the Group Details block when viewing a group. This allows you to customize the layout of a group base on it's type." />
+                        <Rock:CodeEditor ID="ceGroupLavaTemplate" Visible="True" runat="server" Label="Group View Lava Template" EditorMode="Lava" EditorHeight="275" Help="This Lava template will be used by the Group Details block when viewing a group. This allows you to customize the layout of a group base on its type." />
                     </Rock:PanelWidget>
 
                     <div class="actions">
@@ -391,7 +399,7 @@
         <Rock:ModalDialog ID="dlgGroupTypeRoles" runat="server" OnSaveClick="gGroupTypeRoles_SaveClick" OnCancelScript="clearActiveDialog();" ValidationGroup="Roles">
             <Content>
                 <asp:HiddenField ID="hfRoleGuid" runat="server" />
-                <asp:ValidationSummary ID="vsRoles" runat="server" HeaderText="Please Correct the Following" CssClass="alert alert-danger" ValidationGroup="Roles" />
+                <asp:ValidationSummary ID="vsRoles" runat="server" HeaderText="Please correct the following:" CssClass="alert alert-validation" ValidationGroup="Roles" />
                 <div class="row">
                     <div class="col-md-6">
                         <Rock:DataTextBox ID="tbRoleName" runat="server" SourceTypeName="Rock.Model.GroupTypeRole, Rock" PropertyName="Name" ValidationGroup="Roles" />
@@ -412,6 +420,7 @@
                         <Rock:RockCheckBox ID="cbReceiveRequirementsNotifications" runat="server" Label="Receive Requirements Notifications" Text="Yes" Help="Should this role receive notifications of group members who do not meet their requirements? In order for these notifications to be emailed you will need to setup a 'Process Group Requirements Notification Job'." />
                         <Rock:RockCheckBox ID="cbCanView" runat="server" Label="Can View" Text="Yes" Help="Should users with this role be able to view this group regardless of the security settings on the group?" />
                         <Rock:RockCheckBox ID="cbCanEdit" runat="server" Label="Can Edit" Text="Yes" Help="Should users with this role be able to edit the details and members of this group regardless of the security settings on the group?" />
+                        <Rock:RockCheckBox ID="cbCanManageMembers" runat="server" Label="Can Manage Members" Text="Yes" Help="Should users with this role be able to manage the members of this group regardless of the security settings on the group?" />
                     </div>
                     <div class="col-md-6">
                         <Rock:NumberBox ID="nbMinimumRequired" runat="server" NumberType="Integer" Label="Minimum Required" Help="The minimum number of people with this role that group should allow." />
@@ -468,7 +477,7 @@
 
                 <Rock:NotificationBox ID="nbDuplicateGroupRequirement" runat="server" NotificationBoxType="Warning" />
 
-                <asp:ValidationSummary ID="vsGroupTypeGroupRequirement" runat="server" HeaderText="Please Correct the Following" CssClass="alert alert-danger" ValidationGroup="vg_GroupTypeGroupRequirement" />
+                <asp:ValidationSummary ID="vsGroupTypeGroupRequirement" runat="server" HeaderText="Please correct the following:" CssClass="alert alert-validation" ValidationGroup="vg_GroupTypeGroupRequirement" />
 
                 <Rock:RockDropDownList ID="ddlGroupRequirementType" runat="server" Label="Group Requirement Type" Required="true" ValidationGroup="vg_GroupTypeGroupRequirement" />
 
@@ -481,7 +490,7 @@
         <Rock:ModalDialog ID="dlgMemberWorkflowTriggers" runat="server" OnSaveClick="dlgMemberWorkflowTriggers_SaveClick" OnCancelScript="clearActiveDialog();" ValidationGroup="Trigger">
             <Content>
                 <asp:HiddenField ID="hfTriggerGuid" runat="server" />
-                <asp:ValidationSummary ID="vsTrigger" runat="server" HeaderText="Please Correct the Following" CssClass="alert alert-danger" ValidationGroup="Trigger" />
+                <asp:ValidationSummary ID="vsTrigger" runat="server" HeaderText="Please correct the following:" CssClass="alert alert-validation" ValidationGroup="Trigger" />
                 <Rock:NotificationBox ID="nbInvalidWorkflowType" runat="server" NotificationBoxType="Danger" Visible="false"
                     Text="The Workflow Type is missing or invalid. Make sure you selected a valid Workflow Type (and not a category)." />
                 <div class="row">

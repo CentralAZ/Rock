@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright by Central Christian Church
 //
 // Licensed under the Rock Community License (the "License");
@@ -59,7 +59,7 @@ namespace com.centralaz.LifeGroupFinder.Migrations
             RockMigrationHelper.AddAttributeQualifier( "667C780E-1543-499A-82FC-7B415820977D", "binaryFileType", "", "643ED060-4BAF-4FD8-B974-0FFDCC22EC7E" );
             RockMigrationHelper.AddAttributeQualifier( "9DA055F3-9B8A-4399-BB93-9783502273DF", "binaryFileType", "", "2163AF41-D1D8-4E43-BC9E-D15D215844D4" );
 
-            GroupTypeCache theGroupType = GroupTypeCache.Read( "50FCFB30-F51A-49DF-86F4-2B176EA1820B" );
+            GroupTypeCache theGroupType = GroupTypeCache.Get( "50FCFB30-F51A-49DF-86F4-2B176EA1820B" );
             int id = theGroupType.Id;
             String theId = id.ToString();
             RockMigrationHelper.AddEntityAttribute( "Rock.Model.GroupMember", Rock.SystemGuid.FieldType.BOOLEAN, "GroupTypeId", theId, "Information Request", "", "Is this someone just wanting more information?", 0, "False", "94DBC590-26B4-4A7F-B555-520D57D10C12" );

@@ -86,7 +86,7 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
                 var person = new PersonService( rockContext ).Get( personId.Value );
                 if ( person != null )
                 {
-                    var changes = new List<string>();
+                    var changes = new History.HistoryChangeList();
 
                     History.EvaluateChange( changes, "First Name", person.FirstName, tbFirstName.Text );
                     person.FirstName = tbFirstName.Text;
@@ -207,13 +207,13 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
         {
             var rockContext = new RockContext();
 
-            DefinedValueCache dvcConnectionStatus = DefinedValueCache.Read( GetAttributeValue( "ConnectionStatus" ).AsGuid() );
-            DefinedValueCache dvcRecordStatus = DefinedValueCache.Read( GetAttributeValue( "RecordStatus" ).AsGuid() );
+            DefinedValueCache dvcConnectionStatus = DefinedValueCache.Get( GetAttributeValue( "ConnectionStatus" ).AsGuid() );
+            DefinedValueCache dvcRecordStatus = DefinedValueCache.Get( GetAttributeValue( "RecordStatus" ).AsGuid() );
 
             Person person = new Person();
             person.FirstName = tbFirstName.Text;
             person.LastName = tbLastName.Text;
-            person.RecordTypeValueId = DefinedValueCache.Read( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
+            person.RecordTypeValueId = DefinedValueCache.Get( Rock.SystemGuid.DefinedValue.PERSON_RECORD_TYPE_PERSON.AsGuid() ).Id;
             if ( dvcConnectionStatus != null )
             {
                 person.ConnectionStatusValueId = dvcConnectionStatus.Id;
@@ -236,7 +236,7 @@ namespace RockWeb.Plugins.com_centralaz.Widgets
                     person.BirthYear = birthday.Value.Year;
                 }
             }
-            var familyGroupType = GroupTypeCache.Read( Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY );
+            var familyGroupType = GroupTypeCache.Get( Rock.SystemGuid.GroupType.GROUPTYPE_FAMILY );
             if ( familyGroupType != null )
             {
                 var adultRole = familyGroupType.Roles

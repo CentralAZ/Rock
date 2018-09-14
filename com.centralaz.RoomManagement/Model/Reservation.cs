@@ -229,6 +229,20 @@ namespace com.centralaz.RoomManagement.Model
         #region Methods
 
         /// <summary>
+        /// Gets the parent authority.
+        /// </summary>
+        /// <value>
+        /// The parent authority.
+        /// </value>
+        public override Rock.Security.ISecured ParentAuthority
+        {
+            get
+            {
+                return this.ReservationType != null ? this.ReservationType : base.ParentAuthority;
+            }
+        }
+
+        /// <summary>
         /// Gets a list of scheduled start datetimes between the two specified dates, sorted by datetime.
         /// </summary>
         /// <param name="beginDateTime">The begin date time.</param>

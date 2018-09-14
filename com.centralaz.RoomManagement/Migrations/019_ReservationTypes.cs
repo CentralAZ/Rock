@@ -88,6 +88,8 @@ namespace com.centralaz.RoomManagement.Migrations
             // Make the ReservationDetails block's attributes KNOWN Guids:
             RockMigrationHelper.UpdateBlockTypeAttribute( "C938B1DE-9AB3-46D9-AB28-57BFCA362AEB", "1EDAFDED-DFE6-4334-B019-6EECBA89E05A", "Require Contact Details", "RequireContactDetails", "", "Should the Event and Administrative Contact be required to be supplied?", 3, @"True", "1C8DE8CB-E078-4483-9648-7C2CC57E6985" );
 
+            RockMigrationHelper.UpdateEntityType( "com.centralaz.RoomManagement.Model.ReservationType", "Reservation Type", "com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement, Version=1.2.2.0, Culture=neutral, PublicKeyToken=null", true, true, "AC498297-D28C-47C0-B53B-4BF54D895DEB" );
+
             string sqlQry = GenerateDefaultReservationTypeSql();
             Sql( sqlQry );
 
@@ -196,7 +198,7 @@ namespace com.centralaz.RoomManagement.Migrations
 
 
             // Change History
-            RockMigrationHelper.UpdateCategory( com.centralaz.RoomManagement.SystemGuid.EntityType.RESERVATION, "Reservation Changes", "fa fa-tint", "Anything related to a reservation.", com.centralaz.RoomManagement.SystemGuid.Category.HISTORY_RESERVATION_CHANGES );
+            RockMigrationHelper.UpdateCategory( "546D5F43-1184-47C9-8265-2D7BF4E1BCA5", "Reservation Changes", "fa fa-home", "Anything related to a reservation.", com.centralaz.RoomManagement.SystemGuid.Category.HISTORY_RESERVATION_CHANGES );
             RockMigrationHelper.AddBlock( true, "4CBD2B96-E076-46DF-A576-356BCA5E577F", "", "C6C2DF41-A50D-4975-B21C-4EFD6FF3E8D0", "History Log", "Main", "", "", 1, "A981B5ED-F5B4-41AE-96A3-2BC10CCF110B" );
             // Attrib for BlockType: History Log:Entity Type
             RockMigrationHelper.UpdateBlockTypeAttribute( "C6C2DF41-A50D-4975-B21C-4EFD6FF3E8D0", "3549BAB6-FE1B-4333-AFC4-C5ACA01BB8EB", "Entity Type", "ContextEntityType", "", "The type of entity that will provide context for this block", 0, @"", "8FB690EC-5299-46C5-8695-AAD23168E6E1" );
@@ -209,6 +211,9 @@ namespace com.centralaz.RoomManagement.Migrations
             // Add/Update PageContext for Page:New Reservation, Entity: com.centralaz.RoomManagement.Model.Reservation, Parameter: ReservationId
             RockMigrationHelper.UpdatePageContext( "4CBD2B96-E076-46DF-A576-356BCA5E577F", "com.centralaz.RoomManagement.Model.Reservation", "ReservationId", "2C95976A-ED4F-4229-BEBA-311382A6C953" );
 
+            // Security
+            AddSecurityAuthForReservationType( "E443F926-0882-41D5-91EF-480EA366F660", 0, Rock.Security.Authorization.ADMINISTRATE, true, Rock.SystemGuid.Group.GROUP_STAFF_MEMBERS, SpecialRole.None, "F2F1A2E9-8289-4FF3-B0F6-944ACE4B436E" );
+            AddSecurityAuthForReservationType( "E443F926-0882-41D5-91EF-480EA366F660", 1, Rock.Security.Authorization.ADMINISTRATE, true, Rock.SystemGuid.Group.GROUP_STAFF_LIKE_MEMBERS, SpecialRole.None, "BAF614AC-D741-43EC-8D80-BAC36E89E848" );
         }
 
         public override void Down()
@@ -250,7 +255,6 @@ namespace com.centralaz.RoomManagement.Migrations
                 ALTER TABLE [dbo].[_com_centralaz_RoomManagement_ReservationType] DROP CONSTRAINT [FK__com_centralaz_RoomManagement_ReservationType_ModifiedByPersonAliasId]
                 DROP TABLE [dbo].[_com_centralaz_RoomManagement_ReservationType]" );
         }
-
 
         private string GenerateDefaultReservationTypeSql()
         {
@@ -355,6 +359,7 @@ VALUES
 );
             return sqlQry;
         }
+
         private string GetAttributeValueFromBlock( int blockId, Guid attributeGuid )
         {
             var value = new AttributeValueService( new RockContext() ).Queryable().Where( av =>
@@ -363,6 +368,68 @@ VALUES
                 .Select( av => av.Value )
                 .FirstOrDefault();
             return value;
+        }
+
+        public void AddSecurityAuthForReservationType( string reservationTypeGuid, int order, string action, bool allow, string groupGuid, Rock.Model.SpecialRole specialRole, string authGuid )
+        {
+            if ( string.IsNullOrWhiteSpace( groupGuid ) )
+            {
+                groupGuid = Guid.Empty.ToString();
+            }
+
+            string entityTypeName = "com.centralaz.RoomManagement.Model.ReservationType";
+
+            string sql = @"
+    DECLARE @EntityTypeId int = ( SELECT TOP 1 [Id] FROM [EntityType] WHERE [name] = '{0}')
+    DECLARE @ReservationTypeId int = (SELECT TOP 1 [Id] FROM [_com_centralaz_RoomManagement_ReservationType] WHERE [Guid] = '{1}')
+
+    IF @EntityTypeId IS NOT NULL AND @ReservationTypeId IS NOT NULL
+    BEGIN
+
+        DECLARE @GroupId int = ( SELECT TOP 1 [Id] FROM [Group] WHERE [Guid] = '{2}')
+
+        IF NOT EXISTS (
+            SELECT [Id] FROM [dbo].[Auth]
+            WHERE [EntityTypeId] = @EntityTypeId
+            AND [EntityId] = @ReservationTypeId
+            AND [Action] = '{4}'
+            AND [AllowOrDeny] = '{5}'
+            AND [SpecialRole] = {6}
+            AND [GroupId] = @GroupId
+        )
+        BEGIN
+            INSERT INTO [dbo].[Auth]
+                   ([EntityTypeId]
+                   ,[EntityId]
+                   ,[Order]
+                   ,[Action]
+                   ,[AllowOrDeny]
+                   ,[SpecialRole]
+                   ,[GroupId]
+                   ,[Guid])
+             VALUES
+                   (@EntityTypeId
+                   ,@ReservationTypeId
+                   ,{3}
+                   ,'{4}'
+                   ,'{5}'
+                   ,{6}
+                   ,@GroupId
+                   ,'{7}')
+        END
+    END
+";
+
+            Sql( string.Format( sql,
+                entityTypeName,                 // 0
+                reservationTypeGuid,                   // 1
+                groupGuid,                      // 2
+                order,                          // 3
+                action,                         // 4
+                ( allow ? "A" : "D" ),          // 5
+                specialRole.ConvertToInt(),     // 6
+                authGuid ) );                   // 7
+
         }
 
         /// <summary>

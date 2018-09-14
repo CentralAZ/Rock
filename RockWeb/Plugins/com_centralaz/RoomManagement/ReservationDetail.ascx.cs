@@ -1409,15 +1409,25 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             reservation.LoadAttributes( rockContext );
 
-            bool readOnly = false;
-            nbEditModeMessage.Text = string.Empty;
+            bool readOnly = true;
+            nbEditModeMessage.Text = EditModeMessage.ReadOnlyEditActionNotAllowed( EventItem.FriendlyTypeName );
 
-            // This method is for 1.3.1 or 1.4 when we add security
-            //if ( !reservation.IsAuthorized( Authorization.EDIT, CurrentPerson ) )
-            //{
-            //    readOnly = true;
-            //    nbEditModeMessage.Text = EditModeMessage.ReadOnlyEditActionNotAllowed( EventItem.FriendlyTypeName );
-            //}
+            if ( reservation.IsAuthorized( Authorization.ADMINISTRATE, CurrentPerson ) )
+            {
+                readOnly = false;
+                nbEditModeMessage.Text = string.Empty;
+            }
+
+            var canCreateReservations = reservation.IsAuthorized( Authorization.EDIT, CurrentPerson );
+            if ( canCreateReservations &&
+                ( reservation.CreatedByPersonAliasId == CurrentPersonAliasId ||
+                reservation.AdministrativeContactPersonAliasId == CurrentPersonAliasId ||
+                reservationId == 0 )
+                )
+            {
+                readOnly = false;
+                nbEditModeMessage.Text = string.Empty;
+            }
 
             btnDelete.Visible = false;
 
@@ -1499,7 +1509,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             }
 
             // Show the delete button if the person is authorized to delete it
-            if ( canApprove || CurrentPersonAliasId == reservation.CreatedByPersonAliasId )
+            if ( canApprove || CurrentPersonAliasId == reservation.CreatedByPersonAliasId || reservation.AdministrativeContactPersonAliasId == CurrentPersonAliasId )
             {
                 btnEdit.Visible = true;
                 btnDelete.Visible = true;

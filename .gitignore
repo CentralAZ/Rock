@@ -28,6 +28,7 @@ RockWeb/App_Data/PackageStaging
 *.sln.GhostDoc.xml
 .vs/
 .localhistory/
+org.rocksolidchurch.RoomManagementTemplates
 
 Packages/*
 

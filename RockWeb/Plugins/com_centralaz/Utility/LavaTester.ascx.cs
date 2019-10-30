@@ -748,7 +748,14 @@ namespace RockWeb.Plugins.com_centralaz.Utility
         protected void ResolveLava()
         {
             string lava = ceLava.Text;
+
+            var sw = System.Diagnostics.Stopwatch.StartNew();
             litOutput.Text = lava.ResolveMergeFields( mergeFields, GetAttributeValue( "EnabledLavaCommands" ) );
+            sw.Stop();
+
+            litProcessingTime.Text = ( sw.ElapsedMilliseconds / 1000d ).ToString();
+            pnlProcessingTime.Visible = true;
+
             if ( cbEnableDebug.Checked )
             {
                 litDebug.Text = mergeFields.lavaDebugInfo();

@@ -113,6 +113,9 @@
                     <div class="well" style="background-color: #fff">
                         <asp:Literal ID="litOutput" runat="server"><i class="text-muted">nothing to display yet, try pressing the Test button ;)</i></asp:Literal>
                     </div>
+                    <asp:Panel ID="pnlProcessingTime" runat="server" Visible="false">
+                        Lava processing took <asp:Literal ID="litProcessingTime" runat="server" /> seconds.
+                    </asp:Panel>
 
                     <h3 runat="server" id="h3DebugTitle" visible="false">Lava Reference / Debug</h3>
                     <asp:Literal ID="litDebug" runat="server"></asp:Literal>

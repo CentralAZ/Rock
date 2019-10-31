@@ -213,7 +213,7 @@
                             </div>
                         </div>
 
-                        <div class="pull-right">
+                        <div id="divPrintReport" runat="server" class="pull-right margin-l-md">
                             <div class="btn-group">
                                 <button class="btn btn-default btn-xs dropdown-toggle" type="button" data-toggle="dropdown">Print <i class="fa fa-print"></i> <span class="caret"></span></button>
 
@@ -229,7 +229,7 @@
                             </div>
                         </div>
 
-                        <div class="pull-right margin-r-md">
+                        <div id="divMyReservations" runat="server" class="pull-right">
                             <asp:LinkButton ID="btnAllReservations" runat="server" CssClass="btn btn-xs btn-default" Text="&nbsp; All &nbsp;" data-val="0" OnClick="btnAllReservations_Click" />
                             <asp:LinkButton ID="btnMyReservations" runat="server" CssClass="btn btn-xs btn-default" Text="My Reservations" data-val="1" OnClick="btnMyReservations_Click" />
                             <asp:LinkButton ID="btnMyApprovals" runat="server" CssClass="btn btn-xs btn-default" Text="My Approvals" data-val="2" OnClick="btnMyApprovals_Click" />

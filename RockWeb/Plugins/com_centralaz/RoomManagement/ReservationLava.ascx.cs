@@ -57,7 +57,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
     [BooleanField( "Show Date Range Filter", "Determines whether the date range filters are shown", false, order: 7, category: "Filter Settings" )]
 
     [LinkedPage( "Details Page", "Detail page for events", order: 8, category: "Lava Settings" )]
-    [DefinedValueField( "13B169EA-A090-45FF-8B11-A9E02776E35E", "Visible Printable Report Options", "The Printable Reports that the user is able to select", true, true, "5D53E2F0-BA82-4154-B996-085C979FACB0,46C855B0-E50E-49E7-8B99-74561AFB3DD2", "Lava Settings", 9 )]
+    [DefinedValueField( "13B169EA-A090-45FF-8B11-A9E02776E35E", "Visible Printable Report Options", "The Printable Reports that the user is able to select", false, true, "", "Lava Settings", 9 )]
     [DefinedValueField( "32EC3B34-01CF-4513-BC2E-58ECFA91D010", "Visible Reservation View Options", "The Reservation Views that the user is able to select", true, true, "67EA36B0-D861-4399-998E-3B69F7700DC0", "Lava Settings", 10 )]
     [BooleanField( "Enable Debug", "Display a list of merge fields available for lava.", false, "Lava Settings", 11 )]
 
@@ -68,12 +68,13 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
     [BooleanField( "Show Week View", "Determines whether the week view option is shown", true, order: 16, category: "View Settings" )]
     [BooleanField( "Show Month View", "Determines whether the month view option is shown", true, order: 17, category: "View Settings" )]
     [BooleanField( "Show Year View", "Determines whether the year view option is shown", false, order: 18, category: "View Settings" )]
-
+    [BooleanField( "Show My Reservation Options", "Determines whether the 'My Reservations' and 'My Approvals' view options are shown", true, order: 19, category: "View Settings" )]
     public partial class ReservationLava : Rock.Web.UI.RockBlock
     {
         #region Fields
 
         private DayOfWeek _firstDayOfWeek = DayOfWeek.Sunday;
+        private string CalendarVisibleDateSessionKey = string.Empty;
 
         protected bool LocationPanelOpen { get; set; }
         protected bool LocationPanelClosed { get; set; }
@@ -124,6 +125,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             FilterStartDate = ViewState["FilterStartDate"] as DateTime?;
             FilterEndDate = ViewState["FilterEndDate"] as DateTime?;
             ReservationDates = ViewState["ReservationDates"] as List<DateTime>;
+
+            CalendarVisibleDateSessionKey = string.Format( "CalendarVisibleDate_{0}", this.BlockId );
         }
 
         /// <summary>
@@ -179,8 +182,11 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             var reportCache = DefinedTypeCache.Get( "13B169EA-A090-45FF-8B11-A9E02776E35E" );
             var selectedReports = GetAttributeValue( "VisiblePrintableReportOptions" ).SplitDelimitedValues().AsGuidList();
+            divPrintReport.Visible = selectedReports.Any();
             rptReports.DataSource = reportCache.DefinedValues.Where( dv => selectedReports.Contains( dv.Guid ) ).ToList();
             rptReports.DataBind();
+
+            divMyReservations.Visible = GetAttributeValue( "ShowMyReservationOptions" ).AsBoolean();
 
             var viewCache = DefinedTypeCache.Get( "32EC3B34-01CF-4513-BC2E-58ECFA91D010" );
             var selectedViews = GetAttributeValue( "VisibleReservationViewOptions" ).SplitDelimitedValues().AsGuidList();
@@ -355,7 +361,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         protected void calReservationCalendar_VisibleMonthChanged( object sender, MonthChangedEventArgs e )
         {
             calReservationCalendar.SelectedDate = e.NewDate;
-            Session["CalendarVisibleDate"] = e.NewDate;
+            Session[CalendarVisibleDateSessionKey] = e.NewDate;
             ResetCalendarSelection();
             BindData();
         }
@@ -525,6 +531,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             var mergeFields = new Dictionary<string, object>();
             mergeFields.Add( "TimeFrame", ViewMode );
+            mergeFields.Add( "FilterStartDate", FilterStartDate );
+            mergeFields.Add( "FilterEndDate", FilterEndDate );
             mergeFields.Add( "DetailsPage", LinkedPageUrl( "DetailsPage", null ) );
             mergeFields.Add( "ReservationSummaries", reservationSummaries );
             mergeFields.Add( "CurrentPerson", CurrentPerson );
@@ -733,15 +741,16 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             }
 
             // Show/Hide calendar control
-            pnlCalendar.Visible = GetAttributeValue( "ShowSmallCalendar" ).AsBoolean();
+            bool calendarVisible = GetAttributeValue( "ShowSmallCalendar" ).AsBoolean();
+            pnlCalendar.Visible = calendarVisible;
 
             // Get the first/last dates based on today's date and the viewmode setting
             var today = RockDateTime.Today;
 
             // Use the CalendarVisibleDate if it's in session.
-            if ( Session["CalendarVisibleDate"] != null )
+            if ( calendarVisible && Session[CalendarVisibleDateSessionKey] != null )
             {
-                today = ( DateTime ) Session["CalendarVisibleDate"];
+                today = ( DateTime ) Session[CalendarVisibleDateSessionKey];
                 calReservationCalendar.VisibleDate = today;
             }
 
@@ -866,9 +875,13 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         private void ResetCalendarSelection()
         {
             // Even though selection will be a single date due to calendar's selection mode, set the appropriate days
-            var selectedDate = calReservationCalendar.SelectedDate;
+            var selectedDate = RockDateTime.Today;
+            if ( GetAttributeValue( "ShowSmallCalendar" ).AsBoolean() )
+            {
+                selectedDate = calReservationCalendar.SelectedDate;
+            }
             calReservationCalendar.VisibleDate = selectedDate;
-            Session["CalendarVisibleDate"] = selectedDate;
+            Session[CalendarVisibleDateSessionKey] = selectedDate;
             FilterStartDate = selectedDate;
             FilterEndDate = selectedDate;
             if ( ViewMode == "Week" )

@@ -208,28 +208,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             // this event gets fired after block settings are updated. it's nice to repaint the screen if these settings would alter it
             this.AddConfigurationUpdateTrigger( upnlContent );
 
-            string script = string.Format( @"
-    $('#{0} .btn-toggle').click(function (e) {{
 
-        e.stopImmediatePropagation();
-
-        $(this).find('.btn').removeClass('active');
-        $(e.target).addClass('active');
-
-        $(this).find('a').each(function() {{
-            if ($(this).hasClass('active')) {{
-                $('#{1}').val($(this).attr('data-status'));
-                $(this).removeClass('btn-default');
-                $(this).addClass( $(this).attr('data-active-css') );
-            }} else {{
-                $(this).removeClass( $(this).attr('data-active-css') );
-                $(this).addClass('btn-default');
-            }}
-        }});
-
-    }});
-", pnlEditApprovalState.ClientID, hfApprovalState.ClientID );
-            ScriptManager.RegisterStartupScript( pnlEditApprovalState, pnlEditApprovalState.GetType(), "status-script-" + this.BlockId.ToString(), script, true );
 
             btnDelete.Attributes["onclick"] = string.Format( "javascript: return Rock.dialogs.confirmDelete(event, '{0}');", Reservation.FriendlyTypeName );
 
@@ -594,7 +573,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     return;
                 }
 
-                reservation = reservationService.UpdateApproval( reservation, hfApprovalState.Value.ConvertToEnum<ReservationApprovalState>( ReservationApprovalState.Unapproved ), CurrentPerson );
+                reservation = reservationService.UpdateApproval( reservation, hfApprovalState.Value.ConvertToEnum<ReservationApprovalState>( ReservationApprovalState.Unapproved ) );
                 reservation = reservationService.SetFirstLastOccurrenceDateTimes( reservation );
 
                 changes = EvaluateLocationAndResourceChanges( changes, oldReservation, reservation );
@@ -834,7 +813,125 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             btnDelete.Visible = false;
             ShowEditDetails( newItem );
         }
+        protected void btnOverride_Click( object sender, EventArgs e )
+        {
+            using ( var rockContext = new RockContext() )
+            {
+                var changes = new History.HistoryChangeList();
+                var reservationService = new ReservationService( rockContext );
+                var reservationResourceService = new ReservationResourceService( rockContext );
+                var resourceService = new ResourceService( rockContext );
+                var locationService = new LocationService( rockContext );
 
+                var reservation = reservationService.Get( hfReservationId.ValueAsInt() );
+                if ( reservation != null )
+                {
+                    Reservation oldReservation = BuildOldReservation( resourceService, locationService, reservationService, reservation );
+
+                    reservation.ApprovalState = ReservationApprovalState.Approved;
+                    reservationService.UpdateApproval( reservation, reservation.ApprovalState, true );
+
+                    changes = EvaluateLocationAndResourceChanges( changes, oldReservation, reservation );
+                    History.EvaluateChange( changes, "Approval State", oldReservation.ApprovalState.ToString(), "Override: " + reservation.ApprovalState.ToString() );
+
+                    rockContext.SaveChanges();
+
+                    // ..."need to fetch the item using a new service if you need the updated property as a fully hydrated entity"
+                    reservation = new ReservationService( new RockContext() ).Get( reservation.Guid );
+                    if ( changes.Any() )
+                    {
+                        HistoryService.SaveChanges(
+                            rockContext,
+                            typeof( Reservation ),
+                            com.centralaz.RoomManagement.SystemGuid.Category.HISTORY_RESERVATION_CHANGES.AsGuid(),
+                            reservation.Id,
+                            changes );
+                    }
+                }
+
+                ShowDetail( hfReservationId.ValueAsInt() );
+            }
+        }
+
+        protected void btnDeny_Click( object sender, EventArgs e )
+        {
+            using ( var rockContext = new RockContext() )
+            {
+                var changes = new History.HistoryChangeList();
+                var reservationService = new ReservationService( rockContext );
+                var reservationResourceService = new ReservationResourceService( rockContext );
+                var resourceService = new ResourceService( rockContext );
+                var locationService = new LocationService( rockContext );
+
+                var reservation = reservationService.Get( hfReservationId.ValueAsInt() );
+                if ( reservation != null )
+                {
+                    Reservation oldReservation = BuildOldReservation( resourceService, locationService, reservationService, reservation );
+
+                    reservation.ApprovalState = ReservationApprovalState.Denied;
+                    reservationService.UpdateApproval( reservation, reservation.ApprovalState );
+
+                    changes = EvaluateLocationAndResourceChanges( changes, oldReservation, reservation );
+                    History.EvaluateChange( changes, "Approval State", oldReservation.ApprovalState.ToString(), reservation.ApprovalState.ToString() );
+
+                    rockContext.SaveChanges();
+
+                    // ..."need to fetch the item using a new service if you need the updated property as a fully hydrated entity"
+                    reservation = new ReservationService( new RockContext() ).Get( reservation.Guid );
+                    if ( changes.Any() )
+                    {
+                        HistoryService.SaveChanges(
+                            rockContext,
+                            typeof( Reservation ),
+                            com.centralaz.RoomManagement.SystemGuid.Category.HISTORY_RESERVATION_CHANGES.AsGuid(),
+                            reservation.Id,
+                            changes );
+                    }
+                }
+
+                ShowDetail( hfReservationId.ValueAsInt() );
+            }
+        }
+
+        protected void btnApprove_Click( object sender, EventArgs e )
+        {
+            using ( var rockContext = new RockContext() )
+            {
+                var changes = new History.HistoryChangeList();
+                var reservationService = new ReservationService( rockContext );
+                var reservationResourceService = new ReservationResourceService( rockContext );
+                var resourceService = new ResourceService( rockContext );
+                var locationService = new LocationService( rockContext );
+
+                var reservation = reservationService.Get( hfReservationId.ValueAsInt() );
+                if ( reservation != null )
+                {
+                    Reservation oldReservation = BuildOldReservation( resourceService, locationService, reservationService, reservation );
+
+                    reservation.ApprovalState = ReservationApprovalState.Approved;
+                    reservationService.UpdateApproval( reservation, reservation.ApprovalState );
+
+                    changes = EvaluateLocationAndResourceChanges( changes, oldReservation, reservation );
+                    History.EvaluateChange( changes, "Approval State", oldReservation.ApprovalState.ToString(), reservation.ApprovalState.ToString() );
+
+                    rockContext.SaveChanges();
+
+                    // ..."need to fetch the item using a new service if you need the updated property as a fully hydrated entity"
+                    reservation = new ReservationService( new RockContext() ).Get( reservation.Guid );
+                    if ( changes.Any() )
+                    {
+                        HistoryService.SaveChanges(
+                            rockContext,
+                            typeof( Reservation ),
+                            com.centralaz.RoomManagement.SystemGuid.Category.HISTORY_RESERVATION_CHANGES.AsGuid(),
+                            reservation.Id,
+                            changes );
+                    }
+                }
+
+                ShowDetail( hfReservationId.ValueAsInt() );
+            }
+        }
         /// <summary>
         /// Handles the SaveSchedule event of the sbSchedule control.
         /// </summary>
@@ -1102,21 +1199,51 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="RowEventArgs"/> instance containing the event data.</param>
-        protected void gResources_ApproveClick( object sender, RowEventArgs e )
+        protected void gViewResources_ApproveClick( object sender, RowEventArgs e )
         {
             bool failure = true;
 
             if ( e.RowKeyValue != null )
             {
-                var reservationResource = ResourcesState.FirstOrDefault( r => r.Guid.Equals( ( Guid ) e.RowKeyValue ) );
-                if ( reservationResource != null )
+                using ( var rockContext = new RockContext() )
                 {
-                    failure = false;
+                    var changes = new History.HistoryChangeList();
+                    var reservationService = new ReservationService( rockContext );
+                    var reservationResourceService = new ReservationResourceService( rockContext );
+                    var resourceService = new ResourceService( rockContext );
+                    var locationService = new LocationService( rockContext );
 
-                    reservationResource.ApprovalState = ReservationResourceApprovalState.Approved;
+                    var reservationResource = reservationResourceService.Queryable().FirstOrDefault( r => r.Guid.Equals( ( Guid ) e.RowKeyValue ) );
+                    if ( reservationResource != null )
+                    {
+                        failure = false;
+
+                        var reservation = reservationResource.Reservation;
+                        Reservation oldReservation = BuildOldReservation( resourceService, locationService, reservationService, reservation );
+
+                        reservationResource.ApprovalState = ReservationResourceApprovalState.Approved;
+                        reservationService.UpdateApproval( reservation, reservation.ApprovalState );
+
+                        changes = EvaluateLocationAndResourceChanges( changes, oldReservation, reservation );
+                        History.EvaluateChange( changes, "Approval State", oldReservation.ApprovalState.ToString(), reservation.ApprovalState.ToString() );
+
+                        rockContext.SaveChanges();
+
+                        // ..."need to fetch the item using a new service if you need the updated property as a fully hydrated entity"
+                        reservation = new ReservationService( new RockContext() ).Get( reservation.Guid );
+                        if ( changes.Any() )
+                        {
+                            HistoryService.SaveChanges(
+                                rockContext,
+                                typeof( Reservation ),
+                                com.centralaz.RoomManagement.SystemGuid.Category.HISTORY_RESERVATION_CHANGES.AsGuid(),
+                                reservation.Id,
+                                changes );
+                        }
+                    }
+
+                    ShowDetail( hfReservationId.ValueAsInt() );
                 }
-
-                BindReservationResourcesGrid();
             }
 
             if ( failure )
@@ -1130,21 +1257,50 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="RowEventArgs"/> instance containing the event data.</param>
-        protected void gResources_DenyClick( object sender, RowEventArgs e )
+        protected void gViewResources_DenyClick( object sender, RowEventArgs e )
         {
             bool failure = true;
 
             if ( e.RowKeyValue != null )
             {
-                var reservationResource = ResourcesState.FirstOrDefault( r => r.Guid.Equals( ( Guid ) e.RowKeyValue ) );
-                if ( reservationResource != null )
+                using ( var rockContext = new RockContext() )
                 {
-                    failure = false;
+                    var changes = new History.HistoryChangeList();
+                    var reservationService = new ReservationService( rockContext );
+                    var reservationResourceService = new ReservationResourceService( rockContext );
+                    var resourceService = new ResourceService( rockContext );
+                    var locationService = new LocationService( rockContext );
 
-                    reservationResource.ApprovalState = ReservationResourceApprovalState.Denied;
+                    var reservationResource = reservationResourceService.Queryable().FirstOrDefault( r => r.Guid.Equals( ( Guid ) e.RowKeyValue ) );
+                    if ( reservationResource != null )
+                    {
+                        failure = false;
+                        var reservation = reservationResource.Reservation;
+                        Reservation oldReservation = BuildOldReservation( resourceService, locationService, reservationService, reservation );
+
+                        reservationResource.ApprovalState = ReservationResourceApprovalState.Denied;
+                        reservationService.UpdateApproval( reservation, reservation.ApprovalState );
+
+                        changes = EvaluateLocationAndResourceChanges( changes, oldReservation, reservation );
+                        History.EvaluateChange( changes, "Approval State", oldReservation.ApprovalState.ToString(), reservation.ApprovalState.ToString() );
+
+                        rockContext.SaveChanges();
+
+                        // ..."need to fetch the item using a new service if you need the updated property as a fully hydrated entity"
+                        reservation = new ReservationService( new RockContext() ).Get( reservation.Guid );
+                        if ( changes.Any() )
+                        {
+                            HistoryService.SaveChanges(
+                                rockContext,
+                                typeof( Reservation ),
+                                com.centralaz.RoomManagement.SystemGuid.Category.HISTORY_RESERVATION_CHANGES.AsGuid(),
+                                reservation.Id,
+                                changes );
+                        }
+                    }
+
+                    ShowDetail( hfReservationId.ValueAsInt() );
                 }
-
-                BindReservationResourcesGrid();
             }
 
             if ( failure )
@@ -1158,23 +1314,39 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="GridViewRowEventArgs"/> instance containing the event data.</param>
-        protected void gResources_RowDataBound( object sender, GridViewRowEventArgs e )
+        protected void gViewResources_RowDataBound( object sender, GridViewRowEventArgs e )
         {
             var reservationResource = e.Row.DataItem as ReservationResource;
             if ( reservationResource != null )
             {
                 var canApprove = false;
+                var canDeny = false;
 
                 canApprove = ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, reservationResource.Resource.ApprovalGroupId )
-                    || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId )
-                    || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId );
+                    || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId );
+
+                canDeny = canApprove || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId );
 
                 if ( e.Row.RowType == DataControlRowType.DataRow )
                 {
                     if ( !canApprove )
                     {
-                        e.Row.Cells[4].Controls[0].Visible = false;
-                        e.Row.Cells[5].Controls[0].Visible = false;
+                        var linkButtonField = gViewResources.Columns.OfType<LinkButtonField>().Where( c => c.CssClass.Contains( "btn-success" ) ).First();
+                        var cell = ( e.Row.Cells[gViewResources.GetColumnIndex( linkButtonField )] as DataControlFieldCell ).Controls[0];
+                        if ( cell != null )
+                        {
+                            cell.Visible = false;
+                        }
+                    }
+
+                    if ( !canDeny )
+                    {
+                        var linkButtonField = gViewResources.Columns.OfType<LinkButtonField>().Where( c => c.CssClass.Contains( "btn-danger" ) ).First();
+                        var cell = ( e.Row.Cells[gViewResources.GetColumnIndex( linkButtonField )] as DataControlFieldCell ).Controls[0];
+                        if ( cell != null )
+                        {
+                            cell.Visible = false;
+                        }
                     }
                 }
             }
@@ -1384,21 +1556,49 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="RowEventArgs"/> instance containing the event data.</param>
-        protected void gLocations_ApproveClick( object sender, RowEventArgs e )
+        protected void gViewLocations_ApproveClick( object sender, RowEventArgs e )
         {
             bool failure = true;
 
             if ( e.RowKeyValue != null )
             {
-                var reservationLocation = LocationsState.FirstOrDefault( r => r.Guid.Equals( ( Guid ) e.RowKeyValue ) );
-                if ( reservationLocation != null )
+                using ( var rockContext = new RockContext() )
                 {
-                    failure = false;
+                    var changes = new History.HistoryChangeList();
+                    var reservationService = new ReservationService( rockContext );
+                    var reservationLocationService = new ReservationLocationService( rockContext );
+                    var resourceService = new ResourceService( rockContext );
+                    var locationService = new LocationService( rockContext );
 
-                    reservationLocation.ApprovalState = ReservationLocationApprovalState.Approved;
+                    var reservationLocation = reservationLocationService.Queryable().FirstOrDefault( r => r.Guid.Equals( ( Guid ) e.RowKeyValue ) );
+                    if ( reservationLocation != null )
+                    {
+                        failure = false;
+                        var reservation = reservationLocation.Reservation;
+                        Reservation oldReservation = BuildOldReservation( resourceService, locationService, reservationService, reservation );
+
+                        reservationLocation.ApprovalState = ReservationLocationApprovalState.Approved;
+                        reservationService.UpdateApproval( reservation, reservation.ApprovalState );
+                        changes = EvaluateLocationAndResourceChanges( changes, oldReservation, reservation );
+                        History.EvaluateChange( changes, "Approval State", oldReservation.ApprovalState.ToString(), reservation.ApprovalState.ToString() );
+
+                        rockContext.SaveChanges();
+
+                        // ..."need to fetch the item using a new service if you need the updated property as a fully hydrated entity"
+                        reservation = new ReservationService( new RockContext() ).Get( reservation.Guid );
+                        if ( changes.Any() )
+                        {
+                            HistoryService.SaveChanges(
+                                rockContext,
+                                typeof( Reservation ),
+                                com.centralaz.RoomManagement.SystemGuid.Category.HISTORY_RESERVATION_CHANGES.AsGuid(),
+                                reservation.Id,
+                                changes );
+                        }
+                    }
+
+                    ShowDetail( hfReservationId.ValueAsInt() );
                 }
-
-                BindReservationLocationsGrid();
             }
 
             if ( failure )
@@ -1412,64 +1612,54 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// </summary>
         /// <param name="sender">The source of the event.</param>
         /// <param name="e">The <see cref="RowEventArgs"/> instance containing the event data.</param>
-        protected void gLocations_DenyClick( object sender, RowEventArgs e )
+        protected void gViewLocations_DenyClick( object sender, RowEventArgs e )
         {
             bool failure = true;
 
             if ( e.RowKeyValue != null )
             {
-                var reservationLocation = LocationsState.FirstOrDefault( r => r.Guid.Equals( ( Guid ) e.RowKeyValue ) );
-                if ( reservationLocation != null )
+                using ( var rockContext = new RockContext() )
                 {
-                    failure = false;
+                    var changes = new History.HistoryChangeList();
+                    var reservationService = new ReservationService( rockContext );
+                    var reservationLocationService = new ReservationLocationService( rockContext );
+                    var resourceService = new ResourceService( rockContext );
+                    var locationService = new LocationService( rockContext );
 
-                    reservationLocation.ApprovalState = ReservationLocationApprovalState.Denied;
+                    var reservationLocation = reservationLocationService.Queryable().FirstOrDefault( r => r.Guid.Equals( ( Guid ) e.RowKeyValue ) );
+                    if ( reservationLocation != null )
+                    {
+                        failure = false;
+                        var reservation = reservationLocation.Reservation;
+                        Reservation oldReservation = BuildOldReservation( resourceService, locationService, reservationService, reservation );
+
+                        reservationLocation.ApprovalState = ReservationLocationApprovalState.Denied;
+                        reservationService.UpdateApproval( reservation, reservation.ApprovalState );
+                        changes = EvaluateLocationAndResourceChanges( changes, oldReservation, reservation );
+                        History.EvaluateChange( changes, "Approval State", oldReservation.ApprovalState.ToString(), reservation.ApprovalState.ToString() );
+
+                        rockContext.SaveChanges();
+
+                        // ..."need to fetch the item using a new service if you need the updated property as a fully hydrated entity"
+                        reservation = new ReservationService( new RockContext() ).Get( reservation.Guid );
+                        if ( changes.Any() )
+                        {
+                            HistoryService.SaveChanges(
+                                rockContext,
+                                typeof( Reservation ),
+                                com.centralaz.RoomManagement.SystemGuid.Category.HISTORY_RESERVATION_CHANGES.AsGuid(),
+                                reservation.Id,
+                                changes );
+                        }
+                    }
+
+                    ShowDetail( hfReservationId.ValueAsInt() );
                 }
-
-                BindReservationLocationsGrid();
             }
 
             if ( failure )
             {
                 maLocationGridWarning.Show( "Unable to deny that location", ModalAlertType.Warning );
-            }
-        }
-
-        /// <summary>
-        /// Handles the RowDataBound event of the gLocations control.
-        /// </summary>
-        /// <param name="sender">The source of the event.</param>
-        /// <param name="e">The <see cref="GridViewRowEventArgs"/> instance containing the event data.</param>
-        protected void gLocations_RowDataBound( object sender, GridViewRowEventArgs e )
-        {
-            Guid? approvalGroupGuid = null;
-
-            var reservationLocation = e.Row.DataItem as ReservationLocationSummary;
-            if ( reservationLocation != null )
-            {
-
-                var location = reservationLocation.Location;
-                // bug fix:
-                if ( location != null )
-                {
-                    location.LoadAttributes();
-                    approvalGroupGuid = location.GetAttributeValue( "ApprovalGroup" ).AsGuidOrNull();
-                }
-
-                var canApprove = false;
-
-                canApprove = ReservationTypeService.IsPersonInGroupWithGuid( CurrentPerson, approvalGroupGuid )
-                    || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId )
-                    || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId );
-
-                if ( e.Row.RowType == DataControlRowType.DataRow )
-                {
-                    if ( !canApprove )
-                    {
-                        e.Row.Cells[3].Controls[0].Visible = false;
-                        e.Row.Cells[4].Controls[0].Visible = false;
-                    }
-                }
             }
         }
 
@@ -1490,6 +1680,50 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     }
 
                     lLayoutPhoto.Text = string.Format( "<a href='{0}' target='_blank'>{1}</a>", imgUrl, imgTag );
+                }
+
+                var canApprove = false;
+                var canDeny = false;
+                Guid? approvalGroupGuid = null;
+
+                if ( reservationLocation != null )
+                {
+
+                    var location = reservationLocation.Location;
+                    // bug fix:
+                    if ( location != null )
+                    {
+                        location.LoadAttributes();
+                        approvalGroupGuid = location.GetAttributeValue( "ApprovalGroup" ).AsGuidOrNull();
+                    }
+                }
+
+                canApprove = ReservationTypeService.IsPersonInGroupWithGuid( CurrentPerson, approvalGroupGuid )
+                    || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId );
+
+                canDeny = canApprove || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId );
+
+                if ( e.Row.RowType == DataControlRowType.DataRow )
+                {
+                    if ( !canApprove )
+                    {
+                        var linkButtonField = gViewLocations.Columns.OfType<LinkButtonField>().Where( c => c.CssClass.Contains( "btn-success" ) ).First();
+                        var cell = ( e.Row.Cells[gViewLocations.GetColumnIndex( linkButtonField )] as DataControlFieldCell ).Controls[0];
+                        if ( cell != null )
+                        {
+                            cell.Visible = false;
+                        }
+                    }
+
+                    if ( !canDeny )
+                    {
+                        var linkButtonField = gViewLocations.Columns.OfType<LinkButtonField>().Where( c => c.CssClass.Contains( "btn-danger" ) ).First();
+                        var cell = ( e.Row.Cells[gViewLocations.GetColumnIndex( linkButtonField )] as DataControlFieldCell ).Controls[0];
+                        if ( cell != null )
+                        {
+                            cell.Visible = false;
+                        }
+                    }
                 }
             }
         }
@@ -1703,6 +1937,10 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             canApprove = ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId )
                 || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId );
 
+            btnApprove.Visible = btnDeny.Visible = ( reservation.ApprovalState == ReservationApprovalState.PendingReview && ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId ) );
+            btnDeny.Visible = ( reservation.ApprovalState == ReservationApprovalState.PendingReview && ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId ) ) || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId );
+            btnOverride.Visible = ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId );
+
             // Show the delete button if the person is authorized to delete it
             if ( canApprove || CurrentPersonAliasId == reservation.CreatedByPersonAliasId || reservation.AdministrativeContactPersonAliasId == CurrentPersonAliasId )
             {
@@ -1899,44 +2137,30 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
                 if ( reservation.Id != 0 )
                 {
-                    if ( canApprove )
-                    {
-                        pnlEditApprovalState.Visible = true;
-                        pnlReadApprovalState.Visible = false;
 
-                        PendingCss = ( reservation.ApprovalState == ReservationApprovalState.ChangesNeeded ||
-                                        reservation.ApprovalState == ReservationApprovalState.PendingReview ||
-                                        reservation.ApprovalState == ReservationApprovalState.Unapproved )
-                                        ? "btn-default active" : "btn-default";
-                        ApprovedCss = reservation.ApprovalState == ReservationApprovalState.Approved ? "btn-success active" : "btn-default";
-                        DeniedCss = reservation.ApprovalState == ReservationApprovalState.Denied ? "btn-danger active" : "btn-default";
-                    }
-                    else
+                    pnlReadApprovalState.Visible = true;
+                    lApprovalState.Text = hlStatus.Text = reservation.ApprovalState.ConvertToString();
+                    switch ( reservation.ApprovalState )
                     {
-                        pnlEditApprovalState.Visible = false;
-                        pnlReadApprovalState.Visible = true;
-                        lApprovalState.Text = hlStatus.Text = reservation.ApprovalState.ConvertToString();
-                        switch ( reservation.ApprovalState )
-                        {
-                            case ReservationApprovalState.Approved:
-                                hlStatus.LabelType = LabelType.Success;
-                                break;
-                            case ReservationApprovalState.Denied:
-                                hlStatus.LabelType = LabelType.Danger;
-                                break;
-                            case ReservationApprovalState.PendingReview:
-                                hlStatus.LabelType = LabelType.Warning;
-                                break;
-                            case ReservationApprovalState.Unapproved:
-                                hlStatus.LabelType = LabelType.Warning;
-                                break;
-                            case ReservationApprovalState.ChangesNeeded:
-                                hlStatus.LabelType = LabelType.Info;
-                                break;
-                            default:
-                                hlStatus.LabelType = LabelType.Default;
-                                break;
-                        }
+                        case ReservationApprovalState.Approved:
+                            hlStatus.LabelType = LabelType.Success;
+                            break;
+                        case ReservationApprovalState.Denied:
+                            hlStatus.LabelType = LabelType.Danger;
+                            break;
+                        case ReservationApprovalState.PendingReview:
+                            hlStatus.LabelType = LabelType.Warning;
+                            break;
+                        case ReservationApprovalState.Unapproved:
+                            hlStatus.LabelType = LabelType.Warning;
+                            break;
+                        case ReservationApprovalState.ChangesNeeded:
+                            hlStatus.LabelType = LabelType.Info;
+                            break;
+                        default:
+                            hlStatus.LabelType = LabelType.Default;
+                            break;
+
                     }
                 }
 
@@ -2967,7 +3191,5 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             public bool IsNew { get; set; }
         }
         #endregion
-
-
     }
 }

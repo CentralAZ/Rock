@@ -236,32 +236,21 @@ namespace com.centralaz.RoomManagement.Model
         /// <param name="currentReservationApprovalState">State of the current reservation approval.</param>
         /// <param name="person">The person.</param>
         /// <returns></returns>
-        public Reservation UpdateApproval( Reservation reservation, ReservationApprovalState currentReservationApprovalState, Person person )
+        public Reservation UpdateApproval( Reservation reservation, ReservationApprovalState currentReservationApprovalState, bool isOverride = false )
         {
             reservation.ApprovalState = currentReservationApprovalState;
 
             int? finalApprovalGroupId = null;
-            bool inApprovalGroups = false;
-            bool isSuperAdmin = false;
             finalApprovalGroupId = reservation.ReservationType.FinalApprovalGroupId;
 
-            if ( !inApprovalGroups )
-            {
-                inApprovalGroups = isSuperAdmin = ReservationTypeService.IsPersonInGroupWithId( person, reservation.ReservationType.SuperAdminGroupId );
-            }
-
-            if ( !inApprovalGroups )
-            {
-                inApprovalGroups = ReservationTypeService.IsPersonInGroupWithId( person, reservation.ReservationType.FinalApprovalGroupId );
-            }
 
             foreach ( var reservationResource in reservation.ReservationResources )
             {
-                bool canApprove = CanPersonApproveReservationResource( person, isSuperAdmin, reservationResource );
+                bool isAutoApprove = ( reservationResource.Resource.ApprovalGroupId == null );
 
-                if ( reservationResource.ApprovalState == ReservationResourceApprovalState.Unapproved )
+                if ( reservationResource.ApprovalState == ReservationResourceApprovalState.Unapproved || isOverride )
                 {
-                    if ( canApprove )
+                    if ( isAutoApprove || isOverride )
                     {
                         reservationResource.ApprovalState = ReservationResourceApprovalState.Approved;
                     }
@@ -278,18 +267,20 @@ namespace com.centralaz.RoomManagement.Model
 
             foreach ( var reservationLocation in reservation.ReservationLocations )
             {
-                bool canApprove = CanPersonApproveReservationLocation( person, isSuperAdmin, reservationLocation );
+                reservationLocation.Location.LoadAttributes();
+                var approvalGroupGuid = reservationLocation.Location.GetAttributeValue( "ApprovalGroup" ).AsGuidOrNull();
 
-                if ( reservationLocation.ApprovalState == ReservationLocationApprovalState.Unapproved )
+                bool isAutoApprove = ( approvalGroupGuid == null );
+
+                if ( reservationLocation.ApprovalState == ReservationLocationApprovalState.Unapproved || isOverride )
                 {
-                    if ( canApprove )
+                    if ( isAutoApprove || isOverride )
                     {
                         reservationLocation.ApprovalState = ReservationLocationApprovalState.Approved;
                     }
                     else
                     {
                         reservation.ApprovalState = ReservationApprovalState.Unapproved;
-                        //  groupGuidList.Add( approvalGroupGuid.Value );
                     }
                 }
                 else if ( reservationLocation.ApprovalState == ReservationLocationApprovalState.Denied )
@@ -298,11 +289,13 @@ namespace com.centralaz.RoomManagement.Model
                 }
             }
 
+
+
             if ( reservation.ApprovalState == ReservationApprovalState.Unapproved || reservation.ApprovalState == ReservationApprovalState.PendingReview || reservation.ApprovalState == ReservationApprovalState.ChangesNeeded )
             {
                 if ( reservation.ReservationLocations.All( rl => rl.ApprovalState == ReservationLocationApprovalState.Approved ) && reservation.ReservationResources.All( rr => rr.ApprovalState == ReservationResourceApprovalState.Approved ) )
                 {
-                    if ( finalApprovalGroupId == null || isSuperAdmin )
+                    if ( finalApprovalGroupId == null )
                     {
                         reservation.ApprovalState = ReservationApprovalState.Approved;
                     }
@@ -345,7 +338,6 @@ namespace com.centralaz.RoomManagement.Model
                     reservationResource.ApprovalState = ReservationResourceApprovalState.Approved;
                 }
             }
-
 
             return reservation;
         }

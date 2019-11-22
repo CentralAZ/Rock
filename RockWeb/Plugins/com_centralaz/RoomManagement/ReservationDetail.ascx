@@ -99,13 +99,15 @@
                                             </ItemTemplate>
                                         </Rock:RockTemplateField>
                                         <Rock:RockBoundField DataField="ApprovalState" HeaderText="Approved?" />
+                                        <Rock:LinkButtonField CssClass="btn btn-success btn-sm" OnClick="gViewLocations_ApproveClick" Text="<i class='fa fa-check'></i>" Visible="true" />
+                                        <Rock:LinkButtonField CssClass="btn btn-danger btn-sm" OnClick="gViewLocations_DenyClick" Text="<i class='fa fa-ban'></i>" Visible="true" />
                                     </Columns>
                                 </Rock:Grid>
                             </div>
 
                             <div class="grid">
                                 <label class="control-label">Resources</label>
-                                <Rock:Grid ID="gViewResources" runat="server" AllowPaging="false" DisplayType="Light" RowItemText="Resource">
+                                <Rock:Grid ID="gViewResources" runat="server" AllowPaging="false" DisplayType="Light" RowItemText="Resource" OnRowDataBound="gViewResources_RowDataBound">
                                     <Columns>
                                         <Rock:RockBoundField DataField="Resource.Name" HeaderText="Resource" />
                                         <Rock:RockTemplateField>
@@ -113,6 +115,8 @@
                                         </Rock:RockTemplateField>
                                         <Rock:RockBoundField DataField="Quantity" HeaderText="Qty" />
                                         <Rock:RockBoundField DataField="ApprovalState" HeaderText="Approved?" />
+                                        <Rock:LinkButtonField CssClass="btn btn-sm btn-success" OnClick="gViewResources_ApproveClick" Text="<i class='fa fa-check'></i>" Visible="true" />
+                                        <Rock:LinkButtonField CssClass="btn btn-sm btn-danger" OnClick="gViewResources_DenyClick" Text="<i class='fa fa-ban'></i>" Visible="true" />
                                     </Columns>
                                 </Rock:Grid>
                             </div>
@@ -142,6 +146,9 @@
                         <asp:LinkButton ID="btnEdit" runat="server" AccessKey="e" ToolTip="Alt+e" Text="Edit" CssClass="btn btn-primary" OnClick="btnEdit_OnClick" CausesValidation="false" />
                         <asp:LinkButton ID="btnDelete" runat="server" Text="Delete" CssClass="btn btn-link" OnClick="btnDelete_OnClick" CausesValidation="false" />
                         <div class="pull-right">
+                            <asp:LinkButton ID="btnApprove" runat="server" ToolTip="Approve Reservation" CssClass="btn btn-success" OnClick="btnApprove_Click" CausesValidation="false">Approve</asp:LinkButton>
+                            <asp:LinkButton ID="btnDeny" runat="server" ToolTip="Approve Reservation" CssClass="btn btn-danger" OnClick="btnDeny_Click" CausesValidation="false">Deny</asp:LinkButton>
+                            <asp:LinkButton ID="btnOverride" runat="server" ToolTip="Override Reservation" CssClass="btn btn-warning" OnClick="btnOverride_Click" CausesValidation="false">Override</asp:LinkButton>
                             <asp:LinkButton ID="btnCopy" runat="server" ToolTip="Copy Reservation" CssClass="btn btn-default btn-sm fa fa-clone" OnClick="btnCopy_Click" CausesValidation="false" />
                         </div>
                     </div>
@@ -206,17 +213,6 @@
                                     <div class="form-group" id="divStatus" runat="server">
                                         <div class="form-control-static">
                                             <asp:HiddenField ID="hfApprovalState" runat="server" OnValueChanged="hfApprovalState_ValueChanged" />
-                                            <asp:Panel ID="pnlEditApprovalState" runat="server" Visible="false">
-                                                <label class="control-label">Status</label>
-
-                                                <div class="toggle-container">
-                                                    <div class="btn-group btn-toggle">
-                                                        <a class="btn btn-xs <%=PendingCss%>" data-status="1" data-active-css="btn-warning">Unapproved</a>
-                                                        <a class="btn btn-xs <%=ApprovedCss%>" data-status="2" data-active-css="btn-success">Approved</a>
-                                                        <a class="btn btn-xs <%=DeniedCss%>" data-status="3" data-active-css="btn-danger">Denied</a>
-                                                    </div>
-                                                </div>
-                                            </asp:Panel>
                                             <asp:Panel ID="pnlReadApprovalState" runat="server" Visible="false">
                                                 <label class="control-label">Status</label>
                                                 <asp:Literal ID="lApprovalState" runat="server" />
@@ -230,13 +226,11 @@
                             <Rock:PanelWidget ID="wpLocations" runat="server" Title="Locations">
                                 <div class="grid">
                                     <Rock:ModalAlert ID="maLocationGridWarning" runat="server" />
-                                    <Rock:Grid ID="gLocations" runat="server" AllowPaging="false" DisplayType="Light" RowItemText="Location" ShowConfirmDeleteDialog="false" OnRowDataBound="gLocations_RowDataBound">
+                                    <Rock:Grid ID="gLocations" runat="server" AllowPaging="false" DisplayType="Light" RowItemText="Location" ShowConfirmDeleteDialog="false">
                                         <Columns>
                                             <Rock:RockBoundField DataField="Location" HeaderText="Location" />
                                             <Rock:RockBoundField DataField="LocationLayout.Name" HeaderText="Layout" />
                                             <Rock:RockBoundField DataField="ApprovalState" HeaderText="Approved?" />
-                                            <Rock:LinkButtonField CssClass="btn btn-success btn-sm" OnClick="gLocations_ApproveClick" Text="<i class='fa fa-check'></i>" Visible="true" />
-                                            <Rock:LinkButtonField CssClass="btn btn-danger btn-sm" OnClick="gLocations_DenyClick" Text="<i class='fa fa-ban'></i>" Visible="true" />
                                             <Rock:EditField OnClick="gLocations_Edit" />
                                             <Rock:DeleteField OnClick="gLocations_Delete" />
                                         </Columns>
@@ -247,7 +241,7 @@
                             <Rock:PanelWidget ID="wpResources" runat="server" Title="Resources">
                                 <div class="grid">
                                     <Rock:ModalAlert ID="maResourceGridWarning" runat="server" />
-                                    <Rock:Grid ID="gResources" runat="server" AllowPaging="false" DisplayType="Light" RowItemText="Resource" ShowConfirmDeleteDialog="false" OnRowDataBound="gResources_RowDataBound">
+                                    <Rock:Grid ID="gResources" runat="server" AllowPaging="false" DisplayType="Light" RowItemText="Resource" ShowConfirmDeleteDialog="false">
                                         <Columns>
                                             <Rock:RockBoundField DataField="Resource.Name" HeaderText="Resource" />
                                             <Rock:RockTemplateField>
@@ -255,8 +249,6 @@
                                             </Rock:RockTemplateField>
                                             <Rock:RockBoundField DataField="Quantity" HeaderText="Qty" />
                                             <Rock:RockBoundField DataField="ApprovalState" HeaderText="Approved?" />
-                                            <Rock:LinkButtonField CssClass="btn btn-sm btn-success " OnClick="gResources_ApproveClick" Text="<i class='fa fa-check'></i>" Visible="true" />
-                                            <Rock:LinkButtonField CssClass="btn btn-sm btn-danger" OnClick="gResources_DenyClick" Text="<i class='fa fa-ban'></i>" Visible="true" />
                                             <Rock:EditField OnClick="gResources_Edit" />
                                             <Rock:DeleteField OnClick="gResources_Delete" />
                                         </Columns>

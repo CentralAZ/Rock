@@ -877,6 +877,7 @@ namespace com.centralaz.RoomManagement.Model
             target.ScheduleId = source.ScheduleId;
 
             target.CampusId = source.CampusId;
+            target.EventItemId = source.EventItemId;
             target.ReservationMinistryId = source.ReservationMinistryId;
 
             //target.ApprovalState = source.ApprovalState;

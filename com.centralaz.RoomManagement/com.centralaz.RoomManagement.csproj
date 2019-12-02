@@ -25,6 +25,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <UseVSHostingProcess>false</UseVSHostingProcess>
+    <DocumentationFile>bin\Debug\com.centralaz.RoomManagement.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -33,6 +34,7 @@
     <DefineConstants>TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Release\com.centralaz.RoomManagement.xml</DocumentationFile>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="DDay.iCal, Version=1.0.2.575, Culture=neutral, processorArchitecture=MSIL">
@@ -210,7 +212,7 @@
   <!-- Prepare the files to be zipped -->
   <Target Name="CopyFiles" DependsOnTargets="DeleteFiles">
     <ItemGroup>
-      <CopyFiles Include="$(OutputPath)com.centralaz.RoomManagement.dll;$(OutputPath)itextsharp.dll" />
+      <CopyFiles Include="$(OutputPath)com.centralaz.RoomManagement.dll;$(OutputPath)itextsharp.dll;$(OutputPath)com.centralaz.RoomManagement.xml" />
       <BlockCode Include="..\RockWeb\Plugins\com_centralaz\RoomManagement\**\*.*" />
       <VersionFile Include="builds\.version" />
     </ItemGroup>

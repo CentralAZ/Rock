@@ -79,8 +79,8 @@ namespace com.centralaz.RoomManagement.Model
         [DataMember]
         public bool IsSetupTimeRequired { get; set; }
 
-
-
+        [DataMember]
+        public bool IsReservationBookedOnApproval { get; set; }
 
         #endregion
 

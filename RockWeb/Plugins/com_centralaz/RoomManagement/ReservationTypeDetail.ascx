@@ -48,7 +48,7 @@
                         <div class="col-md-6">
                             <Rock:DataTextBox ID="tbName" runat="server" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="Name" />
                         </div>
-<%--                        <div class="col-md-6">
+                        <%--                        <div class="col-md-6">
                             <Rock:RockCheckBox ID="cbActive" runat="server" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="IsActive" Label="Active" Checked="true" Text="Yes" />
                         </div>--%>
                     </div>
@@ -57,21 +57,22 @@
 
                     <div class="row">
                         <div class="col-md-6">
-                            <Rock:DataTextBox ID="tbIconCssClass" runat="server" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="IconCssClass" ValidateRequestMode="Disabled"/>
-                            <Rock:RockDropDownList ID="ddlFinalApprovalGroup" runat="server" Label="Final Approval Group" ValidateRequestMode="Disabled" NumberType="Integer" MinimumValue="0"/>
-                            <Rock:RockDropDownList ID="ddlSuperAdminGroup" runat="server" Label="Super Admin Group" ValidateRequestMode="Disabled" NumberType="Integer" MinimumValue="0"/>
-                            <Rock:RockDropDownList ID="ddlNotificationEmail" runat="server"  Label="Notification Email" ValidateRequestMode="Disabled" NumberType="Integer" MinimumValue="0"/>
+                            <Rock:DataTextBox ID="tbIconCssClass" runat="server" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="IconCssClass" ValidateRequestMode="Disabled" />
+                            <Rock:RockDropDownList ID="ddlFinalApprovalGroup" runat="server" Label="Final Approval Group" ValidateRequestMode="Disabled" NumberType="Integer" MinimumValue="0" />
+                            <Rock:RockDropDownList ID="ddlSuperAdminGroup" runat="server" Label="Super Admin Group" ValidateRequestMode="Disabled" NumberType="Integer" MinimumValue="0" />
+                            <Rock:RockDropDownList ID="ddlNotificationEmail" runat="server" Label="Notification Email" ValidateRequestMode="Disabled" NumberType="Integer" MinimumValue="0" />
                         </div>
                         <div class="col-md-6">
-                            <Rock:RockCheckBox ID="cbIsCommunicationHistorySaved" runat="server" Label="Is Communication History Saved" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="IsCommunicationHistorySaved" />
-                            <Rock:RockCheckBox ID="cbIsNumberAttendingRequired" runat="server" Label="Is Number Attending Required" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="IsNumberAttendingRequired"  />
-                            <Rock:RockCheckBox ID="cbIsContactDetailsRequired" runat="server" Label="Are Contact Details Required" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="IsContactDetailsRequired" />
                             <div class="row">
                                 <div class="col-md-6">
                                     <Rock:RockCheckBox ID="cbIsSetupTimeRequired" runat="server" Label="Is Setup Time Required" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="IsSetupTimeRequired" />
+                                    <Rock:RockCheckBox ID="cbIsNumberAttendingRequired" runat="server" Label="Is Number Attending Required" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="IsNumberAttendingRequired" />
+                                    <Rock:RockCheckBox ID="cbIsContactDetailsRequired" runat="server" Label="Are Contact Details Required" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="IsContactDetailsRequired" />
+                                    <Rock:RockCheckBox ID="cbIsCommunicationHistorySaved" runat="server" Label="Is Communication History Saved" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="IsCommunicationHistorySaved" />
                                 </div>
                                 <div class="col-md-6">
-                            <Rock:NumberBox ID="nbDefaultSetupTime" runat="server" Label="Default Setup & Cleanup Time" Help="If you wish to default to a particular setup and cleanup time, you can supply a value here. (empty or -1 indicates no default value)" NumberType="Integer" MinimumValue="-1" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="DefaultSetupTime" />
+                                    <Rock:NumberBox ID="nbDefaultSetupTime" runat="server" Label="Default Setup & Cleanup Time" Help="If you wish to default to a particular setup and cleanup time, you can supply a value here. (empty or -1 indicates no default value)" NumberType="Integer" MinimumValue="-1" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="DefaultSetupTime" />
+                                    <Rock:RockCheckBox ID="cbIsReservationBookedOnApproval" runat="server" Label="Is Reservation Booked On Approval" Help="Are the resources and locations in this reservation booked once it's created, or only once it's approved?" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="IsReservationBookedOnApproval" />
                                 </div>
                             </div>
                         </div>
@@ -79,7 +80,7 @@
 
                     <Rock:PanelWidget ID="wpAttributes" runat="server" Title="Reservation Attributes">
                         <div class="grid">
-                            <Rock:Grid ID="gAttributes" runat="server" AllowPaging="false" DisplayType="Light" RowItemText="Reservation Attribute" ShowConfirmDeleteDialog="false" >
+                            <Rock:Grid ID="gAttributes" runat="server" AllowPaging="false" DisplayType="Light" RowItemText="Reservation Attribute" ShowConfirmDeleteDialog="false">
                                 <Columns>
                                     <Rock:ReorderField />
                                     <Rock:RockBoundField DataField="Name" HeaderText="Attribute" />
@@ -128,14 +129,14 @@
         <Rock:ModalAlert ID="modalAlert" runat="server" />
 
         <asp:HiddenField ID="hfActiveDialog" runat="server" />
-        
+
         <Rock:ModalDialog ID="dlgAttribute" runat="server" Title="Reservation Attributes" OnSaveClick="dlgReservationTypeAttribute_SaveClick" OnCancelScript="clearActiveDialog();" ValidationGroup="Attributes">
             <Content>
                 <Rock:AttributeEditor ID="edtAttributes" runat="server" ShowActions="false" ValidationGroup="Attributes" />
             </Content>
         </Rock:ModalDialog>
 
-         <Rock:ModalDialog ID="dlgMinistries" runat="server" ScrollbarEnabled="false" SaveButtonText="Add" OnSaveClick="btnAddMinistry_Click" Title="Add Ministry" ValidationGroup="Ministry">
+        <Rock:ModalDialog ID="dlgMinistries" runat="server" ScrollbarEnabled="false" SaveButtonText="Add" OnSaveClick="btnAddMinistry_Click" Title="Add Ministry" ValidationGroup="Ministry">
             <Content>
                 <asp:HiddenField ID="hfAddMinistryGuid" runat="server" />
                 <Rock:DataTextBox ID="tbMinistryName" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationMinistry, com.centralaz.RoomManagement" PropertyName="Name" Label="Ministry Name" runat="server" ValidationGroup="Ministry" />

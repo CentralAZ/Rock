@@ -94,6 +94,7 @@
     <Compile Include="Field\Types\ReservationFieldType.cs" />
     <Compile Include="Jobs\FireWorkflowFromReservationInDateRange.cs" />
     <Compile Include="Jobs\PopulateFirstLastOccurrenceDateTimes.cs" />
+    <Compile Include="Migrations\024_EventLinking.cs" />
     <Compile Include="Migrations\023_PerformanceImprovements.cs" />
     <Compile Include="Migrations\020_Bugfixes.cs" />
     <Compile Include="Lava\LavaFilters.cs" />

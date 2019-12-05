@@ -329,6 +329,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 reservationType.IsNumberAttendingRequired = cbIsNumberAttendingRequired.Checked;
                 reservationType.IsSetupTimeRequired = cbIsSetupTimeRequired.Checked;
                 reservationType.DefaultSetupTime = nbDefaultSetupTime.Text.AsIntegerOrNull();
+                reservationType.IsReservationBookedOnApproval = cbIsReservationBookedOnApproval.Checked;
 
                 foreach ( var reservationMinistryState in ReservationMinistriesState )
                 {
@@ -1099,6 +1100,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             tbDescription.Text = reservationType.Description;
             tbIconCssClass.Text = reservationType.IconCssClass;
             //cbActive.Checked = reservationType.IsActive;
+            cbIsReservationBookedOnApproval.Checked = reservationType.IsReservationBookedOnApproval;
             cbIsCommunicationHistorySaved.Checked = reservationType.IsCommunicationHistorySaved;
             cbIsContactDetailsRequired.Checked = reservationType.IsContactDetailsRequired;
             cbIsNumberAttendingRequired.Checked = reservationType.IsNumberAttendingRequired;

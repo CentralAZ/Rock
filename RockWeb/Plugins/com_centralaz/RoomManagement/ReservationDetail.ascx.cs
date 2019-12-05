@@ -320,7 +320,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// <param name="e">The <see cref="EventArgs" /> instance containing the event data.</param>
         protected void btnSave_OnClick( object sender, EventArgs e )
         {
-            nbErrorWarning.Visible = false;
+            nbError.Visible = false;
+            nbWarning.Visible = false;
 
             if ( Page.IsValid )
             {
@@ -558,8 +559,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 // Check to make sure there's a schedule
                 if ( String.IsNullOrWhiteSpace( lScheduleText.Text ) )
                 {
-                    nbErrorWarning.Text = "<b>Please add a schedule.</b>";
-                    nbErrorWarning.Visible = true;
+                    nbError.Text = "<b>Please add a schedule.</b>";
+                    nbError.Visible = true;
                     return;
                 }
 
@@ -568,8 +569,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
                 if ( !string.IsNullOrWhiteSpace( conflictInfo ) )
                 {
-                    nbErrorWarning.Text = conflictInfo;
-                    nbErrorWarning.Visible = true;
+                    nbError.Text = conflictInfo;
+                    nbError.Visible = true;
                     return;
                 }
 
@@ -897,6 +898,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         {
             using ( var rockContext = new RockContext() )
             {
+
                 var changes = new History.HistoryChangeList();
                 var reservationService = new ReservationService( rockContext );
                 var reservationResourceService = new ReservationResourceService( rockContext );
@@ -906,6 +908,17 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 var reservation = reservationService.Get( hfReservationId.ValueAsInt() );
                 if ( reservation != null )
                 {
+                    // Check to make sure there's no conflicts
+                    var conflictInfo = reservationService.GenerateConflictInfo( reservation, this.CurrentPageReference.Route );
+
+                    if ( !string.IsNullOrWhiteSpace( conflictInfo ) )
+                    {
+                        nbError.Text = conflictInfo;
+                        nbError.Visible = true;
+                        btnApprove.Visible = false;
+                        return;
+                    }
+
                     Reservation oldReservation = BuildOldReservation( resourceService, locationService, reservationService, reservation );
 
                     reservation.ApprovalState = ReservationApprovalState.Approved;
@@ -939,7 +952,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void sbSchedule_SaveSchedule( object sender, EventArgs e )
         {
-            nbErrorWarning.Visible = false;
+            nbError.Visible = false;
 
             var schedule = new Schedule { iCalendarContent = sbSchedule.iCalendarContent };
             lScheduleText.Text = schedule.FriendlyScheduleText;
@@ -1099,7 +1112,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// <param name="e">The <see cref="RowEventArgs"/> instance containing the event data.</param>
         protected void gResources_Delete( object sender, RowEventArgs e )
         {
-            nbErrorWarning.Visible = false;
+            nbError.Visible = false;
             Guid rowGuid = ( Guid ) e.RowKeyValue;
             ResourcesState.RemoveEntity( rowGuid );
 
@@ -1140,7 +1153,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// <param name="reservationResourceGuid">The reservation resource unique identifier.</param>
         protected void gResources_ShowEdit( Guid reservationResourceGuid )
         {
-            nbErrorWarning.Visible = false;
+            nbError.Visible = false;
             nbQuantity.Label = "Quantity";
 
             ReservationResourceSummary reservationResource = ResourcesState.FirstOrDefault( l => l.Guid.Equals( reservationResourceGuid ) );
@@ -1426,7 +1439,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// <param name="e">The <see cref="RowEventArgs"/> instance containing the event data.</param>
         protected void gLocations_Delete( object sender, RowEventArgs e )
         {
-            nbErrorWarning.Visible = false;
+            nbError.Visible = false;
             Guid rowGuid = ( Guid ) e.RowKeyValue;
 
             // check for attached resources and remove them too
@@ -1491,7 +1504,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// <param name="reservationLocationGuid">The reservation location unique identifier.</param>
         protected void gLocations_ShowEdit( Guid reservationLocationGuid )
         {
-            nbErrorWarning.Visible = false;
+            nbError.Visible = false;
             ReservationLocationSummary reservationLocation = LocationsState.FirstOrDefault( l => l.Guid.Equals( reservationLocationGuid ) );
             if ( reservationLocation != null )
             {
@@ -1805,12 +1818,31 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             Reservation reservation = null;
 
             var rockContext = new RockContext();
+            var reservationService = new ReservationService( rockContext );
 
             if ( !reservationId.Equals( 0 ) )
             {
-                reservation = new ReservationService( rockContext ).Get( reservationId );
+                reservation = reservationService.Get( reservationId );
                 hfReservationId.Value = reservationId.ToString();
                 pdAuditDetails.SetEntity( reservation, ResolveRockUrl( "~" ) );
+
+                // Check to make sure there's no conflicts
+                var warningInfo = reservationService.GenerateConflictInfo( reservation, this.CurrentPageReference.Route, true );
+
+                if ( !string.IsNullOrWhiteSpace( warningInfo ) )
+                {
+                    nbWarning.Text = warningInfo;
+                    nbWarning.Visible = true;
+                }
+
+                // Check to make sure there's no conflicts
+                var conflictInfo = reservationService.GenerateConflictInfo( reservation, this.CurrentPageReference.Route, false );
+
+                if ( !string.IsNullOrWhiteSpace( conflictInfo ) )
+                {
+                    nbError.Text = conflictInfo;
+                    nbError.Visible = true;
+                }
             }
 
             if ( reservation == null )
@@ -1937,9 +1969,11 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             canApprove = ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId )
                 || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId );
 
-            btnApprove.Visible = btnDeny.Visible = ( reservation.ApprovalState == ReservationApprovalState.PendingReview && ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId ) );
+            btnApprove.Visible =  ( reservation.ApprovalState == ReservationApprovalState.PendingReview && ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId ) ) && !nbError.Text.IsNotNullOrWhiteSpace();
             btnDeny.Visible = ( reservation.ApprovalState == ReservationApprovalState.PendingReview && ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId ) ) || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId );
             btnOverride.Visible = ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId );
+
+      
 
             // Show the delete button if the person is authorized to delete it
             if ( canApprove || CurrentPersonAliasId == reservation.CreatedByPersonAliasId || reservation.AdministrativeContactPersonAliasId == CurrentPersonAliasId )

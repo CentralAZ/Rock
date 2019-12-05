@@ -26,7 +26,8 @@
                 <Rock:NotificationBox ID="nbEditModeMessage" runat="server" NotificationBoxType="Info" />
 
                 <asp:ValidationSummary ID="ValidationSummary1" runat="server" HeaderText="Please Correct the Following" CssClass="alert alert-danger" />
-                <Rock:NotificationBox ID="nbErrorWarning" runat="server" NotificationBoxType="Danger" />
+                <Rock:NotificationBox ID="nbError" runat="server" NotificationBoxType="Danger" />
+                <Rock:NotificationBox ID="nbWarning" runat="server" NotificationBoxType="Warning" />
 
                 <asp:Panel ID="pnlViewDetails" runat="server">
 

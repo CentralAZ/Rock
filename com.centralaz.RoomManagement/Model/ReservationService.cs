@@ -128,9 +128,9 @@ namespace com.centralaz.RoomManagement.Model
         /// </summary>
         /// <param name="newReservation">The new reservation.</param>
         /// <returns></returns>
-        private IEnumerable<ReservationSummary> GetConflictingReservationSummaries( Reservation newReservation )
+        private IEnumerable<ReservationSummary> GetConflictingReservationSummaries( Reservation newReservation, bool arePotentialConflictsReturned = false )
         {
-            return GetConflictingReservationSummaries( newReservation, Queryable() );
+            return GetConflictingReservationSummaries( newReservation, Queryable(), arePotentialConflictsReturned );
         }
 
         /// <summary>
@@ -139,10 +139,16 @@ namespace com.centralaz.RoomManagement.Model
         /// <param name="newReservation">The new reservation.</param>
         /// <param name="existingReservationQry">The existing reservation qry.</param>
         /// <returns></returns>
-        private IEnumerable<ReservationSummary> GetConflictingReservationSummaries( Reservation newReservation, IQueryable<Reservation> existingReservationQry )
+        private IEnumerable<ReservationSummary> GetConflictingReservationSummaries( Reservation newReservation, IQueryable<Reservation> existingReservationQry, bool arePotentialConflictsReturned = false )
         {
             var newReservationSummaries = GetReservationSummaries( new List<Reservation>() { newReservation }.AsQueryable(), RockDateTime.Now.AddMonths( -1 ), RockDateTime.Now.AddYears( 1 ) );
-            var conflictingSummaryList = GetReservationSummaries( existingReservationQry.AsNoTracking().Where( r => r.Id != newReservation.Id && r.ApprovalState != ReservationApprovalState.Denied ), RockDateTime.Now.AddMonths( -1 ), RockDateTime.Now.AddYears( 1 ) )
+            var conflictingSummaryList = GetReservationSummaries( existingReservationQry.AsNoTracking().Where( r => r.Id != newReservation.Id
+                                                                    && r.ApprovalState != ReservationApprovalState.Denied
+                                                                    && (
+                                                                        ( arePotentialConflictsReturned == false && ( !r.ReservationType.IsReservationBookedOnApproval || r.ApprovalState == ReservationApprovalState.Approved )) ||
+                                                                        ( arePotentialConflictsReturned == true && r.ReservationType.IsReservationBookedOnApproval && r.ApprovalState != ReservationApprovalState.Approved )
+                                                                        )
+                                                        ), RockDateTime.Now.AddMonths( -1 ), RockDateTime.Now.AddYears( 1 ) )
                 .Where( currentReservationSummary => newReservationSummaries.Any( newReservationSummary =>
                  ( currentReservationSummary.ReservationStartDateTime > newReservationSummary.ReservationStartDateTime || currentReservationSummary.ReservationEndDateTime > newReservationSummary.ReservationStartDateTime ) &&
                  ( currentReservationSummary.ReservationStartDateTime < newReservationSummary.ReservationEndDateTime || currentReservationSummary.ReservationEndDateTime < newReservationSummary.ReservationEndDateTime )
@@ -182,20 +188,29 @@ namespace com.centralaz.RoomManagement.Model
         /// <param name="reservation">The reservation.</param>
         /// <param name="detailPageRoute">The detail page route.</param>
         /// <returns></returns>
-        public string GenerateConflictInfo( Reservation reservation, string detailPageRoute )
+        public string GenerateConflictInfo( Reservation reservation, string detailPageRoute, bool arePotentialConflictsReturned = false )
         {
             // Check to make sure that nothing has a scheduling conflict.
             bool hasConflict = false;
             StringBuilder sb = new StringBuilder();
-            sb.Append( "<b>The following items are already reserved for the scheduled times:<br><ul>" );
-            var reservedLocationIds = GetReservedLocationIds( reservation, true );
+
+            if ( arePotentialConflictsReturned )
+            {
+                sb.Append( "<b>The following items have already been requested for the scheduled times:<br><ul>" );
+            }
+            else
+            {
+                sb.Append( "<b>The following items are already reserved for the scheduled times:<br><ul>" );
+            }
+
+            var reservedLocationIds = GetReservedLocationIds( reservation, true, arePotentialConflictsReturned );
 
             // Check self
             string message = string.Empty;
             foreach ( var location in reservation.ReservationLocations.Where( l => reservedLocationIds.Contains( l.LocationId ) ) )
             {
                 //sb.AppendFormat( "<li>{0}</li>", location.Location.Name );
-                message = BuildLocationConflictHtmlList( reservation, location.Location.Id, detailPageRoute );
+                message = BuildLocationConflictHtmlList( reservation, location.Location.Id, detailPageRoute, arePotentialConflictsReturned );
                 if ( message != null )
                 {
                     sb.AppendFormat( "<li>{0} due to:<ul>{1}</ul></li>", location.Location.Name, message );
@@ -210,10 +225,11 @@ namespace com.centralaz.RoomManagement.Model
             // Check resources...
             foreach ( var resource in reservation.ReservationResources )
             {
-                var availableQuantity = GetAvailableResourceQuantity( resource.Resource, reservation );
+                var availableQuantity = GetAvailableResourceQuantity( resource.Resource, reservation, arePotentialConflictsReturned );
                 if ( availableQuantity - resource.Quantity < 0 )
                 {
-                    sb.AppendFormat( "<li>{0} [note: only {1} available]</li>", resource.Resource.Name, availableQuantity );
+                    message = BuildResourceConflictHtmlList( reservation, resource.Resource.Id, detailPageRoute, arePotentialConflictsReturned );
+                    sb.AppendFormat( "<li>{0} [note: only {1} available] due to:<ul>{2}</ul></li>", resource.Resource.Name, availableQuantity, message );
                     hasConflict = true;
                 }
             }
@@ -511,7 +527,7 @@ namespace com.centralaz.RoomManagement.Model
         /// </summary>
         /// <param name="newReservation">The new reservation.</param>
         /// <returns></returns>
-        public List<int> GetReservedLocationIds( Reservation newReservation, bool filterByLocations = true )
+        public List<int> GetReservedLocationIds( Reservation newReservation, bool filterByLocations = true, bool arePotentialConflictsReturned = false )
         {
             var locationService = new LocationService( new RockContext() );
 
@@ -530,7 +546,7 @@ namespace com.centralaz.RoomManagement.Model
             }
 
             // Check existing Reservations for conflicts
-            IEnumerable<ReservationSummary> conflictingReservationSummaries = GetConflictingReservationSummaries( newReservation, existingReservationQry );
+            IEnumerable<ReservationSummary> conflictingReservationSummaries = GetConflictingReservationSummaries( newReservation, existingReservationQry, arePotentialConflictsReturned );
 
             // Grab any locations booked by conflicting Reservations
             var reservedLocationIds = conflictingReservationSummaries.SelectMany( currentReservationSummary =>
@@ -554,7 +570,7 @@ namespace com.centralaz.RoomManagement.Model
         /// <param name="locationId">The location identifier.</param>
         /// <param name="newReservation">The new reservation.</param>
         /// <returns></returns>
-        public List<ReservationConflict> GetConflictsForLocationId( int locationId, Reservation newReservation )
+        public List<ReservationConflict> GetConflictsForLocationId( int locationId, Reservation newReservation, bool arePotentialConflictsReturned = false )
         {
             var locationService = new LocationService( new RockContext() );
 
@@ -567,7 +583,7 @@ namespace com.centralaz.RoomManagement.Model
             var existingReservationQry = Queryable().Where( r => r.ReservationLocations.Any( rl => relevantLocationIds.Contains( rl.LocationId ) ) );
 
             // Check existing Reservations for conflicts
-            IEnumerable<ReservationSummary> conflictingReservationSummaries = GetConflictingReservationSummaries( newReservation, existingReservationQry );
+            IEnumerable<ReservationSummary> conflictingReservationSummaries = GetConflictingReservationSummaries( newReservation, existingReservationQry, arePotentialConflictsReturned );
             var locationConflicts = conflictingReservationSummaries.SelectMany( currentReservationSummary =>
                     currentReservationSummary.ReservationLocations.Where( rl =>
                         rl.ApprovalState != ReservationLocationApprovalState.Denied &&
@@ -591,9 +607,9 @@ namespace com.centralaz.RoomManagement.Model
         /// <param name="locationId">The location identifier.</param>
         /// <param name="rockContext">The rock context.</param>
         /// <returns>an HTML List if conflicts exists; null otherwise.</returns>
-        public string BuildLocationConflictHtmlList( Reservation newReservation, int locationId, string detailPageRoute )
+        public string BuildLocationConflictHtmlList( Reservation newReservation, int locationId, string detailPageRoute, bool arePotentialConflictsReturned = false )
         {
-            var conflicts = GetConflictsForLocationId( locationId, newReservation );
+            var conflicts = GetConflictsForLocationId( locationId, newReservation, arePotentialConflictsReturned );
 
             if ( conflicts.Any() )
             {
@@ -618,6 +634,40 @@ namespace com.centralaz.RoomManagement.Model
             }
         }
 
+        /// <summary>
+        /// Builds a conflict message string (as HTML List) and returns it if there are resource conflicts.
+        /// </summary>
+        /// <param name="locationId">The resource identifier.</param>
+        /// <param name="rockContext">The rock context.</param>
+        /// <returns>an HTML List if conflicts exists; null otherwise.</returns>
+        public string BuildResourceConflictHtmlList( Reservation newReservation, int resourceId, string detailPageRoute, bool arePotentialConflictsReturned = false )
+        {
+            var conflicts = GetConflictsForResourceId( resourceId, newReservation, arePotentialConflictsReturned );
+
+            if ( conflicts.Any() )
+            {
+                StringBuilder sb = new StringBuilder();
+                detailPageRoute = detailPageRoute.StartsWith( "/" ) ? detailPageRoute : "/" + detailPageRoute;
+
+                foreach ( var conflict in conflicts )
+                {
+                    sb.AppendFormat( "<li>{0} ({5}) [on {1} via <a href='{4}?ReservationId={2}' target='_blank'>'{3}'</a>]</li>",
+                        conflict.Resource.Name,
+                        conflict.Reservation.Schedule.ToFriendlyScheduleText(),
+                        conflict.ReservationId,
+                        conflict.Reservation.Name,
+                        detailPageRoute,
+                        conflict.ResourceQuantity
+                        );
+                }
+                return sb.ToString();
+            }
+            else
+            {
+                return null;
+            }
+        }
+
         #endregion
 
         #region Resource Conflict Methods
@@ -629,7 +679,7 @@ namespace com.centralaz.RoomManagement.Model
         /// <param name="resource">The resource.</param>
         /// <param name="reservation">The reservation.</param>
         /// <returns>a quantity of available resources at </returns>
-        public int GetAvailableResourceQuantity( Resource resource, Reservation reservation )
+        public int GetAvailableResourceQuantity( Resource resource, Reservation reservation, bool arePotentialConflictsReturned = false )
         {
             // For each new reservation summary, make sure that the quantities of existing summaries that come into contact with it
             // do not exceed the resource's quantity
@@ -638,7 +688,14 @@ namespace com.centralaz.RoomManagement.Model
             // now) which have the given resource in them.
             var existingReservationSummaries = GetReservationSummaries(
                 Queryable().AsNoTracking()
-                .Where( r => r.Id != reservation.Id && r.ApprovalState != ReservationApprovalState.Denied && r.ReservationResources.Any( rr => resource.Id == rr.ResourceId ) ),
+                .Where( r => r.Id != reservation.Id
+                        && r.ApprovalState != ReservationApprovalState.Denied
+                        && (
+                            ( arePotentialConflictsReturned == false && ( !r.ReservationType.IsReservationBookedOnApproval || r.ApprovalState == ReservationApprovalState.Approved )) ||
+                            ( arePotentialConflictsReturned == true && r.ReservationType.IsReservationBookedOnApproval && r.ApprovalState != ReservationApprovalState.Approved )
+                            )
+                        && r.ReservationResources.Any( rr => resource.Id == rr.ResourceId )
+                        ),
                 RockDateTime.Now.AddMonths( -1 ), RockDateTime.Now.AddYears( 1 ) );
 
             // Now narrow the reservations down to only the ones in the matching/overlapping time frame
@@ -662,13 +719,13 @@ namespace com.centralaz.RoomManagement.Model
         /// <param name="resourceId">The resource identifier.</param>
         /// <param name="newReservation">The new reservation.</param>
         /// <returns></returns>
-        public List<ReservationConflict> GetConflictsForResourceId( int resourceId, Reservation newReservation )
+        public List<ReservationConflict> GetConflictsForResourceId( int resourceId, Reservation newReservation, bool arePotentialConflictsReturned = false )
         {
             // Get any Reservations containing related Locations
             var existingReservationQry = Queryable().Where( r => r.ReservationResources.Any( rl => rl.ResourceId == resourceId ) );
 
             // Check existing Reservations for conflicts
-            IEnumerable<ReservationSummary> conflictingReservationSummaries = GetConflictingReservationSummaries( newReservation, existingReservationQry );
+            IEnumerable<ReservationSummary> conflictingReservationSummaries = GetConflictingReservationSummaries( newReservation, existingReservationQry, arePotentialConflictsReturned );
             var locationConflicts = conflictingReservationSummaries.SelectMany( currentReservationSummary =>
                     currentReservationSummary.ReservationResources.Where( rr =>
                         rr.ApprovalState != ReservationResourceApprovalState.Denied &&

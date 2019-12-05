@@ -41,6 +41,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
     [Description( "Block for viewing a list of reservations." )]
 
     [LinkedPage( "Detail Page" )]
+    [TextField("Related Entity Query String Parameter", "The query string parameter that holds id to the related entity.", false )]
     public partial class ReservationList : Rock.Web.UI.RockBlock
     {
         #region Control Methods
@@ -59,6 +60,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             gReservations.DataKeyNames = new string[] { "Id" };
             gReservations.Actions.ShowAdd = false;
             gReservations.GridRebind += gReservations_GridRebind;
+
+            this.BlockUpdated += Block_BlockUpdated;
         }
 
         /// <summary>
@@ -91,7 +94,6 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             parms.Add( "ReservationId", e.RowKeyValue.ToString() );
             NavigateToLinkedPage( "DetailPage", parms );
         }
-
 
         /// <summary>
         /// Handles the GridRebind event of the gReservations control.
@@ -244,6 +246,15 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             BindGrid();
         }
 
+        /// <summary>
+        /// Handles the BlockUpdated event of the control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void Block_BlockUpdated( object sender, EventArgs e )
+        {
+            BindGrid();
+        }
         #endregion
 
         #region Methods
@@ -324,9 +335,28 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// </summary>
         private void BindGrid()
         {
+            nbMessage.Visible = false;
+
             var rockContext = new RockContext();
             var reservationService = new ReservationService( rockContext );
             var qry = reservationService.Queryable();
+
+            // Get the related entity query string parameter if it was configured
+            var relatedEntity = GetAttributeValue( "RelatedEntityQueryStringParameter" );
+            int? entityId = null;
+            if ( !string.IsNullOrWhiteSpace( relatedEntity ) )
+            {
+                entityId = PageParameter( relatedEntity ).AsIntegerOrNull();
+
+                if ( entityId != null && RelatedEntities.EventItemId.ToString() == relatedEntity )
+                {
+                    qry = qry.Where( r => r.EventItemId == entityId );
+                }
+                else
+                {
+                    ShowMessage( string.Format( "Unsupported Related Entity QueryString Parameter '{0}'", relatedEntity ) );
+                }
+            }
 
             // Filter by Name
             if ( !String.IsNullOrWhiteSpace( tbName.Text ) )
@@ -415,6 +445,12 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             gReservations.DataBind();
         }
 
+        private void ShowMessage( string message )
+        {
+            nbMessage.Visible = true;
+            nbMessage.Text = message;
+        }
+
         #endregion
 
 
@@ -435,5 +471,10 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             public const string APPROVAL_STATE = "Approval State";
         }
         #endregion
+
+        private enum RelatedEntities
+        {
+            EventItemId
+        }
     }
 }

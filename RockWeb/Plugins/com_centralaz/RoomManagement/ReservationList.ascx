@@ -11,6 +11,7 @@
             </div>
             <div class="panel-body">
                 <div class="grid grid-panel">
+                    <Rock:NotificationBox ID="nbMessage" runat="server" NotificationBoxType="Warning" Visible="false"></Rock:NotificationBox>
                     <Rock:GridFilter ID="gfSettings" runat="server">
                         <Rock:RockTextBox ID="tbName" runat="server" Label="Reservation Name" />
                         <Rock:RockCheckBoxList ID="cblReservationType" RepeatDirection="Horizontal" Label="Reservation Type" runat="server" DataTextField="Name" DataValueField="Id" />

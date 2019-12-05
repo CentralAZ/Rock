@@ -28,7 +28,11 @@ namespace com.centralaz.RoomManagement.Migrations
 
                 CREATE INDEX IX_EventItemId ON [dbo].[_com_centralaz_RoomManagement_Reservation] (EventItemId)
                 " );
-            
+
+            Sql( @"ALTER TABLE [_com_centralaz_RoomManagement_ReservationType] ADD [IsReservationBookedOnApproval] [bit] NOT NULL DEFAULT 0;" );
+            Sql( @"UPDATE [_com_centralaz_RoomManagement_ReservationType] SET [IsReservationBookedOnApproval] = 0;
+                " );
+
         }
 
         public override void Down()
@@ -37,6 +41,10 @@ namespace com.centralaz.RoomManagement.Migrations
                 DROP INDEX IX_EventItemId ON [dbo].[_com_centralaz_RoomManagement_Reservation]
 
                 ALTER TABLE [dbo].[_com_centralaz_RoomManagement_Reservation] DROP COLUMN [EventItemId]
+                " );
+
+            Sql( @"
+                ALTER TABLE [dbo].[_com_centralaz_RoomManagement_ReservationType] DROP COLUMN [IsReservationBookedOnApproval]
                 " );
 
         }

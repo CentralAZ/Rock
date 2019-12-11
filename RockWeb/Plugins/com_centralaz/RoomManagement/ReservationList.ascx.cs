@@ -348,9 +348,9 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             {
                 entityId = PageParameter( relatedEntity ).AsIntegerOrNull();
 
-                if ( entityId != null && RelatedEntities.EventItemId.ToString() == relatedEntity )
+                if ( entityId != null && RelatedEntities.EventItemOccurrenceId.ToString() == relatedEntity )
                 {
-                    qry = qry.Where( r => r.EventItemId == entityId );
+                    qry = qry.Where( r => r.EventItemOccurrenceId == entityId );
                 }
                 else
                 {
@@ -417,8 +417,15 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             // Filter by Time
             var today = RockDateTime.Today;
-            var filterStartDateTime = dtpStartDateTime.SelectedDateTime ?? today;
-            var filterEndDateTime = dtpEndDateTime.SelectedDateTime ?? today.AddMonths( 1 );
+            var defaultStartDateTime = today;
+            var defaultEndDateTime = today.AddMonths( 1 );
+            if( entityId.HasValue )
+            {
+                 defaultStartDateTime = DateTime.MinValue.AddMonths(1);
+                 defaultEndDateTime = DateTime.MaxValue.AddMonths(-1);
+            }
+            var filterStartDateTime = dtpStartDateTime.SelectedDateTime ?? defaultStartDateTime;
+            var filterEndDateTime = dtpEndDateTime.SelectedDateTime ?? defaultEndDateTime;
             var reservationSummaryList = reservationService.GetReservationSummaries( qry, filterStartDateTime, filterEndDateTime, false );
 
             // Bind to Grid
@@ -474,7 +481,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
         private enum RelatedEntities
         {
-            EventItemId
+            EventItemOccurrenceId
         }
     }
 }

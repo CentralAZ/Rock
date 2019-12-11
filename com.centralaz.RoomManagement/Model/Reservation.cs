@@ -55,7 +55,7 @@ namespace com.centralaz.RoomManagement.Model
         public int? CampusId { get; set; }
 
         [DataMember]
-        public int? EventItemId { get; set; }
+        public int? EventItemOccurrenceId { get; set; }
 
         [DataMember]
         public int? ReservationMinistryId { get; set; }
@@ -177,7 +177,7 @@ namespace com.centralaz.RoomManagement.Model
         public virtual Campus Campus { get; set; }
 
         [LavaInclude]
-        public virtual EventItem EventItem { get; set; }
+        public virtual EventItemOccurrence EventItemOccurrence { get; set; }
 
         [LavaInclude]
         public virtual ReservationMinistry ReservationMinistry { get; set; }
@@ -488,7 +488,7 @@ namespace com.centralaz.RoomManagement.Model
         {
             this.HasRequired( p => p.ReservationType ).WithMany( p => p.Reservations ).HasForeignKey( p => p.ReservationTypeId ).WillCascadeOnDelete( true );
             this.HasRequired( r => r.Campus ).WithMany().HasForeignKey( r => r.CampusId ).WillCascadeOnDelete( false );
-            this.HasRequired( r => r.EventItem ).WithMany().HasForeignKey( r => r.EventItemId ).WillCascadeOnDelete( false );
+            this.HasRequired( r => r.EventItemOccurrence ).WithMany().HasForeignKey( r => r.EventItemOccurrenceId ).WillCascadeOnDelete( false );
             this.HasRequired( r => r.ReservationMinistry ).WithMany().HasForeignKey( r => r.ReservationMinistryId ).WillCascadeOnDelete( false );
             this.HasRequired( r => r.Schedule ).WithMany().HasForeignKey( r => r.ScheduleId ).WillCascadeOnDelete( false );
             this.HasRequired( r => r.RequesterAlias ).WithMany().HasForeignKey( r => r.RequesterAliasId ).WillCascadeOnDelete( false );

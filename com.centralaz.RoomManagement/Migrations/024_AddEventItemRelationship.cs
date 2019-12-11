@@ -24,9 +24,9 @@ namespace com.centralaz.RoomManagement.Migrations
         public override void Up()
         {
             Sql( @"
-                ALTER TABLE [dbo].[_com_centralaz_RoomManagement_Reservation] ADD [EventItemId] [int] NULL
+                ALTER TABLE [dbo].[_com_centralaz_RoomManagement_Reservation] ADD [EventItemOccurrenceId] [int] NULL
 
-                CREATE INDEX IX_EventItemId ON [dbo].[_com_centralaz_RoomManagement_Reservation] (EventItemId)
+                CREATE INDEX IX_EventItemOccurrenceId ON [dbo].[_com_centralaz_RoomManagement_Reservation] (EventItemOccurrenceId)
                 " );
 
             Sql( @"ALTER TABLE [_com_centralaz_RoomManagement_ReservationType] ADD [IsReservationBookedOnApproval] [bit] NOT NULL DEFAULT 0;" );
@@ -38,9 +38,9 @@ namespace com.centralaz.RoomManagement.Migrations
         public override void Down()
         {
             Sql( @"
-                DROP INDEX IX_EventItemId ON [dbo].[_com_centralaz_RoomManagement_Reservation]
+                DROP INDEX IX_EventItemOccurrenceId ON [dbo].[_com_centralaz_RoomManagement_Reservation]
 
-                ALTER TABLE [dbo].[_com_centralaz_RoomManagement_Reservation] DROP COLUMN [EventItemId]
+                ALTER TABLE [dbo].[_com_centralaz_RoomManagement_Reservation] DROP COLUMN [EventItemOccurrenceId]
                 " );
 
             Sql( @"

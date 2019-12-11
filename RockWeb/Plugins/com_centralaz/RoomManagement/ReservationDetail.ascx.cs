@@ -47,6 +47,33 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
     [Category( "com_centralaz > Room Management" )]
     [Description( "Block for viewing a reservation detail" )]
 
+    [BooleanField(
+        "Allow Creating New Calendar Events",
+        Key = AttributeKey.AllowCreatingNewCalendarEvents,
+        Description = "If set to \"Yes\", the staff person will be offered the \"New Event\" tab to create a new event and a new occurrence of that event, rather than only picking from existing events.",
+        Category = "",
+        IsRequired = true,
+        DefaultValue = "true",
+        Order = 1 )]
+
+    [BooleanField(
+        "Include Inactive Calendar Items",
+        Key = AttributeKey.IncludeInactiveCalendarItems,
+        Description = "Check this box to hide inactive calendar items.",
+        Category = "",
+        IsRequired = false,
+        DefaultValue = "true",
+        Order = 3 )]
+
+    [EventCalendarField(
+        "Default Calendar",
+        Key = AttributeKey.DefaultCalendar,
+        Description = "The default calendar which will be pre-selected if the staff person is permitted to create new calendar events.",
+        Category = "",
+        IsRequired = false,
+        DefaultValue = "",
+        Order = 6 )]
+
     public partial class ReservationDetail : Rock.Web.UI.RockBlock, IDetailBlock
     {
         #region Fields
@@ -55,9 +82,17 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         protected string ApprovedCss = "btn-default";
         protected string DeniedCss = "btn-default";
 
+        protected static class AttributeKey
+        {
+            public const string DefaultCalendar = "DefaultCalendar";
+            public const string AllowCreatingNewCalendarEvents = "AllowCreatingNewCalendarEvents";
+            public const string IncludeInactiveCalendarItems = "IncludeInactiveCalendarItems";
+        }
+
         #endregion
 
         #region Properties
+
         /// <summary>
         /// Gets the base resource picker REST URL.
         /// </summary>
@@ -114,6 +149,9 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// The type of the reservation.
         /// </value>
         private ReservationType ReservationType { get; set; }
+
+        private EventItemOccurrence EventItemOccurrence { get; set; }
+        private EventItem EventItem { get; set; }
 
         /// <summary>
         /// Gets or sets the state of the resources.
@@ -172,6 +210,26 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             {
                 ReservationType = JsonConvert.DeserializeObject<ReservationType>( json );
             }
+
+            json = ViewState["EventItemOccurrence"] as string;
+            if ( string.IsNullOrWhiteSpace( json ) )
+            {
+                EventItemOccurrence = null;
+            }
+            else
+            {
+                EventItemOccurrence = JsonConvert.DeserializeObject<EventItemOccurrence>( json );
+            }
+
+            json = ViewState["EventItem"] as string;
+            if ( string.IsNullOrWhiteSpace( json ) )
+            {
+                EventItem = null;
+            }
+            else
+            {
+                EventItem = JsonConvert.DeserializeObject<EventItem>( json );
+            }
         }
 
         /// <summary>
@@ -181,6 +239,16 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         protected override void OnInit( EventArgs e )
         {
             base.OnInit( e );
+
+            // Tell the browsers to not cache. This will help prevent browser using stale wizard stuff after navigating away from this page
+            Page.Response.Cache.SetCacheability( System.Web.HttpCacheability.NoCache );
+            Page.Response.Cache.SetExpires( DateTime.UtcNow.AddHours( -1 ) );
+            Page.Response.Cache.SetNoStore();
+
+            // Hide inactive events if the option has been selected.
+            // eipSelectedEvent.IncludeInactive = GetAttributeValue( AttributeKey.IncludeInactiveCalendarItems ).AsBoolean();
+
+            Init_SetupAudienceControls();
 
             RockPage.AddCSSLink( ResolveRockUrl( "~/Styles/fluidbox.css" ) );
             Page.Header.Controls.Add( new LiteralControl( "<link rel=\"stylesheet\" type=\"text/css\" media=\"print\" href=\"/Plugins/com_centralaz/RoomManagement/Assets/Styles/print.css\" />" ) );
@@ -195,7 +263,6 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             gResources.Actions.AddClick += gResources_Add;
             gResources.GridRebind += gResources_GridRebind;
 
-
             gViewLocations.DataKeyNames = new string[] { "Guid" };
             gViewLocations.GridRebind += gLocations_GridRebind;
 
@@ -204,14 +271,16 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             rptWorkflows.ItemCommand += rptWorkflows_ItemCommand;
 
+            cblCalendars.SelectedIndexChanged += cblCalendars_SelectionChanged;
+            //cblCalendars.OnSelectionChanged += cblCalendars.OnSelectionChanged;
 
             // this event gets fired after block settings are updated. it's nice to repaint the screen if these settings would alter it
             this.AddConfigurationUpdateTrigger( upnlContent );
 
-
-
             btnDelete.Attributes["onclick"] = string.Format( "javascript: return Rock.dialogs.confirmDelete(event, '{0}');", Reservation.FriendlyTypeName );
 
+            // Build calendar item attributes on every Init event to ensure they are populated by ViewState.
+            ShowItemAttributes();
         }
 
         /// <summary>
@@ -265,6 +334,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 ContractResolver = new Rock.Utility.IgnoreUrlEncodedKeyContractResolver()
             };
 
+            ViewState["EventItemOccurrence"] = JsonConvert.SerializeObject( EventItemOccurrence, Formatting.None, jsonSetting );
+            ViewState["EventItem"] = JsonConvert.SerializeObject( EventItem, Formatting.None, jsonSetting );
             ViewState["ReservationType"] = JsonConvert.SerializeObject( ReservationType, Formatting.None, jsonSetting );
             ViewState["ResourcesState"] = JsonConvert.SerializeObject( ResourcesState, Formatting.None, jsonSetting );
             ViewState["LocationsState"] = JsonConvert.SerializeObject( LocationsState, Formatting.None, jsonSetting );
@@ -603,7 +674,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     foreach ( var reservationResource in reservation.ReservationResources )
                     {
                         reservationResource.SaveAttributeValues( rockContext );
-                    }
+                    }                  
 
                     reservation.SaveAttributeValues( rockContext );
 
@@ -702,6 +773,10 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             srpResource.SetExtraRestParams( srpResource.ShowAllResources );
 
             BaseResourceRestUrl = srpResource.ItemRestUrlExtraParams;
+            if ( EventItemOccurrence != null && EventItemOccurrence.Id == 0 )
+            {
+                EventItemOccurrence.CampusId = ddlCampus.SelectedValueAsInt();
+            }
             ddlCampus.Focus();
         }
 
@@ -783,6 +858,11 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             var reservationService = new ReservationService( new RockContext() );
 
             var newItem = reservationService.GetNewFromTemplate( id );
+            if ( newItem.EventItemOccurrenceId.HasValue )
+            {
+                newItem.EventItemOccurrence = new EventItemOccurrenceService( new RockContext() ).Get( newItem.EventItemOccurrenceId.Value );
+                newItem.EventItemOccurrence.EventItem = new EventItemService( new RockContext() ).Get( newItem.EventItemOccurrence.EventItemId );
+            }
 
             if ( newItem == null )
             {
@@ -809,6 +889,12 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 rrSummary.CopyPropertiesFrom( reservationResource );
                 ResourcesState.Add( rrSummary );
             }
+
+            EventItemOccurrence = new EventItemOccurrence();
+            EventItemOccurrence.CopyPropertiesFrom( newItem.EventItemOccurrence );
+
+            EventItem = new EventItem();
+            EventItem.CopyPropertiesFrom( newItem.EventItemOccurrence.EventItem );
 
             btnCopy.Visible = false;
             btnDelete.Visible = false;
@@ -956,6 +1042,11 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             var schedule = new Schedule { iCalendarContent = sbSchedule.iCalendarContent };
             lScheduleText.Text = schedule.FriendlyScheduleText;
+
+            if ( EventItemOccurrence != null && EventItemOccurrence.Id == 0 )
+            {
+                EventItemOccurrence.Schedule.iCalendarContent = sbSchedule.iCalendarContent;
+            }
             LoadPickers();
         }
 
@@ -1803,9 +1894,215 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
         #endregion
 
+        #region Reservation Event Occurrence Events
+
+        #region Wizard LinkButton Event Handlers        
+
+        protected void lbEvent_Click( object sender, EventArgs e )
+        {
+            SetActiveWizardStep( ActiveWizardStep.Event );
+        }
+
+        protected void lbEventOccurrence_Click( object sender, EventArgs e )
+        {
+            SetActiveWizardStep( ActiveWizardStep.EventOccurrence );
+        }
+
+        protected void lbPrev_Event_Click( object sender, EventArgs e )
+        {
+            //  SetActiveWizardStep( ActiveWizardStep.Registration );
+        }
+
+        protected void lbNext_Event_Click( object sender, EventArgs e )
+        {
+            if ( ( tglEventSelection.Checked ) || ( eipSelectedEvent.SelectedValueAsId() != null ) )
+            {
+                SetActiveWizardStep( ActiveWizardStep.EventOccurrence );
+            }
+            else
+            {
+                SetActiveWizardStep( ActiveWizardStep.Summary );
+            }
+        }
+
+        protected void lbPrev_EventOccurrence_Click( object sender, EventArgs e )
+        {
+            SetActiveWizardStep( ActiveWizardStep.Event );
+        }
+
+        protected void lbNext_EventOccurrence_Click( object sender, EventArgs e )
+        {
+            SetActiveWizardStep( ActiveWizardStep.Finished );
+        }
+
+        #endregion Wizard LinkButton Event Handlers
+
+        protected void tglEventSelection_CheckedChanged( object sender, EventArgs e )
+        {
+            if ( tglEventSelection.Checked )
+            {
+                pnlExistingEvent.Visible = false;
+                pnlNewEvent.Visible = true;
+            }
+            else
+            {
+                pnlExistingEvent.Visible = true;
+                pnlNewEvent.Visible = false;
+            }
+        }
+
+        protected void sbEventOccurrenceSchedule_SaveSchedule( object sender, EventArgs e )
+        {
+            var schedule = new Schedule { iCalendarContent = sbEventOccurrenceSchedule.iCalendarContent };
+            lEventOccurrenceScheduleText.Text = schedule.FriendlyScheduleText;
+        }
+        protected void cblCalendars_SelectionChanged( object sender, EventArgs e )
+        {
+            Session["CurrentCalendars"] = cblCalendars.SelectedValuesAsInt;
+            ShowItemAttributes();
+        }
+        #region Audience Grid/Dialog Events
+
+        /// <summary>
+        /// Handles the Add event of the gAudiences control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        private void gAudiences_Add( object sender, EventArgs e )
+        {
+            List<int> audiencesState = ViewState["AudiencesState"] as List<int> ?? new List<int>();
+
+            // Bind options to defined type, but remove any that have already been selected
+            ddlAudience.Items.Clear();
+
+            var definedType = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.MARKETING_CAMPAIGN_AUDIENCE_TYPE.AsGuid() );
+            if ( definedType != null )
+            {
+                ddlAudience.DataSource = definedType.DefinedValues
+                    .Where( v => !audiencesState.Contains( v.Id ) )
+                    .ToList();
+                ddlAudience.DataBind();
+            }
+
+            ViewState["AudiencesState"] = audiencesState;
+
+            ShowDialog( "EventItemAudience", true );
+        }
+
+        /// <summary>
+        /// Handles the Delete event of the gAudiences control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="RowEventArgs"/> instance containing the event data.</param>
+        protected void gAudiences_Delete( object sender, RowEventArgs e )
+        {
+            List<int> audiencesState = ViewState["AudiencesState"] as List<int> ?? new List<int>();
+            Guid guid = ( Guid ) e.RowKeyValue;
+            var audience = DefinedValueCache.Get( guid );
+            if ( audience != null )
+            {
+                audiencesState.Remove( audience.Id );
+            }
+            ViewState["AudiencesState"] = audiencesState;
+
+            BindAudienceGrid();
+        }
+
+        /// <summary>
+        /// Handles the Click event of the btnSaveAudience control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        protected void btnSaveAudience_Click( object sender, EventArgs e )
+        {
+            List<int> audiencesState = ViewState["AudiencesState"] as List<int> ?? new List<int>();
+
+            int? definedValueId = ddlAudience.SelectedValueAsInt();
+            if ( definedValueId.HasValue )
+            {
+                audiencesState.Add( definedValueId.Value );
+            }
+
+            ViewState["AudiencesState"] = audiencesState;
+
+            BindAudienceGrid();
+
+            HideDialog();
+        }
+
+        /// <summary>
+        /// Handles the GridRebind event of the gAudiences control.
+        /// </summary>
+        /// <param name="sender">The source of the event.</param>
+        /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
+        private void gAudiences_GridRebind( object sender, EventArgs e )
+        {
+            BindAudienceGrid();
+        }
+
+        /// <summary>
+        /// Binds the audience grid.
+        /// </summary>
+        private void BindAudienceGrid()
+        {
+            var values = new List<DefinedValueCache>();
+            List<int> audiencesState = ViewState["AudiencesState"] as List<int> ?? new List<int>();
+            audiencesState.ForEach( a => values.Add( DefinedValueCache.Get( a ) ) );
+
+            gAudiences.DataSource = values
+                .OrderBy( v => v.Order )
+                .ThenBy( v => v.Value )
+                .ToList();
+            gAudiences.DataBind();
+        }
+
+        /// <summary>
+        /// Shows the dialog.
+        /// </summary>
+        /// <param name="dialog">The dialog.</param>
+        /// <param name="setValues">if set to <c>true</c> [set values].</param>
+        private void ShowDialog( string dialog, bool setValues = false )
+        {
+            hfActiveDialog.Value = dialog.ToUpper().Trim();
+            ShowDialog( setValues );
+        }
+
+        /// <summary>
+        /// Shows the dialog.
+        /// </summary>
+        /// <param name="setValues">if set to <c>true</c> [set values].</param>
+        private void ShowDialog( bool setValues = false )
+        {
+            switch ( hfActiveDialog.Value )
+            {
+                case "EVENTITEMAUDIENCE":
+                    dlgAudience.Show();
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// Hides the dialog.
+        /// </summary>
+        private void HideDialog()
+        {
+            switch ( hfActiveDialog.Value )
+            {
+                case "EVENTITEMAUDIENCE":
+                    dlgAudience.Hide();
+                    hfActiveDialog.Value = string.Empty;
+                    break;
+            }
+        }
+
+        #endregion
+        #endregion
+
         #endregion
 
         #region Methods
+
+        #region Reservation Methods
 
         /// <summary>
         /// Shows the detail.
@@ -1873,6 +2170,13 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 var rrSummary = new ReservationResourceSummary();
                 rrSummary.CopyPropertiesFrom( reservationResource );
                 ResourcesState.Add( rrSummary );
+            }
+
+            EventItemOccurrence = reservation.EventItemOccurrence;
+            if ( EventItemOccurrence != null )
+            {
+                EventItemOccurrence.EventItem = reservation.EventItemOccurrence.EventItem;
+                EventItem = reservation.EventItemOccurrence.EventItem;
             }
 
             reservation.LoadAttributes( rockContext );
@@ -1964,16 +2268,21 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 lSetupPhoto.Text = string.Format( "<a href='{0}' target='_blank'>{1}</a>", imgUrl, imgTag );
             }
 
+            if ( reservation.EventItemOccurrenceId.HasValue )
+            {
+                lViewLinkedEvent.Text = String.Format( "<a href='/page/402?EventItemOccurrenceId={0}'>{1}</a>", reservation.EventItemOccurrenceId, reservation.EventItemOccurrence.EventItem.Name );
+            }
+
             bool canApprove = false;
 
             canApprove = ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId )
                 || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId );
 
-            btnApprove.Visible =  ( reservation.ApprovalState == ReservationApprovalState.PendingReview && ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId ) ) && !nbError.Text.IsNotNullOrWhiteSpace();
+            btnApprove.Visible = ( reservation.ApprovalState == ReservationApprovalState.PendingReview && ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId ) ) && !nbError.Text.IsNotNullOrWhiteSpace();
             btnDeny.Visible = ( reservation.ApprovalState == ReservationApprovalState.PendingReview && ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId ) ) || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId );
             btnOverride.Visible = ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId );
 
-      
+
 
             // Show the delete button if the person is authorized to delete it
             if ( canApprove || CurrentPersonAliasId == reservation.CreatedByPersonAliasId || reservation.AdministrativeContactPersonAliasId == CurrentPersonAliasId )
@@ -2136,6 +2445,13 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     reservationResource.IsNew = true;
                 }
 
+                EventItemOccurrence = reservation.EventItemOccurrence;
+                if ( EventItemOccurrence != null )
+                {
+                    EventItemOccurrence.EventItem = reservation.EventItemOccurrence.EventItem;
+                    EventItem = reservation.EventItemOccurrence.EventItem;
+                }
+
                 reservation.LoadAttributes( rockContext );
                 LoadQuestionsAndAnswers( resetControls: true );
 
@@ -2201,6 +2517,26 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 LoadPickers();
 
                 hfApprovalState.Value = reservation.ApprovalState.ConvertToString();
+
+                if ( EventItemOccurrence != null )
+                {
+                    if ( EventItemOccurrence.Id > 0 )
+                    {
+                        lEventOccurrence.Text = String.Format( "<a href='/page/402?EventItemOccurrenceId={0}'>{1}</a>", EventItemOccurrence.Id, EventItemOccurrence.EventItem.Name );
+                    }
+                    else
+                    {
+                        lEventOccurrence.Text = String.Format( "{0}", EventItemOccurrence.EventItem.Name );
+                    }
+
+                    lbDeleteEventLinkage.Visible = true;
+                    lbCreateNewEventLinkage.Visible = false;
+                }
+                else
+                {
+                    lbDeleteEventLinkage.Visible = false;
+                    lbCreateNewEventLinkage.Visible = true;
+                }
             }
         }
 
@@ -2297,145 +2633,6 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         }
 
         /// <summary>
-        /// Builds the location questions.
-        /// </summary>
-        /// <param name="isEditMode">if set to <c>true</c> [is edit mode].</param>
-        /// <param name="resetControls">if set to <c>true</c> [reset controls].</param>
-        private void BuildLocationQuestions( bool isEditMode, bool resetControls )
-        {
-            if ( resetControls )
-            {
-                phLocationAnswers.Controls.Clear();
-                phViewLocationAnswers.Controls.Clear();
-            }
-
-            foreach ( var reservationLocation in LocationsState )
-            {
-                Control headControl = null;
-                if ( isEditMode )
-                {
-                    headControl = phLocationAnswers.FindControl( "cReservationLocation_" + reservationLocation.Guid.ToString() ) as Control;
-                }
-                else
-                {
-                    headControl = phViewLocationAnswers.FindControl( "cReservationLocation_" + reservationLocation.Guid.ToString() ) as Control;
-                }
-
-                if ( headControl == null )
-                {
-                    reservationLocation.LoadReservationLocationAttributes();
-                    if ( reservationLocation.Attributes.Count > 0 )
-                    {
-                        Control childControl = new Control();
-                        HiddenField hfReservationLocationGuid = new HiddenField();
-                        PlaceHolder phAttributes = new PlaceHolder();
-                        var headingTitle = new HtmlGenericControl( "h3" );
-
-                        headingTitle.InnerText = reservationLocation.Location.Name;
-                        hfReservationLocationGuid.Value = reservationLocation.Guid.ToString();
-
-                        childControl.ID = "cReservationLocation_" + reservationLocation.Guid.ToString();
-                        hfReservationLocationGuid.ID = "hfReservationLocationGuid_" + reservationLocation.Guid.ToString();
-                        phAttributes.ID = "phAttributes_" + reservationLocation.Guid.ToString();
-
-                        if ( isEditMode )
-                        {
-                            Rock.Attribute.Helper.AddEditControls( reservationLocation, phAttributes, reservationLocation.IsNew, BlockValidationGroup );
-                            reservationLocation.IsNew = false;
-                        }
-                        else
-                        {
-                            Rock.Attribute.Helper.AddDisplayControls( reservationLocation, phAttributes, showHeading: false );
-                        }
-
-                        childControl.Controls.Add( headingTitle );
-                        childControl.Controls.Add( hfReservationLocationGuid );
-                        childControl.Controls.Add( phAttributes );
-
-                        if ( isEditMode )
-                        {
-                            phLocationAnswers.Controls.Add( childControl );
-                        }
-                        else
-                        {
-                            phViewLocationAnswers.Controls.Add( childControl );
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Builds the resource questions.
-        /// </summary>
-        /// <param name="isEditMode">if set to <c>true</c> [is edit mode].</param>
-        /// <param name="resetControls">if set to <c>true</c> [reset controls].</param>
-        private void BuildResourceQuestions( bool isEditMode, bool resetControls )
-        {
-            if ( resetControls )
-            {
-                phResourceAnswers.Controls.Clear();
-                phViewResourceAnswers.Controls.Clear();
-            }
-
-            foreach ( var reservationResource in ResourcesState )
-            {
-                Control headControl = null;
-                if ( isEditMode )
-                {
-                    headControl = phResourceAnswers.FindControl( "cReservationResource_" + reservationResource.Guid.ToString() ) as Control;
-                }
-                else
-                {
-                    headControl = phViewResourceAnswers.FindControl( "cReservationResource_" + reservationResource.Guid.ToString() ) as Control;
-                }
-
-                if ( headControl == null )
-                {
-                    reservationResource.LoadReservationResourceAttributes();
-                    if ( reservationResource.Attributes.Count > 0 )
-                    {
-                        Control childControl = new Control();
-                        HiddenField hfReservationResourceGuid = new HiddenField();
-                        PlaceHolder phAttributes = new PlaceHolder();
-                        var headingTitle = new HtmlGenericControl( "h3" );
-
-                        headingTitle.InnerText = reservationResource.Resource.Name;
-                        hfReservationResourceGuid.Value = reservationResource.Guid.ToString();
-
-                        childControl.ID = "cReservationResource_" + reservationResource.Guid.ToString();
-                        hfReservationResourceGuid.ID = "hfReservationResourceGuid_" + reservationResource.Guid.ToString();
-
-                        phAttributes.ID = "phAttributes_" + reservationResource.Guid.ToString();
-
-                        if ( isEditMode )
-                        {
-                            Rock.Attribute.Helper.AddEditControls( reservationResource, phAttributes, reservationResource.IsNew, BlockValidationGroup );
-                            reservationResource.IsNew = false;
-                        }
-                        else
-                        {
-                            Rock.Attribute.Helper.AddDisplayControls( reservationResource, phAttributes, showHeading: false );
-                        }
-
-                        childControl.Controls.Add( headingTitle );
-                        childControl.Controls.Add( hfReservationResourceGuid );
-                        childControl.Controls.Add( phAttributes );
-
-                        if ( isEditMode )
-                        {
-                            phResourceAnswers.Controls.Add( childControl );
-                        }
-                        else
-                        {
-                            phViewResourceAnswers.Controls.Add( childControl );
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// Handles the SelectPerson event of the ppEventContact control.
         /// </summary>
         /// <param name="sender">The source of the event.</param>
@@ -2518,88 +2715,6 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         }
 
         /// <summary>
-        /// Adds (to the state object) any resources attached to the given wpLocations 
-        /// </summary>
-        /// <param name="locationid">The location identifier.</param>
-        protected void AddAttachedResources( int locationId, Reservation reservation = null )
-        {
-            var attachedResources = new ResourceService( new RockContext() ).Queryable().Where( r => r.LocationId == locationId );
-            if ( attachedResources.Any() )
-            {
-                foreach ( var resource in attachedResources )
-                {
-                    var reservationResource = new ReservationResourceSummary();
-                    reservationResource.ResourceId = resource.Id;
-                    // Do you always get all the quantity of this resource for "attached" resources? I can't see it any other way.
-                    reservationResource.Quantity = resource.Quantity;
-                    reservationResource.ApprovalState = ReservationResourceApprovalState.Unapproved;
-                    reservationResource.IsNew = true;
-
-                    // ResourcesState will be null when this method is being called
-                    // from another page that passed in a location that has attached resources
-                    // therefore we'll just add it to the reservation and not the state.
-                    if ( ResourcesState != null )
-                    {
-                        ResourcesState.Add( reservationResource );
-                    }
-                    else if ( reservation != null )
-                    {
-                        reservation.ReservationResources.Add( reservationResource as ReservationResource );
-                    }
-                }
-
-                if ( ResourcesState != null )
-                {
-                    BindReservationResourcesGrid();
-                    wpResources.Expanded = true;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Adds (to the state object) any locations attached to the given reqource 
-        /// </summary>
-        /// <param name="resourceId">The resource identifier.</param>
-        protected void AddAttachedLocations( int resourceId, Reservation reservation = null )
-        {
-            var attachedResources = new ResourceService( new RockContext() ).Queryable().Where( r => r.Id == resourceId );
-            if ( attachedResources.Any() )
-            {
-                foreach ( var resource in attachedResources )
-                {
-                    // bug fix:
-                    if ( !resource.LocationId.HasValue )
-                    {
-                        continue;
-                    }
-
-                    var reservationLocation = new ReservationLocationSummary();
-                    reservationLocation.LocationId = resource.LocationId.Value;
-                    reservationLocation.ApprovalState = ReservationLocationApprovalState.Unapproved;
-                    reservationLocation.IsNew = true;
-
-                    // LocationsState will be null when this method is being called
-                    // from another page that passed in a resource that has attached locations
-                    // therefore we'll just add it to the reservation and not the state.
-                    if ( LocationsState != null )
-                    {
-                        LocationsState.Add( reservationLocation );
-                    }
-                    else if ( reservation != null )
-                    {
-                        reservation.ReservationLocations.Add( reservationLocation );
-                    }
-                }
-
-                if ( LocationsState != null )
-                {
-                    BindReservationLocationsGrid();
-                    wpLocations.Expanded = true;
-                }
-            }
-        }
-
-        /// <summary>
         /// Returns the user to the parent page
         /// </summary>
         protected void ReturnToParentPage()
@@ -2626,135 +2741,6 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             srpResource.CampusId = ddlCampus.SelectedValueAsInt();
             srpResource.ItemRestUrlExtraParams = BaseResourceRestUrl + String.Format( "&reservationId={0}&iCalendarContent={1}&setupTime={2}&cleanupTime={3}{4}", reservationId, encodedCalendarContent, nbSetupTime.Text.AsInteger(), nbCleanupTime.Text.AsInteger(), string.IsNullOrWhiteSpace( locationIds ) ? "" : "&locationIds=" + locationIds );
             slpLocation.ItemRestUrlExtraParams = BaseLocationRestUrl + String.Format( "?reservationId={0}&iCalendarContent={1}&setupTime={2}&cleanupTime={3}&attendeeCount={4}", reservationId, encodedCalendarContent, nbSetupTime.Text.AsInteger(), nbCleanupTime.Text.AsInteger(), nbAttending.Text.AsInteger() );
-        }
-
-        /// <summary>
-        /// Loads the location image.
-        /// </summary>
-        private void LoadLocationImage()
-        {
-            lImage.Text = string.Empty;
-            if ( slpLocation.SelectedValueAsId().HasValue )
-            {
-                var location = new LocationService( new RockContext() ).Get( slpLocation.SelectedValueAsId().Value );
-                if ( location != null && location.ImageId != null )
-                {
-                    string imgTag = string.Format( "<img src='{0}GetImage.ashx?id={1}&maxwidth=200&maxheight=200'/>", VirtualPathUtility.ToAbsolute( "~/" ), location.ImageId.Value );
-
-                    string imgUrl = string.Format( "~/GetImage.ashx?id={0}", location.ImageId );
-                    if ( System.Web.HttpContext.Current != null )
-                    {
-                        imgUrl = VirtualPathUtility.ToAbsolute( imgUrl );
-                    }
-
-                    lImage.Text = string.Format( "<a href='{0}' target='_blank'>{1}</a>", imgUrl, imgTag );
-                }
-            }
-        }
-
-        /// <summary>
-        /// Loads the location conflict message when using the location editor modal.
-        /// </summary>
-        private void LoadLocationConflictMessage()
-        {
-            if ( slpLocation.SelectedValueAsId().HasValue )
-            {
-                var rockContext = new RockContext();
-
-                var locationId = slpLocation.SelectedValueAsId().Value;
-                var location = new LocationService( rockContext ).Get( locationId );
-
-                var reservationLocationGuid = hfAddReservationLocationGuid.Value.AsGuid();
-                var existingResourceCount = LocationsState.Where( rl => rl.Guid != reservationLocationGuid && rl.LocationId == locationId ).Count();
-                if ( existingResourceCount > 0 )
-                {
-                    nbLocationConflicts.Text = string.Format( "{0} has already been added to this reservation", location.Name );
-                    nbLocationConflicts.Visible = true;
-                }
-                else
-                {
-                    int reservationId = hfReservationId.ValueAsInt();
-                    var newReservation = new Reservation() { Id = reservationId, Schedule = ReservationService.BuildScheduleFromICalContent( sbSchedule.iCalendarContent ), SetupTime = nbSetupTime.Text.AsInteger(), CleanupTime = nbCleanupTime.Text.AsInteger() };
-                    var message = new ReservationService( rockContext ).BuildLocationConflictHtmlList( newReservation, locationId, this.CurrentPageReference.Route );
-
-                    if ( message != null )
-                    {
-                        nbLocationConflicts.Text = string.Format( "{0} is already reserved for the scheduled times by the following reservations:<ul>{1}</ul>", location.Name, message );
-                        nbLocationConflicts.Visible = true;
-                    }
-                    else
-                    {
-                        nbLocationConflicts.Visible = false;
-                    }
-                }
-            }
-            else
-            {
-                nbLocationConflicts.Visible = false;
-            }
-        }
-
-
-        /// <summary>
-        /// Loads the resource conflict message when using the resource editor modal.
-        /// </summary>
-        private void LoadResourceConflictMessage()
-        {
-            StringBuilder sb = new StringBuilder();
-
-            if ( srpResource.SelectedValueAsId().HasValue )
-            {
-                var rockContext = new RockContext();
-                var resourceId = srpResource.SelectedValueAsId().Value;
-                var resource = new ResourceService( rockContext ).Get( resourceId );
-
-                var reservationResourceGuid = hfAddReservationResourceGuid.Value.AsGuid();
-                var existingResourceCount = ResourcesState.Where( rr => rr.Guid != reservationResourceGuid && rr.ResourceId == resourceId ).Count();
-                if ( existingResourceCount > 0 )
-                {
-                    sb.AppendFormat( "{0} has already been added to this reservation", resource.Name );
-                }
-                else
-                {
-                    int reservationId = hfReservationId.ValueAsInt();
-                    var newReservation = new Reservation() { Id = reservationId, Schedule = ReservationService.BuildScheduleFromICalContent( sbSchedule.iCalendarContent ), SetupTime = nbSetupTime.Text.AsInteger(), CleanupTime = nbCleanupTime.Text.AsInteger() };
-
-                    var conflicts = new ReservationService( rockContext ).GetConflictsForResourceId( resource.Id, newReservation );
-                    if ( conflicts.Any() )
-                    {
-                        var route = this.CurrentPageReference.Route; // is either "/page/123" or "ReservationDetail"
-                        route = route.StartsWith( "/" ) ? route : "/" + route;
-
-                        sb.AppendFormat( "{0} is already reserved for the scheduled times by the following reservations:<ul>", resource.Name );
-                        foreach ( var conflict in conflicts )
-                        {
-                            var duration = conflict.Reservation.Schedule.GetCalenderEvent().Duration;
-                            int hours = duration.Hours;
-                            int minutes = duration.Minutes;
-
-                            sb.AppendFormat( "<li>{0} reserved on {1} {4} via <a href='{5}?ReservationId={2}' target='_blank'>'{3}'</a></li>",
-                                conflict.ResourceQuantity,
-                                conflict.Reservation.Schedule.ToFriendlyScheduleText(),
-                                conflict.ReservationId,
-                                conflict.Reservation.Name,
-                                ( ( hours <= 0 ) ? string.Empty : hours + ( ( hours == 1 ) ? " hr " : " hrs " ) ) + ( ( minutes == 0 ) ? string.Empty : minutes + " min " ),
-                                route
-                                );
-                        }
-                        sb.Append( "</ul>" );
-                    }
-                }
-            }
-
-            if ( !String.IsNullOrWhiteSpace( sb.ToString() ) )
-            {
-                nbResourceConflicts.Text = sb.ToString();
-                nbResourceConflicts.Visible = true;
-            }
-            else
-            {
-                nbResourceConflicts.Visible = false;
-            }
         }
 
         /// <summary>
@@ -2855,23 +2841,6 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             }
 
             return reservation;
-        }
-
-        private void BindLocationLayoutGrid()
-        {
-            if ( slpLocation.SelectedValueAsId().HasValue )
-            {
-                var rockContext = new RockContext();
-                var locationService = new LocationService( rockContext );
-                var location = locationService.Get( slpLocation.SelectedValueAsId().Value );
-                if ( location != null )
-                {
-                    var locationLayoutService = new LocationLayoutService( rockContext );
-                    gLocationLayouts.Visible = true;
-                    gLocationLayouts.DataSource = locationLayoutService.Queryable().Where( ll => ll.LocationId == location.Id && ll.IsActive == true ).ToList();
-                    gLocationLayouts.DataBind();
-                }
-            }
         }
 
         /// <summary>
@@ -3052,6 +3021,208 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             }
         }
 
+        #endregion
+
+        #region Reservation Location Methods
+
+        /// <summary>
+        /// Builds the location questions.
+        /// </summary>
+        /// <param name="isEditMode">if set to <c>true</c> [is edit mode].</param>
+        /// <param name="resetControls">if set to <c>true</c> [reset controls].</param>
+        private void BuildLocationQuestions( bool isEditMode, bool resetControls )
+        {
+            if ( resetControls )
+            {
+                phLocationAnswers.Controls.Clear();
+                phViewLocationAnswers.Controls.Clear();
+            }
+
+            foreach ( var reservationLocation in LocationsState )
+            {
+                Control headControl = null;
+                if ( isEditMode )
+                {
+                    headControl = phLocationAnswers.FindControl( "cReservationLocation_" + reservationLocation.Guid.ToString() ) as Control;
+                }
+                else
+                {
+                    headControl = phViewLocationAnswers.FindControl( "cReservationLocation_" + reservationLocation.Guid.ToString() ) as Control;
+                }
+
+                if ( headControl == null )
+                {
+                    reservationLocation.LoadReservationLocationAttributes();
+                    if ( reservationLocation.Attributes.Count > 0 )
+                    {
+                        Control childControl = new Control();
+                        HiddenField hfReservationLocationGuid = new HiddenField();
+                        PlaceHolder phAttributes = new PlaceHolder();
+                        var headingTitle = new HtmlGenericControl( "h3" );
+
+                        headingTitle.InnerText = reservationLocation.Location.Name;
+                        hfReservationLocationGuid.Value = reservationLocation.Guid.ToString();
+
+                        childControl.ID = "cReservationLocation_" + reservationLocation.Guid.ToString();
+                        hfReservationLocationGuid.ID = "hfReservationLocationGuid_" + reservationLocation.Guid.ToString();
+                        phAttributes.ID = "phAttributes_" + reservationLocation.Guid.ToString();
+
+                        if ( isEditMode )
+                        {
+                            Rock.Attribute.Helper.AddEditControls( reservationLocation, phAttributes, reservationLocation.IsNew, BlockValidationGroup );
+                            reservationLocation.IsNew = false;
+                        }
+                        else
+                        {
+                            Rock.Attribute.Helper.AddDisplayControls( reservationLocation, phAttributes, showHeading: false );
+                        }
+
+                        childControl.Controls.Add( headingTitle );
+                        childControl.Controls.Add( hfReservationLocationGuid );
+                        childControl.Controls.Add( phAttributes );
+
+                        if ( isEditMode )
+                        {
+                            phLocationAnswers.Controls.Add( childControl );
+                        }
+                        else
+                        {
+                            phViewLocationAnswers.Controls.Add( childControl );
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds (to the state object) any locations attached to the given reqource 
+        /// </summary>
+        /// <param name="resourceId">The resource identifier.</param>
+        protected void AddAttachedLocations( int resourceId, Reservation reservation = null )
+        {
+            var attachedResources = new ResourceService( new RockContext() ).Queryable().Where( r => r.Id == resourceId );
+            if ( attachedResources.Any() )
+            {
+                foreach ( var resource in attachedResources )
+                {
+                    // bug fix:
+                    if ( !resource.LocationId.HasValue )
+                    {
+                        continue;
+                    }
+
+                    var reservationLocation = new ReservationLocationSummary();
+                    reservationLocation.LocationId = resource.LocationId.Value;
+                    reservationLocation.ApprovalState = ReservationLocationApprovalState.Unapproved;
+                    reservationLocation.IsNew = true;
+
+                    // LocationsState will be null when this method is being called
+                    // from another page that passed in a resource that has attached locations
+                    // therefore we'll just add it to the reservation and not the state.
+                    if ( LocationsState != null )
+                    {
+                        LocationsState.Add( reservationLocation );
+                    }
+                    else if ( reservation != null )
+                    {
+                        reservation.ReservationLocations.Add( reservationLocation );
+                    }
+                }
+
+                if ( LocationsState != null )
+                {
+                    BindReservationLocationsGrid();
+                    wpLocations.Expanded = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Loads the location image.
+        /// </summary>
+        private void LoadLocationImage()
+        {
+            lImage.Text = string.Empty;
+            if ( slpLocation.SelectedValueAsId().HasValue )
+            {
+                var location = new LocationService( new RockContext() ).Get( slpLocation.SelectedValueAsId().Value );
+                if ( location != null && location.ImageId != null )
+                {
+                    string imgTag = string.Format( "<img src='{0}GetImage.ashx?id={1}&maxwidth=200&maxheight=200'/>", VirtualPathUtility.ToAbsolute( "~/" ), location.ImageId.Value );
+
+                    string imgUrl = string.Format( "~/GetImage.ashx?id={0}", location.ImageId );
+                    if ( System.Web.HttpContext.Current != null )
+                    {
+                        imgUrl = VirtualPathUtility.ToAbsolute( imgUrl );
+                    }
+
+                    lImage.Text = string.Format( "<a href='{0}' target='_blank'>{1}</a>", imgUrl, imgTag );
+                }
+            }
+        }
+
+        /// <summary>
+        /// Loads the location conflict message when using the location editor modal.
+        /// </summary>
+        private void LoadLocationConflictMessage()
+        {
+            if ( slpLocation.SelectedValueAsId().HasValue )
+            {
+                var rockContext = new RockContext();
+
+                var locationId = slpLocation.SelectedValueAsId().Value;
+                var location = new LocationService( rockContext ).Get( locationId );
+
+                var reservationLocationGuid = hfAddReservationLocationGuid.Value.AsGuid();
+                var existingResourceCount = LocationsState.Where( rl => rl.Guid != reservationLocationGuid && rl.LocationId == locationId ).Count();
+                if ( existingResourceCount > 0 )
+                {
+                    nbLocationConflicts.Text = string.Format( "{0} has already been added to this reservation", location.Name );
+                    nbLocationConflicts.Visible = true;
+                }
+                else
+                {
+                    int reservationId = hfReservationId.ValueAsInt();
+                    var newReservation = new Reservation() { Id = reservationId, Schedule = ReservationService.BuildScheduleFromICalContent( sbSchedule.iCalendarContent ), SetupTime = nbSetupTime.Text.AsInteger(), CleanupTime = nbCleanupTime.Text.AsInteger() };
+                    var message = new ReservationService( rockContext ).BuildLocationConflictHtmlList( newReservation, locationId, this.CurrentPageReference.Route );
+
+                    if ( message != null )
+                    {
+                        nbLocationConflicts.Text = string.Format( "{0} is already reserved for the scheduled times by the following reservations:<ul>{1}</ul>", location.Name, message );
+                        nbLocationConflicts.Visible = true;
+                    }
+                    else
+                    {
+                        nbLocationConflicts.Visible = false;
+                    }
+                }
+            }
+            else
+            {
+                nbLocationConflicts.Visible = false;
+            }
+        }
+
+        /// <summary>
+        /// Binds the location layout grid.
+        /// </summary>
+        private void BindLocationLayoutGrid()
+        {
+            if ( slpLocation.SelectedValueAsId().HasValue )
+            {
+                var rockContext = new RockContext();
+                var locationService = new LocationService( rockContext );
+                var location = locationService.Get( slpLocation.SelectedValueAsId().Value );
+                if ( location != null )
+                {
+                    var locationLayoutService = new LocationLayoutService( rockContext );
+                    gLocationLayouts.Visible = true;
+                    gLocationLayouts.DataSource = locationLayoutService.Queryable().Where( ll => ll.LocationId == location.Id && ll.IsActive == true ).ToList();
+                    gLocationLayouts.DataBind();
+                }
+            }
+        }
+
         /// <summary>
         /// Saves the reservation location.
         /// </summary>
@@ -3132,6 +3303,202 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         }
 
         /// <summary>
+        /// Hydrates the specified locations state.
+        /// </summary>
+        /// <param name="locationsState">State of the locations.</param>
+        /// <param name="rockContext">The rock context.</param>
+        private void Hydrate( List<ReservationLocationSummary> locationsState, RockContext rockContext )
+        {
+            var locationService = new LocationService( rockContext );
+            var reservationService = new ReservationService( rockContext );
+            foreach ( var reservationLocation in locationsState )
+            {
+                reservationLocation.Reservation = reservationService.Get( reservationLocation.ReservationId );
+                reservationLocation.Location = locationService.Get( reservationLocation.LocationId );
+                if ( reservationLocation.LocationLayoutId.HasValue )
+                {
+                    var locationLayoutService = new LocationLayoutService( rockContext );
+                    reservationLocation.LocationLayout = locationLayoutService.Get( reservationLocation.LocationLayoutId.Value );
+                }
+            }
+        }
+
+        #endregion
+
+        #region Reservation Resource Methods
+
+        /// <summary>
+        /// Builds the resource questions.
+        /// </summary>
+        /// <param name="isEditMode">if set to <c>true</c> [is edit mode].</param>
+        /// <param name="resetControls">if set to <c>true</c> [reset controls].</param>
+        private void BuildResourceQuestions( bool isEditMode, bool resetControls )
+        {
+            if ( resetControls )
+            {
+                phResourceAnswers.Controls.Clear();
+                phViewResourceAnswers.Controls.Clear();
+            }
+
+            foreach ( var reservationResource in ResourcesState )
+            {
+                Control headControl = null;
+                if ( isEditMode )
+                {
+                    headControl = phResourceAnswers.FindControl( "cReservationResource_" + reservationResource.Guid.ToString() ) as Control;
+                }
+                else
+                {
+                    headControl = phViewResourceAnswers.FindControl( "cReservationResource_" + reservationResource.Guid.ToString() ) as Control;
+                }
+
+                if ( headControl == null )
+                {
+                    reservationResource.LoadReservationResourceAttributes();
+                    if ( reservationResource.Attributes.Count > 0 )
+                    {
+                        Control childControl = new Control();
+                        HiddenField hfReservationResourceGuid = new HiddenField();
+                        PlaceHolder phAttributes = new PlaceHolder();
+                        var headingTitle = new HtmlGenericControl( "h3" );
+
+                        headingTitle.InnerText = reservationResource.Resource.Name;
+                        hfReservationResourceGuid.Value = reservationResource.Guid.ToString();
+
+                        childControl.ID = "cReservationResource_" + reservationResource.Guid.ToString();
+                        hfReservationResourceGuid.ID = "hfReservationResourceGuid_" + reservationResource.Guid.ToString();
+
+                        phAttributes.ID = "phAttributes_" + reservationResource.Guid.ToString();
+
+                        if ( isEditMode )
+                        {
+                            Rock.Attribute.Helper.AddEditControls( reservationResource, phAttributes, reservationResource.IsNew, BlockValidationGroup );
+                            reservationResource.IsNew = false;
+                        }
+                        else
+                        {
+                            Rock.Attribute.Helper.AddDisplayControls( reservationResource, phAttributes, showHeading: false );
+                        }
+
+                        childControl.Controls.Add( headingTitle );
+                        childControl.Controls.Add( hfReservationResourceGuid );
+                        childControl.Controls.Add( phAttributes );
+
+                        if ( isEditMode )
+                        {
+                            phResourceAnswers.Controls.Add( childControl );
+                        }
+                        else
+                        {
+                            phViewResourceAnswers.Controls.Add( childControl );
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Adds (to the state object) any resources attached to the given wpLocations 
+        /// </summary>
+        /// <param name="locationid">The location identifier.</param>
+        protected void AddAttachedResources( int locationId, Reservation reservation = null )
+        {
+            var attachedResources = new ResourceService( new RockContext() ).Queryable().Where( r => r.LocationId == locationId );
+            if ( attachedResources.Any() )
+            {
+                foreach ( var resource in attachedResources )
+                {
+                    var reservationResource = new ReservationResourceSummary();
+                    reservationResource.ResourceId = resource.Id;
+                    // Do you always get all the quantity of this resource for "attached" resources? I can't see it any other way.
+                    reservationResource.Quantity = resource.Quantity;
+                    reservationResource.ApprovalState = ReservationResourceApprovalState.Unapproved;
+                    reservationResource.IsNew = true;
+
+                    // ResourcesState will be null when this method is being called
+                    // from another page that passed in a location that has attached resources
+                    // therefore we'll just add it to the reservation and not the state.
+                    if ( ResourcesState != null )
+                    {
+                        ResourcesState.Add( reservationResource );
+                    }
+                    else if ( reservation != null )
+                    {
+                        reservation.ReservationResources.Add( reservationResource as ReservationResource );
+                    }
+                }
+
+                if ( ResourcesState != null )
+                {
+                    BindReservationResourcesGrid();
+                    wpResources.Expanded = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Loads the resource conflict message when using the resource editor modal.
+        /// </summary>
+        private void LoadResourceConflictMessage()
+        {
+            StringBuilder sb = new StringBuilder();
+
+            if ( srpResource.SelectedValueAsId().HasValue )
+            {
+                var rockContext = new RockContext();
+                var resourceId = srpResource.SelectedValueAsId().Value;
+                var resource = new ResourceService( rockContext ).Get( resourceId );
+
+                var reservationResourceGuid = hfAddReservationResourceGuid.Value.AsGuid();
+                var existingResourceCount = ResourcesState.Where( rr => rr.Guid != reservationResourceGuid && rr.ResourceId == resourceId ).Count();
+                if ( existingResourceCount > 0 )
+                {
+                    sb.AppendFormat( "{0} has already been added to this reservation", resource.Name );
+                }
+                else
+                {
+                    int reservationId = hfReservationId.ValueAsInt();
+                    var newReservation = new Reservation() { Id = reservationId, Schedule = ReservationService.BuildScheduleFromICalContent( sbSchedule.iCalendarContent ), SetupTime = nbSetupTime.Text.AsInteger(), CleanupTime = nbCleanupTime.Text.AsInteger() };
+
+                    var conflicts = new ReservationService( rockContext ).GetConflictsForResourceId( resource.Id, newReservation );
+                    if ( conflicts.Any() )
+                    {
+                        var route = this.CurrentPageReference.Route; // is either "/page/123" or "ReservationDetail"
+                        route = route.StartsWith( "/" ) ? route : "/" + route;
+
+                        sb.AppendFormat( "{0} is already reserved for the scheduled times by the following reservations:<ul>", resource.Name );
+                        foreach ( var conflict in conflicts )
+                        {
+                            var duration = conflict.Reservation.Schedule.GetCalenderEvent().Duration;
+                            int hours = duration.Hours;
+                            int minutes = duration.Minutes;
+
+                            sb.AppendFormat( "<li>{0} reserved on {1} {4} via <a href='{5}?ReservationId={2}' target='_blank'>'{3}'</a></li>",
+                                conflict.ResourceQuantity,
+                                conflict.Reservation.Schedule.ToFriendlyScheduleText(),
+                                conflict.ReservationId,
+                                conflict.Reservation.Name,
+                                ( ( hours <= 0 ) ? string.Empty : hours + ( ( hours == 1 ) ? " hr " : " hrs " ) ) + ( ( minutes == 0 ) ? string.Empty : minutes + " min " ),
+                                route
+                                );
+                        }
+                        sb.Append( "</ul>" );
+                    }
+                }
+            }
+
+            if ( !String.IsNullOrWhiteSpace( sb.ToString() ) )
+            {
+                nbResourceConflicts.Text = sb.ToString();
+                nbResourceConflicts.Visible = true;
+            }
+            else
+            {
+                nbResourceConflicts.Visible = false;
+            }
+        }
+
+        /// <summary>
         /// Saves the reservation resource.
         /// </summary>
         private void SaveReservationResource()
@@ -3185,22 +3552,11 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             LoadQuestionsAndAnswers();
         }
 
-        private void Hydrate( List<ReservationLocationSummary> locationsState, RockContext rockContext )
-        {
-            var locationService = new LocationService( rockContext );
-            var reservationService = new ReservationService( rockContext );
-            foreach ( var reservationLocation in locationsState )
-            {
-                reservationLocation.Reservation = reservationService.Get( reservationLocation.ReservationId );
-                reservationLocation.Location = locationService.Get( reservationLocation.LocationId );
-                if ( reservationLocation.LocationLayoutId.HasValue )
-                {
-                    var locationLayoutService = new LocationLayoutService( rockContext );
-                    reservationLocation.LocationLayout = locationLayoutService.Get( reservationLocation.LocationLayoutId.Value );
-                }
-            }
-        }
-
+        /// <summary>
+        /// Hydrates the specified resources state.
+        /// </summary>
+        /// <param name="resourcesState">State of the resources.</param>
+        /// <param name="rockContext">The rock context.</param>
         private void Hydrate( List<ReservationResourceSummary> resourcesState, RockContext rockContext )
         {
             var resourceService = new ResourceService( rockContext );
@@ -3214,6 +3570,285 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
         #endregion
 
+        #region Reservation Event Occurrence  Methods
+
+        /// <summary>
+        /// Save event calendar items state to ViewState.
+        /// </summary>
+        /// <param name="itemState">The list of EventCalendarItems to save.</param>
+        private void SaveCalendarItemState( List<EventCalendarItem> itemState )
+        {
+            var jsonSetting = new JsonSerializerSettings
+            {
+                ReferenceLoopHandling = ReferenceLoopHandling.Ignore,
+                ContractResolver = new Rock.Utility.IgnoreUrlEncodedKeyContractResolver()
+            };
+
+            ViewState["ItemsState"] = JsonConvert.SerializeObject( itemState, Formatting.None, jsonSetting );
+        }
+
+        /// <summary>
+        /// Retrieve event calendar items state from ViewState.
+        /// </summary>
+        /// <returns>Returns a List of EventCalendarItem objects.</returns>
+        private List<EventCalendarItem> GetCalendarItemState()
+        {
+            List<EventCalendarItem> itemState;
+            string json = ViewState["ItemsState"] as string;
+            if ( string.IsNullOrWhiteSpace( json ) )
+            {
+                itemState = new List<EventCalendarItem>();
+            }
+            else
+            {
+                itemState = JsonConvert.DeserializeObject<List<EventCalendarItem>>( json );
+            }
+            return itemState;
+        }
+
+        /// <summary>
+        /// Shows the item attributes.
+        /// </summary>
+        private void ShowItemAttributes()
+        {
+            if ( Session["CurrentCalendars"] == null )
+            {
+                // If the user's session has expired, create a new list in session and reset them
+                // to the first step of the wizard.
+                if ( cblCalendars.SelectedValuesAsInt.Count() > 0 )
+                {
+                    Session["CurrentCalendars"] = cblCalendars.SelectedValuesAsInt;
+                }
+                else
+                {
+                    Session["CurrentCalendars"] = new List<int>();
+                }
+                SetActiveWizardStep( ActiveWizardStep.Event );
+            }
+
+            var eventCalendarList = ( List<int> ) Session["CurrentCalendars"];
+            wpAttributes.Visible = false;
+            phEventItemAttributes.Controls.Clear();
+
+            using ( var rockContext = new RockContext() )
+            {
+                var eventCalendarService = new EventCalendarService( rockContext );
+
+                foreach ( int eventCalendarId in eventCalendarList.Distinct() )
+                {
+                    var itemsState = GetCalendarItemState();
+                    var eventCalendarItem = itemsState.FirstOrDefault( i => i.EventCalendarId == eventCalendarId );
+                    if ( eventCalendarItem == null )
+                    {
+                        eventCalendarItem = new EventCalendarItem();
+                        eventCalendarItem.EventCalendarId = eventCalendarId;
+                        itemsState.Add( eventCalendarItem );
+                    }
+                    SaveCalendarItemState( itemsState );
+
+                    eventCalendarItem.LoadAttributes();
+                    if ( eventCalendarItem.Attributes.Count > 0 )
+                    {
+                        wpAttributes.Visible = true;
+                        phEventItemAttributes.Controls.Add( new LiteralControl( String.Format( "<h3>{0}</h3>", eventCalendarService.Get( eventCalendarId ).Name ) ) );
+                        Rock.Attribute.Helper.AddEditControls( eventCalendarItem, phEventItemAttributes, true, BlockValidationGroup );
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Gets a specific page URL from a PageReference.
+        /// </summary>
+        /// <param name="pageGuid">The Guid of the page.</param>
+        /// <param name="queryParams">Optional query parameters to be included in the URL.</param>
+        /// <returns>Returns a string representing a specific page URL from a PageReference.</returns>
+        private string GetPageUrl( string pageGuid, Dictionary<string, string> queryParams = null )
+        {
+            return new PageReference( pageGuid, queryParams ).BuildUrl();
+        }
+
+        private void Init_SetupAudienceControls()
+        {
+            gAudiences.DataKeyNames = new string[] { "Guid" };
+            gAudiences.Actions.ShowAdd = true;
+            gAudiences.Actions.AddClick += gAudiences_Add;
+            gAudiences.GridRebind += gAudiences_GridRebind;
+
+            if ( !Page.IsPostBack )
+            {
+                BindAudienceGrid();
+            }
+        }
+        private void Init_SetCampusAndEventSelectionOption()
+        {
+            if ( !GetAttributeValue( AttributeKey.AllowCreatingNewCalendarEvents ).AsBoolean() )
+            {
+                pnlNewEventSelection.Visible = false;
+            }
+        }
+
+        private void Init_SetDefaultCalendar( RockContext rockContext )
+        {
+            int defaultCalendarId = -1;
+            Guid? calendarGuid = GetAttributeValue( AttributeKey.DefaultCalendar ).AsGuidOrNull();
+            if ( calendarGuid != null )
+            {
+                var calendarService = new EventCalendarService( rockContext );
+                var calendar = calendarService.Get( calendarGuid.Value );
+                defaultCalendarId = calendar.Id;
+            }
+
+            foreach ( var calendar in
+                new EventCalendarService( rockContext )
+                .Queryable().AsNoTracking()
+                .OrderBy( c => c.Name ) )
+            {
+                if ( calendar.IsAuthorized( Authorization.EDIT, CurrentPerson ) )
+                {
+                    ListItem liCalendar = new ListItem( calendar.Name, calendar.Id.ToString() );
+                    if ( calendar.Id == defaultCalendarId )
+                    {
+                        liCalendar.Selected = true;
+                    }
+                    cblCalendars.Items.Add( liCalendar );
+                }
+            }
+
+            Session["CurrentCalendars"] = cblCalendars.SelectedValuesAsInt;
+        }
+
+        private void Init_SetCalendarEventRequired()
+        {
+            eipSelectedEvent.Help = "If you do not select an event item, no event occurrence will be created.";
+        }
+        private void SetActiveWizardStep( ActiveWizardStep step )
+        {
+            if ( step == ActiveWizardStep.Finished )
+            {
+                using ( var rockContext = new RockContext() )
+                {
+                    CommitChanges( rockContext );
+                }
+
+                dlgReservationEventOccurrence.Hide();
+                lEventOccurrence.Text = String.Format( "{0}", EventItemOccurrence.EventItem.Name );
+                lbDeleteEventLinkage.Visible = true;
+                lbCreateNewEventLinkage.Visible = false;
+            }
+
+            ShowInputPanel( step );
+        }
+
+        private void CommitChanges( RockContext rockContext )
+        {
+
+            EventItem eventItem = null;
+            if ( tglEventSelection.Checked )  // "New Event" option selected.
+            {
+                // Create new EventItem
+                eventItem = new EventItem();
+                eventItem.Name = tbCalendarEventName.Text;
+                eventItem.Summary = tbEventSummary.Text;
+                eventItem.Description = htmlEventDescription.Text;
+                eventItem.IsActive = true;
+                if ( eventItem.PhotoId != null )
+                {
+                    eventItem.PhotoId = imgupPhoto.BinaryFileId;
+                }
+
+                // Add audiences
+                List<int> audiencesState = ViewState["AudiencesState"] as List<int> ?? new List<int>();
+                foreach ( int audienceId in audiencesState )
+                {
+                    var eventItemAudience = new EventItemAudience();
+                    eventItemAudience.DefinedValueId = audienceId;
+                    eventItem.EventItemAudiences.Add( eventItemAudience );
+                }
+
+                // Add calendar items from the UI
+                var calendarIds = new List<int>();
+                calendarIds.AddRange( cblCalendars.SelectedValuesAsInt );
+                var itemsState = GetCalendarItemState();
+                foreach ( var calendar in itemsState.Where( i => calendarIds.Contains( i.EventCalendarId ) ) )
+                {
+                    var eventCalendarItem = new EventCalendarItem();
+                    eventItem.EventCalendarItems.Add( eventCalendarItem );
+                    eventCalendarItem.CopyPropertiesFrom( calendar );
+                }
+
+                foreach ( var eventCalendarItem in eventItem.EventCalendarItems )
+                {
+                    eventCalendarItem.LoadAttributes();
+                    Rock.Attribute.Helper.GetEditValues( phEventItemAttributes, eventCalendarItem );
+                    // eventCalendarItem.SaveAttributeValues();
+                }
+            }
+            else // "Existing Event" option selected.
+            {
+                if ( eipSelectedEvent.SelectedValueAsId() != null )
+                {
+                    var eventItemService = new EventItemService( rockContext );
+                    eventItem = eventItemService.Get( eipSelectedEvent.SelectedValueAsId().Value );
+                }
+            }
+
+            // if eventItem is null, no EventItem was selected or created and we will not create an occurrence, either.
+            if ( eventItem != null )
+            {
+                // Create new EventItemOccurrence.
+                var eventItemOccurrence = new EventItemOccurrence { EventItemId = eventItem.Id };
+                eventItemOccurrence.CampusId = ddlCampus.SelectedValueAsInt();
+                eventItemOccurrence.Location = tbLocationDescription.Text;
+                eventItemOccurrence.ContactPersonAliasId = ppEventContact.PersonAliasId;
+                eventItemOccurrence.ContactPhone = PhoneNumber.FormattedNumber( PhoneNumber.DefaultCountryCode(), pnEventContactPhone.Number );
+                eventItemOccurrence.ContactEmail = tbEventContactEmail.Text;
+                eventItemOccurrence.Note = htmlOccurrenceNote.Text;
+
+                // Set Calendar.
+                string iCalendarContent = sbEventOccurrenceSchedule.iCalendarContent ?? string.Empty;
+                var calEvent = ScheduleICalHelper.GetCalenderEvent( iCalendarContent );
+                if ( calEvent != null && calEvent.DTStart != null )
+                {
+                    if ( eventItemOccurrence.Schedule == null )
+                    {
+                        eventItemOccurrence.Schedule = new Schedule();
+                    }
+
+                    eventItemOccurrence.Schedule.iCalendarContent = iCalendarContent;
+                }
+                eventItemOccurrence.EventItem = eventItem;
+                EventItem = eventItem;
+
+                EventItemOccurrence = eventItemOccurrence;
+            }
+        }
+
+        /// <summary>
+        /// Displays the appropriate input panel.
+        /// </summary>
+        /// <param name="step">Indicates which step is being displayed.</param>
+        private void ShowInputPanel( ActiveWizardStep step )
+        {
+            pnlEvent.Visible = false;
+            pnlEventOccurrence.Visible = false;
+
+            switch ( step )
+            {
+                case ActiveWizardStep.Event:
+                    pnlEvent.Visible = true;
+                    break;
+                case ActiveWizardStep.EventOccurrence:
+                    pnlEventOccurrence.Visible = true;
+                    break;
+                default:
+                    break;
+            }
+        }
+        #endregion
+
+        #endregion
+
         #region Helper Classes
         private class ReservationResourceSummary : ReservationResource
         {
@@ -3224,6 +3859,51 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         {
             public bool IsNew { get; set; }
         }
+
+        public class CommitResult
+        {
+            public string EventId, EventOccurrenceId;
+            public CommitResult()
+            {
+                EventId = "";
+                EventOccurrenceId = "";
+            }
+        }
+
+        private enum ActiveWizardStep { Event, EventOccurrence, Summary, Finished }
         #endregion
+
+        protected void dlgReservationEventOccurrence_SaveClick( object sender, EventArgs e )
+        {
+
+        }
+
+        protected void lbDeleteEventLinkage_Click( object sender, EventArgs e )
+        {
+
+        }
+
+        protected void lbCreateNewEventLinkage_Click( object sender, EventArgs e )
+        {
+            SetActiveWizardStep( ActiveWizardStep.Event );
+
+            using ( var rockContext = new RockContext() )
+            {
+                Init_SetCampusAndEventSelectionOption();
+                Init_SetDefaultCalendar( rockContext );
+                Init_SetCalendarEventRequired();
+            }
+
+            //  hfAddReservationLocationGuid.Value = reservationLocationGuid.ToString();
+            hfActiveDialog.Value = "dlgReservationEventOccurrence";
+
+            var schedule = new Schedule { iCalendarContent = sbSchedule.iCalendarContent };
+            tbCalendarEventName.Text = rtbName.Text;
+            sbEventOccurrenceSchedule.iCalendarContent = sbSchedule.iCalendarContent;
+            lEventOccurrenceScheduleText.Text = schedule.FriendlyScheduleText;
+
+            dlgReservationEventOccurrence.Show();
+        }
+
     }
 }

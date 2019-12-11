@@ -40,12 +40,31 @@ using System.Data.Entity;
 using System.Web.UI.HtmlControls;
 using com.centralaz.RoomManagement.Attribute;
 using Rock.Constants;
+using Rock.Lava;
 
 namespace RockWeb.Plugins.com_centralaz.RoomManagement
 {
     [DisplayName( "Reservation Detail" )]
     [Category( "com_centralaz > Room Management" )]
     [Description( "Block for viewing a reservation detail" )]
+
+    [EventCalendarField(
+        "Default Calendar",
+        Key = AttributeKey.DefaultCalendar,
+        Description = "The default calendar which will be pre-selected if the staff person is permitted to create new calendar events.",
+        Category = "",
+        IsRequired = false,
+        DefaultValue = "",
+        Order = 0 )]
+
+    [BooleanField(
+        "Enable Calendar Events",
+        Key = AttributeKey.EnableCalendarEvents,
+        Description = "If calendar events are not enabled, the Reservation Event Linkage button will be disabled.",
+        Category = "",
+        IsRequired = true,
+        DefaultValue = "true",
+        Order = 1 )]
 
     [BooleanField(
         "Allow Creating New Calendar Events",
@@ -54,7 +73,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         Category = "",
         IsRequired = true,
         DefaultValue = "true",
-        Order = 1 )]
+        Order = 2 )]
 
     [BooleanField(
         "Include Inactive Calendar Items",
@@ -65,15 +84,90 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         DefaultValue = "true",
         Order = 3 )]
 
-    [EventCalendarField(
-        "Default Calendar",
-        Key = AttributeKey.DefaultCalendar,
-        Description = "The default calendar which will be pre-selected if the staff person is permitted to create new calendar events.",
+    [WorkflowTypeField(
+        "Completion Workflow",
+        Key = AttributeKey.CompletionWorkflow,
+        Description = "A workflow that will be launched when the wizard is complete.  The following attributes will be passed to the workflow:\r\n + Reservation\r\n + EventItemOccurrenceGuid",
         Category = "",
+        IsRequired = false,
+        DefaultValue = "",
+        Order = 4 )]
+
+    [BooleanField(
+        "Display Link to Event Details Page on Confirmation Screen",
+        Key = AttributeKey.DisplayEventDetailsLink,
+        Description = "Check this box to show the link to the event details page in the wizard confirmation screen.",
+        Category = "",
+        IsRequired = false,
+        DefaultValue = "true",
+        Order = 5 )]
+
+    [LinkedPage(
+        "External Event Details Page",
+        Key = AttributeKey.EventDetailsPage,
+        Description = "Determines which page the link in the final confirmation screen will take you to (if \"Display Link to Event Details ... \" is selected).",
+        Category = "",
+        IsRequired = false,
+        DefaultValue = Rock.SystemGuid.Page.EVENT_DETAILS,
+        Order = 6 )]
+
+    #region Advanced Block Attribute Settings 
+
+    [MemoField(
+        "View Reservation Instructions Lava Template",
+        Key = AttributeKey.LavaInstruction_ViewReservation,
+        Description = "Instructions here will show up the reservation view panel.",
+        Category = "Advanced",
+        IsRequired = false,
+        DefaultValue = "",
+        Order = 0 )]
+
+    [MemoField(
+        "Edit Reservation Instructions Lava Template",
+        Key = AttributeKey.LavaInstruction_EditReservation,
+        Description = "Instructions here will show up the reservation edit panel.",
+        Category = "Advanced",
+        IsRequired = false,
+        DefaultValue = "",
+        Order = 1 )]
+
+    [MemoField(
+        "Event Instructions Lava Template",
+        Key = AttributeKey.LavaInstruction_Event,
+        Description = "Instructions here will show up on the fourth panel of the wizard.",
+        Category = "Advanced",
+        IsRequired = false,
+        DefaultValue = "",
+        Order = 4 )]
+
+    [MemoField(
+        "Event Occurrence Instructions Lava Template",
+        Key = AttributeKey.LavaInstruction_EventOccurrence,
+        Description = "Instructions here will show up on the fifth panel of the wizard.",
+        Category = "Advanced",
+        IsRequired = false,
+        DefaultValue = "",
+        Order = 5 )]
+
+    [MemoField(
+        "Summary Instructions Lava Template",
+        Key = AttributeKey.LavaInstruction_Summary,
+        Description = "Instructions here will show up on the sixth panel of the wizard.",
+        Category = "Advanced",
         IsRequired = false,
         DefaultValue = "",
         Order = 6 )]
 
+    [MemoField(
+        "Wizard Finished Instructions Lava Template",
+        Key = AttributeKey.LavaInstruction_Finished,
+        Description = "Instructions here will show up on the final panel of the wizard.",
+        Category = "Advanced",
+        IsRequired = false,
+        DefaultValue = "",
+        Order = 7 )]
+
+    #endregion Advanced Block Attribute Settings
     public partial class ReservationDetail : Rock.Web.UI.RockBlock, IDetailBlock
     {
         #region Fields
@@ -85,8 +179,19 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         protected static class AttributeKey
         {
             public const string DefaultCalendar = "DefaultCalendar";
+            public const string EnableCalendarEvents = "EnableCalendarEvents";
             public const string AllowCreatingNewCalendarEvents = "AllowCreatingNewCalendarEvents";
             public const string IncludeInactiveCalendarItems = "IncludeInactiveCalendarItems";
+            public const string CompletionWorkflow = "CompletionWorkflow";
+            public const string DisplayEventDetailsLink = "DisplayEventDetailsLink";
+            public const string EventDetailsPage = "EventDetailsPage";
+
+            public const string LavaInstruction_ViewReservation = "LavaInstruction_ViewReservation";
+            public const string LavaInstruction_EditReservation = "LavaInstruction_EditReservation";
+            public const string LavaInstruction_Event = "LavaInstruction_Event";
+            public const string LavaInstruction_EventOccurrence = "LavaInstruction_EventOccurrence";
+            public const string LavaInstruction_Summary = "LavaInstruction_Summary";
+            public const string LavaInstruction_Finished = "LavaInstruction_Finished";
         }
 
         #endregion
@@ -271,8 +376,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             rptWorkflows.ItemCommand += rptWorkflows_ItemCommand;
 
-            cblCalendars.SelectedIndexChanged += cblCalendars_SelectionChanged;
-            //cblCalendars.OnSelectionChanged += cblCalendars.OnSelectionChanged;
+            cblCalendars.SelectedIndexChanged += cblCalendars_SelectedIndexChanged;
+           // cblCalendars.OnSelectionChanged += cblCalendars_SelectionChanged;
 
             // this event gets fired after block settings are updated. it's nice to repaint the screen if these settings would alter it
             this.AddConfigurationUpdateTrigger( upnlContent );
@@ -674,7 +779,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     foreach ( var reservationResource in reservation.ReservationResources )
                     {
                         reservationResource.SaveAttributeValues( rockContext );
-                    }                  
+                    }
 
                     reservation.SaveAttributeValues( rockContext );
 
@@ -1896,7 +2001,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
         #region Reservation Event Occurrence Events
 
-        #region Wizard LinkButton Event Handlers        
+        #region Wizard LinkButton Event Handlers
 
         protected void lbEvent_Click( object sender, EventArgs e )
         {
@@ -1910,7 +2015,30 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
         protected void lbPrev_Event_Click( object sender, EventArgs e )
         {
-            //  SetActiveWizardStep( ActiveWizardStep.Registration );
+            ExitWizard();
+        }
+
+        private void ExitWizard()
+        {
+            SetActiveWizardStep( ActiveWizardStep.ViewReservation );
+            var reservationId = hfReservationId.ValueAsInt();
+            if ( reservationId > 0 )
+            {
+                using ( var rockContext = new RockContext() )
+                {
+                    var reservationService = new ReservationService( rockContext );
+                    var reservation = reservationService.Get( reservationId );
+                    if ( reservation != null )
+                    {
+                        if ( reservation.EventItemOccurrenceId.HasValue )
+                        {
+                            lEventOccurrence.Text = String.Format( "<a href='/page/402?EventItemOccurrenceId={0}'>{1}</a>", reservation.EventItemOccurrenceId, reservation.EventItemOccurrence.EventItem.Name );
+                            lbDeleteEventLinkage.Visible = true;
+                            lbCreateNewEventLinkage.Visible = false;
+                        }
+                    }
+                }
+            }
         }
 
         protected void lbNext_Event_Click( object sender, EventArgs e )
@@ -1931,6 +2059,30 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         }
 
         protected void lbNext_EventOccurrence_Click( object sender, EventArgs e )
+        {
+            SetActiveWizardStep( ActiveWizardStep.Summary );
+        }
+
+        protected void lbPrev_Summary_Click( object sender, EventArgs e )
+        {
+            if ( GetAttributeValue( AttributeKey.EnableCalendarEvents ).AsBoolean() )
+            {
+                if ( ( tglEventSelection.Checked ) || ( eipSelectedEvent.SelectedValueAsId() != null ) )
+                {
+                    SetActiveWizardStep( ActiveWizardStep.EventOccurrence );
+                }
+                else
+                {
+                    SetActiveWizardStep( ActiveWizardStep.Event );
+                }
+            }
+            else
+            {
+                ExitWizard();
+            }
+        }
+
+        protected void lbNext_Summary_Click( object sender, EventArgs e )
         {
             SetActiveWizardStep( ActiveWizardStep.Finished );
         }
@@ -1956,11 +2108,13 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             var schedule = new Schedule { iCalendarContent = sbEventOccurrenceSchedule.iCalendarContent };
             lEventOccurrenceScheduleText.Text = schedule.FriendlyScheduleText;
         }
-        protected void cblCalendars_SelectionChanged( object sender, EventArgs e )
+
+        protected void cblCalendars_SelectedIndexChanged( object sender, EventArgs e )
         {
             Session["CurrentCalendars"] = cblCalendars.SelectedValuesAsInt;
             ShowItemAttributes();
         }
+
         #region Audience Grid/Dialog Events
 
         /// <summary>
@@ -2096,6 +2250,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         }
 
         #endregion
+
         #endregion
 
         #endregion
@@ -2231,6 +2386,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// <exception cref="System.NotImplementedException"></exception>
         private void ShowReadonlyDetails( Reservation reservation )
         {
+            SetActiveWizardStep( ActiveWizardStep.ViewReservation );
             SetEditMode( false );
 
             hfReservationId.SetValue( reservation.Id );
@@ -2270,7 +2426,14 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             if ( reservation.EventItemOccurrenceId.HasValue )
             {
-                lViewLinkedEvent.Text = String.Format( "<a href='/page/402?EventItemOccurrenceId={0}'>{1}</a>", reservation.EventItemOccurrenceId, reservation.EventItemOccurrence.EventItem.Name );
+                lEventOccurrence.Text = String.Format( "<a href='/page/402?EventItemOccurrenceId={0}'>{1}</a>", reservation.EventItemOccurrenceId, reservation.EventItemOccurrence.EventItem.Name );
+                lbDeleteEventLinkage.Visible = true;
+                lbCreateNewEventLinkage.Visible = false;
+            }
+            else
+            {
+                lbDeleteEventLinkage.Visible = false;
+                lbCreateNewEventLinkage.Visible = true;
             }
 
             bool canApprove = false;
@@ -2378,6 +2541,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// <param name="reservation">The reservation.</param>
         private void ShowEditDetails( Reservation reservation )
         {
+            SetActiveWizardStep( ActiveWizardStep.EditReservation );
             using ( RockContext rockContext = new RockContext() )
             {
                 ddlReservationType.Enabled = ( reservation.Id == 0 );
@@ -2517,26 +2681,6 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 LoadPickers();
 
                 hfApprovalState.Value = reservation.ApprovalState.ConvertToString();
-
-                if ( EventItemOccurrence != null )
-                {
-                    if ( EventItemOccurrence.Id > 0 )
-                    {
-                        lEventOccurrence.Text = String.Format( "<a href='/page/402?EventItemOccurrenceId={0}'>{1}</a>", EventItemOccurrence.Id, EventItemOccurrence.EventItem.Name );
-                    }
-                    else
-                    {
-                        lEventOccurrence.Text = String.Format( "{0}", EventItemOccurrence.EventItem.Name );
-                    }
-
-                    lbDeleteEventLinkage.Visible = true;
-                    lbCreateNewEventLinkage.Visible = false;
-                }
-                else
-                {
-                    lbDeleteEventLinkage.Visible = false;
-                    lbCreateNewEventLinkage.Visible = true;
-                }
             }
         }
 
@@ -3573,6 +3717,48 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         #region Reservation Event Occurrence  Methods
 
         /// <summary>
+        /// Starts the workflow.
+        /// </summary>
+        /// <param name="rockContext">The workflow service.</param>
+        /// <param name="linkage">Type <see cref="T:EventItemOccurrenceGroupMap" /> created by the wizard.</param>
+        /// <param name="attributes">The attributes.</param>
+        /// <param name="workflowNameSuffix">The workflow instance name suffix (the part that is tacked onto the end fo the name to distinguish one instance from another).</param>
+        protected void LaunchPostWizardWorkflow( RockContext rockContext, Reservation reservation )
+        {
+            //Set Completion Workflow
+            var workFlowGuid = GetAttributeValue( AttributeKey.CompletionWorkflow ).AsGuidOrNull();
+            if ( workFlowGuid != null )
+            {
+                var workflowService = new WorkflowService( rockContext );
+                var workflowType = WorkflowTypeCache.Get( workFlowGuid.Value );
+
+                //launch workflow if configured
+                if ( workflowType != null && ( workflowType.IsActive ?? true ) )
+                {
+                    // set workflow name
+                    string workflowName = "New " + workflowType.WorkTerm;
+                    var workflow = Workflow.Activate( workflowType, workflowName );
+
+                    // set attributes
+                    if ( reservation != null )
+                    {
+                        workflow.SetAttributeValue( "Reservation", reservation.Guid );
+                    }
+
+                    if ( reservation.EventItemOccurrence != null )
+                    {
+                        workflow.SetAttributeValue( "EventItemOccurrenceGuid", reservation.EventItemOccurrence.Guid );
+                    }
+
+                    // launch workflow
+                    List<string> workflowErrors;
+                    workflowService.Process( workflow, out workflowErrors );
+                }
+            }
+
+        }
+
+        /// <summary>
         /// Save event calendar items state to ViewState.
         /// </summary>
         /// <param name="itemState">The list of EventCalendarItems to save.</param>
@@ -3658,6 +3844,33 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         }
 
         /// <summary>
+        /// Display the summary of items that will be created.
+        /// </summary>
+        /// <param name="rockContext"></param>
+        private void DisplaySummary( RockContext rockContext )
+        {
+            string itemTemplate = "<p><ul><li><strong>{0}</strong> {1}</li></ul></p>";
+
+            // Calendar Event Summary
+            if ( ( tglEventSelection.Checked ) || ( eipSelectedEvent.SelectedValueAsId() != null ) )
+            {
+                string eventDescription;
+                var schedule = new Schedule { iCalendarContent = sbEventOccurrenceSchedule.iCalendarContent };
+                if ( tglEventSelection.Checked )
+                {
+                    eventDescription = "An event occurrence will be created for the new \"" + tbCalendarEventName.Text + "\" event with the following schedule: " + schedule.FriendlyScheduleText + ".";
+                }
+                else
+                {
+                    eventDescription = "An event occurrence will be created for the \"" + eipSelectedEvent.SelectedItem.Text + "\" event with the following schedule: " + schedule.FriendlyScheduleText + ".";
+                }
+
+                var eventLiteral = new Literal() { Text = string.Format( itemTemplate, "Calendar Event", eventDescription ) };
+                phChanges.Controls.Add( eventLiteral );
+            }
+        }
+
+        /// <summary>
         /// Gets a specific page URL from a PageReference.
         /// </summary>
         /// <param name="pageGuid">The Guid of the page.</param>
@@ -3678,6 +3891,22 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             if ( !Page.IsPostBack )
             {
                 BindAudienceGrid();
+            }
+        }
+        private void Init_SetValuesFromReservation()
+        {
+            var reservationId = hfReservationId.ValueAsInt();
+            if ( reservationId > 0 )
+            {
+                var reservationService = new ReservationService( new RockContext() );
+                var reservation = reservationService.Get( reservationId );
+                if ( reservation != null )
+                {
+                    var schedule = new Schedule { iCalendarContent = sbSchedule.iCalendarContent };
+                    tbCalendarEventName.Text = reservation.Name;
+                    sbEventOccurrenceSchedule.iCalendarContent = reservation.Schedule.iCalendarContent;
+                    lEventOccurrenceScheduleText.Text = reservation.Schedule.FriendlyScheduleText;
+                }
             }
         }
         private void Init_SetCampusAndEventSelectionOption()
@@ -3724,106 +3953,274 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         }
         private void SetActiveWizardStep( ActiveWizardStep step )
         {
-            if ( step == ActiveWizardStep.Finished )
+            if ( step == ActiveWizardStep.ViewReservation )
+            {
+                pnlViewDetails.Visible = true;
+                pnlWizard.Visible = false;
+                pdAuditDetails.Visible = true;
+            }
+            else if ( step == ActiveWizardStep.Summary )
             {
                 using ( var rockContext = new RockContext() )
                 {
-                    CommitChanges( rockContext );
+                    DisplaySummary( rockContext );
                 }
-
-                dlgReservationEventOccurrence.Hide();
-                lEventOccurrence.Text = String.Format( "{0}", EventItemOccurrence.EventItem.Name );
-                lbDeleteEventLinkage.Visible = true;
-                lbCreateNewEventLinkage.Visible = false;
+            }
+            else if ( step == ActiveWizardStep.Finished )
+            {
+                CommitResult result = null;
+                using ( var rockContext = new RockContext() )
+                {
+                    rockContext.WrapTransaction( () =>
+                    {
+                        result = CommitChanges( rockContext );
+                    } );
+                }
+                SetResultLinks( result );
             }
 
+            SetLavaInstructions( step );
+            SetupWizardCSSClasses( step );
             ShowInputPanel( step );
+            SetupWizardButtons( step );
         }
 
-        private void CommitChanges( RockContext rockContext )
+        private void SetLavaInstructions( ActiveWizardStep step )
         {
-
-            EventItem eventItem = null;
-            if ( tglEventSelection.Checked )  // "New Event" option selected.
+            pnlLavaInstructions.Visible = false;
+            string lavaTemplate = string.Empty;
+            switch ( step )
             {
-                // Create new EventItem
-                eventItem = new EventItem();
-                eventItem.Name = tbCalendarEventName.Text;
-                eventItem.Summary = tbEventSummary.Text;
-                eventItem.Description = htmlEventDescription.Text;
-                eventItem.IsActive = true;
-                if ( eventItem.PhotoId != null )
-                {
-                    eventItem.PhotoId = imgupPhoto.BinaryFileId;
-                }
-
-                // Add audiences
-                List<int> audiencesState = ViewState["AudiencesState"] as List<int> ?? new List<int>();
-                foreach ( int audienceId in audiencesState )
-                {
-                    var eventItemAudience = new EventItemAudience();
-                    eventItemAudience.DefinedValueId = audienceId;
-                    eventItem.EventItemAudiences.Add( eventItemAudience );
-                }
-
-                // Add calendar items from the UI
-                var calendarIds = new List<int>();
-                calendarIds.AddRange( cblCalendars.SelectedValuesAsInt );
-                var itemsState = GetCalendarItemState();
-                foreach ( var calendar in itemsState.Where( i => calendarIds.Contains( i.EventCalendarId ) ) )
-                {
-                    var eventCalendarItem = new EventCalendarItem();
-                    eventItem.EventCalendarItems.Add( eventCalendarItem );
-                    eventCalendarItem.CopyPropertiesFrom( calendar );
-                }
-
-                foreach ( var eventCalendarItem in eventItem.EventCalendarItems )
-                {
-                    eventCalendarItem.LoadAttributes();
-                    Rock.Attribute.Helper.GetEditValues( phEventItemAttributes, eventCalendarItem );
-                    // eventCalendarItem.SaveAttributeValues();
-                }
-            }
-            else // "Existing Event" option selected.
-            {
-                if ( eipSelectedEvent.SelectedValueAsId() != null )
-                {
-                    var eventItemService = new EventItemService( rockContext );
-                    eventItem = eventItemService.Get( eipSelectedEvent.SelectedValueAsId().Value );
-                }
+                case ActiveWizardStep.ViewReservation:
+                    lavaTemplate = GetAttributeValue( AttributeKey.LavaInstruction_ViewReservation );
+                    break;
+                case ActiveWizardStep.EditReservation:
+                    lavaTemplate = GetAttributeValue( AttributeKey.LavaInstruction_EditReservation );
+                    break;
+                case ActiveWizardStep.Event:
+                    lavaTemplate = GetAttributeValue( AttributeKey.LavaInstruction_Event );
+                    break;
+                case ActiveWizardStep.EventOccurrence:
+                    lavaTemplate = GetAttributeValue( AttributeKey.LavaInstruction_EventOccurrence );
+                    break;
+                case ActiveWizardStep.Summary:
+                    lavaTemplate = GetAttributeValue( AttributeKey.LavaInstruction_Summary );
+                    break;
+                case ActiveWizardStep.Finished:
+                    lavaTemplate = GetAttributeValue( AttributeKey.LavaInstruction_Finished );
+                    break;
             }
 
-            // if eventItem is null, no EventItem was selected or created and we will not create an occurrence, either.
-            if ( eventItem != null )
+            if ( lavaTemplate != string.Empty )
             {
-                // Create new EventItemOccurrence.
-                var eventItemOccurrence = new EventItemOccurrence { EventItemId = eventItem.Id };
-                eventItemOccurrence.CampusId = ddlCampus.SelectedValueAsInt();
-                eventItemOccurrence.Location = tbLocationDescription.Text;
-                eventItemOccurrence.ContactPersonAliasId = ppEventContact.PersonAliasId;
-                eventItemOccurrence.ContactPhone = PhoneNumber.FormattedNumber( PhoneNumber.DefaultCountryCode(), pnEventContactPhone.Number );
-                eventItemOccurrence.ContactEmail = tbEventContactEmail.Text;
-                eventItemOccurrence.Note = htmlOccurrenceNote.Text;
+                pnlLavaInstructions.Visible = true;
+                var mergeObjects = LavaHelper.GetCommonMergeFields( this.RockPage, this.CurrentPerson );
+                mergeObjects.Add( "ActiveWizardStep", step.ToString() );
+                mergeObjects.Add( "Page", ( int ) step + 1 );
+                lLavaInstructions.Text = lavaTemplate.ResolveMergeFields( mergeObjects );
+            }
+        }
+        /// <summary>
+        /// Sets the appropriate CSS classes (active, complete or none) on wizard div elements.
+        /// </summary>
+        /// <param name="step">Indicates which step is being displayed.</param>
+        private void SetupWizardCSSClasses( ActiveWizardStep step )
+        {
+            string baseClass = "wizard-item";
+            string eventClass = baseClass;
+            string eventoccurrenceClass = baseClass;
+            string summaryClass = baseClass;
 
-                // Set Calendar.
-                string iCalendarContent = sbEventOccurrenceSchedule.iCalendarContent ?? string.Empty;
-                var calEvent = ScheduleICalHelper.GetCalenderEvent( iCalendarContent );
-                if ( calEvent != null && calEvent.DTStart != null )
+            pnlWizard.Visible = ( step != ActiveWizardStep.ViewReservation && step != ActiveWizardStep.EditReservation );
+            switch ( step )
+            {
+                case ActiveWizardStep.Event:
+                    eventClass = baseClass + " active";
+                    break;
+                case ActiveWizardStep.EventOccurrence:
+                    eventClass = baseClass + " complete";
+                    eventoccurrenceClass = baseClass + " active";
+                    break;
+                case ActiveWizardStep.Summary:
+                    eventClass = baseClass + " complete";
+                    eventoccurrenceClass = baseClass + " complete";
+                    summaryClass = baseClass + " active";
+                    break;
+                case ActiveWizardStep.Finished:
+                    pnlWizard.Visible = false;
+                    break;
+                default:
+                    break;
+            }
+            divEvent.Attributes.Remove( "class" );
+            divEvent.Attributes.Add( "class", eventClass );
+            divEventOccurrence.Attributes.Remove( "class" );
+            divEventOccurrence.Attributes.Add( "class", eventoccurrenceClass );
+            divSummary.Attributes.Remove( "class" );
+            divSummary.Attributes.Add( "class", summaryClass );
+        }
+        /// <summary>
+        /// This method commits all changes to the database at once.
+        /// </summary>
+        /// <param name="rockContext"></param>
+        private CommitResult CommitChanges( RockContext rockContext )
+        {
+            var result = new CommitResult();
+
+            var reservationId = hfReservationId.ValueAsInt();
+            if ( reservationId > 0 )
+            {
+                var reservationService = new ReservationService( rockContext );
+                var reservation = reservationService.Get( reservationId );
+                if ( reservation != null )
                 {
-                    if ( eventItemOccurrence.Schedule == null )
+                    if ( GetAttributeValue( AttributeKey.EnableCalendarEvents ).AsBoolean() )
                     {
-                        eventItemOccurrence.Schedule = new Schedule();
+                        EventItem eventItem = null;
+                        if ( tglEventSelection.Checked )  // "New Event" option selected.
+                        {
+                            var eventItemService = new EventItemService( rockContext );
+                            var eventCalendarItemService = new EventCalendarItemService( rockContext );
+                            var eventItemAudienceService = new EventItemAudienceService( rockContext );
+
+                            // Create new EventItem
+                            eventItem = new EventItem();
+                            eventItem.Name = tbCalendarEventName.Text;
+                            eventItem.Summary = tbEventSummary.Text;
+                            eventItem.Description = htmlEventDescription.Text;
+                            eventItem.IsActive = true;
+                            if ( eventItem.PhotoId != null )
+                            {
+                                eventItem.PhotoId = imgupPhoto.BinaryFileId;
+                            }
+
+                            // Add audiences
+                            List<int> audiencesState = ViewState["AudiencesState"] as List<int> ?? new List<int>();
+                            foreach ( int audienceId in audiencesState )
+                            {
+                                var eventItemAudience = new EventItemAudience();
+                                eventItemAudience.DefinedValueId = audienceId;
+                                eventItem.EventItemAudiences.Add( eventItemAudience );
+                            }
+
+                            // Add calendar items from the UI
+                            var calendarIds = new List<int>();
+                            calendarIds.AddRange( cblCalendars.SelectedValuesAsInt );
+                            var itemsState = GetCalendarItemState();
+                            foreach ( var calendar in itemsState.Where( i => calendarIds.Contains( i.EventCalendarId ) ) )
+                            {
+                                var eventCalendarItem = new EventCalendarItem();
+                                eventItem.EventCalendarItems.Add( eventCalendarItem );
+                                eventCalendarItem.CopyPropertiesFrom( calendar );
+                            }
+
+                            eventItemService.Add( eventItem );
+                            rockContext.SaveChanges();
+
+                            foreach ( var eventCalendarItem in eventItem.EventCalendarItems )
+                            {
+                                eventCalendarItem.LoadAttributes();
+                                Rock.Attribute.Helper.GetEditValues( phEventItemAttributes, eventCalendarItem );
+                                eventCalendarItem.SaveAttributeValues();
+                            }
+                            result.EventId = eventItem.Id.ToString();
+
+                        }
+                        else // "Existing Event" option selected.
+                        {
+                            if ( eipSelectedEvent.SelectedValueAsId() != null )
+                            {
+                                var eventItemService = new EventItemService( rockContext );
+                                eventItem = eventItemService.Get( eipSelectedEvent.SelectedValueAsId().Value );
+                            }
+                        }
+
+                        // if eventItem is null, no EventItem was selected or created and we will not create an occurrence, either.
+                        if ( eventItem != null )
+                        {
+                            // Create new EventItemOccurrence.
+                            var eventItemOccurrence = new EventItemOccurrence { EventItemId = eventItem.Id };
+                            eventItemOccurrence.CampusId = ddlCampus.SelectedValueAsInt();
+                            eventItemOccurrence.Location = tbLocationDescription.Text;
+                            eventItemOccurrence.ContactPersonAliasId = reservation.EventContactPersonAliasId;
+                            eventItemOccurrence.ContactPhone = reservation.EventContactPhone;
+                            eventItemOccurrence.ContactEmail = reservation.EventContactEmail;
+                            eventItemOccurrence.Note = htmlOccurrenceNote.Text;
+
+                            // Set Calendar.
+                            string iCalendarContent = sbSchedule.iCalendarContent ?? string.Empty;
+                            var calEvent = ScheduleICalHelper.GetCalenderEvent( iCalendarContent );
+                            if ( calEvent != null && calEvent.DTStart != null )
+                            {
+                                if ( eventItemOccurrence.Schedule == null )
+                                {
+                                    eventItemOccurrence.Schedule = new Schedule();
+                                }
+
+                                eventItemOccurrence.Schedule.iCalendarContent = iCalendarContent;
+                            }
+
+                            var eventItemOccurrenceService = new EventItemOccurrenceService( rockContext );
+                            eventItemOccurrenceService.Add( eventItemOccurrence );
+                            rockContext.SaveChanges();
+                            result.EventOccurrenceId = eventItemOccurrence.Id.ToString();
+
+                            reservation.EventItemOccurrence = eventItemOccurrence;
+                            reservation.EventItemOccurrenceId = eventItemOccurrence.Id;
+                            rockContext.SaveChanges();
+                            result.ReservationId = reservation.Id.ToString();
+                            result.ReservationName = reservation.Name;
+                        }
                     }
 
-                    eventItemOccurrence.Schedule.iCalendarContent = iCalendarContent;
+                    LaunchPostWizardWorkflow( rockContext, reservation );
                 }
-                eventItemOccurrence.EventItem = eventItem;
-                EventItem = eventItem;
-
-                EventItemOccurrence = eventItemOccurrence;
             }
+
+            return result;
         }
 
+        /// <summary>
+        /// Builds the link URLs for each object on the final page of the wizard.
+        /// </summary>
+        private void SetResultLinks( CommitResult result )
+        {
+            lblReservationTitle.Text = result.ReservationName;
+
+            if ( string.IsNullOrWhiteSpace( result.EventId ) )
+            {
+                liEventLink.Visible = false;
+            }
+            else
+            {
+                var qryEventDetail = new Dictionary<string, string>();
+                qryEventDetail.Add( "EventId", result.EventId );
+                hlEventDetail.NavigateUrl = GetPageUrl( Rock.SystemGuid.Page.EVENT_DETAIL, qryEventDetail );
+            }
+
+            if ( string.IsNullOrWhiteSpace( result.EventOccurrenceId ) )
+            {
+                liEventOccurrenceLink.Visible = false;
+            }
+            else
+            {
+                var qryEventOccurrence = new Dictionary<string, string>();
+                qryEventOccurrence.Add( "EventItemOccurrenceId", result.EventOccurrenceId );
+                hlEventOccurrence.NavigateUrl = GetPageUrl( Rock.SystemGuid.Page.EVENT_OCCURRENCE, qryEventOccurrence );
+
+                bool showEventDetailsLink = GetAttributeValue( AttributeKey.DisplayEventDetailsLink ).AsBoolean();
+                if ( !showEventDetailsLink )
+                {
+                    liExternalEventLink.Visible = false;
+                }
+                else
+                {
+                    var qryExternalEventOccurrence = new Dictionary<string, string>();
+                    qryExternalEventOccurrence.Add( "EventOccurrenceId", result.EventOccurrenceId );
+                    hlExternalEventDetails.NavigateUrl = GetPageUrl( GetAttributeValue( AttributeKey.EventDetailsPage ), qryExternalEventOccurrence );
+                }
+            }
+        }
         /// <summary>
         /// Displays the appropriate input panel.
         /// </summary>
@@ -3831,20 +4228,80 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         private void ShowInputPanel( ActiveWizardStep step )
         {
             pnlEvent.Visible = false;
+            pnlEvent_Header.Visible = false;
+            pnlReservation_Header.Visible = false;
             pnlEventOccurrence.Visible = false;
+            pnlEventOccurrence_Header.Visible = false;
+            pnlSummary.Visible = false;
+            pnlSummary_Header.Visible = false;
+            pnlFinished.Visible = false;
+            pnlFinished_Header.Visible = false;
 
             switch ( step )
             {
+                case ActiveWizardStep.ViewReservation:
+                case ActiveWizardStep.EditReservation:
+                    pnlReservation_Header.Visible = true;
+                    pdAuditDetails.Visible = true;
+                    break;
                 case ActiveWizardStep.Event:
                     pnlEvent.Visible = true;
+                    pnlEvent_Header.Visible = true;
                     break;
                 case ActiveWizardStep.EventOccurrence:
                     pnlEventOccurrence.Visible = true;
+                    pnlEventOccurrence_Header.Visible = true;
+                    break;
+                case ActiveWizardStep.Summary:
+                    pnlSummary.Visible = true;
+                    pnlSummary_Header.Visible = true;
+                    break;
+                case ActiveWizardStep.Finished:
+                    pnlFinished.Visible = true;
+                    pnlFinished_Header.Visible = true;
                     break;
                 default:
                     break;
             }
         }
+        /// <summary>
+        /// Enables or disables wizard buttons, allowing the user to go backward but not skip forward.
+        /// </summary>
+        /// <param name="step">Indicates which step is being displayed.</param>
+        private void SetupWizardButtons( ActiveWizardStep step )
+        {
+            lbEvent.Enabled = false;
+            lbEventOccurrence.Enabled = false;
+
+            switch ( step )
+            {
+                case ActiveWizardStep.EventOccurrence:
+                    if ( GetAttributeValue( AttributeKey.EnableCalendarEvents ).AsBoolean() )
+                    {
+                        lbEvent.Enabled = true;
+                    }
+                    break;
+                case ActiveWizardStep.Summary:
+                    if ( GetAttributeValue( AttributeKey.EnableCalendarEvents ).AsBoolean() )
+                    {
+                        lbEvent.Enabled = true;
+                        if ( ( tglEventSelection.Checked ) || ( eipSelectedEvent.SelectedValueAsId() != null ) )
+                        {
+                            lbEventOccurrence.Enabled = true;
+                        }
+                        else
+                        {
+                            lbEventOccurrence.Enabled = false;
+                        }
+                    }
+                    break;
+                case ActiveWizardStep.Finished:
+                    break;
+                default:
+                    break;
+            }
+        }
+
         #endregion
 
         #endregion
@@ -3862,48 +4319,62 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
         public class CommitResult
         {
-            public string EventId, EventOccurrenceId;
+            public string ReservationId, EventId, EventOccurrenceId, ReservationName;
             public CommitResult()
             {
+                ReservationId = "";
                 EventId = "";
                 EventOccurrenceId = "";
+                ReservationName = "";
             }
         }
 
-        private enum ActiveWizardStep { Event, EventOccurrence, Summary, Finished }
+        private enum ActiveWizardStep { ViewReservation, EditReservation, Event, EventOccurrence, Summary, Finished }
         #endregion
 
-        protected void dlgReservationEventOccurrence_SaveClick( object sender, EventArgs e )
-        {
-
-        }
 
         protected void lbDeleteEventLinkage_Click( object sender, EventArgs e )
         {
+            var reservationId = hfReservationId.ValueAsInt();
+            if ( reservationId > 0 )
+            {
+                using ( var rockContext = new RockContext() )
+                {
+                    var reservationService = new ReservationService( rockContext );
+                    var reservation = reservationService.Get( reservationId );
+                    if ( reservation != null )
+                    {
+                        reservation.EventItemOccurrenceId = null;
+                        rockContext.SaveChanges();
 
+                        // Redirect back to same page so that item grid will show any attributes that were selected to show on grid
+                        var qryParams = new Dictionary<string, string>();
+                        qryParams["ReservationId"] = reservation.Id.ToString();
+                        NavigateToPage( RockPage.Guid, qryParams );
+                    }
+                }
+
+            }
         }
 
         protected void lbCreateNewEventLinkage_Click( object sender, EventArgs e )
         {
-            SetActiveWizardStep( ActiveWizardStep.Event );
-
+            pnlViewDetails.Visible = pdAuditDetails.Visible = false;
+            this.HideSecondaryBlocks( true );
             using ( var rockContext = new RockContext() )
             {
+                Init_SetValuesFromReservation();
                 Init_SetCampusAndEventSelectionOption();
                 Init_SetDefaultCalendar( rockContext );
                 Init_SetCalendarEventRequired();
             }
-
-            //  hfAddReservationLocationGuid.Value = reservationLocationGuid.ToString();
-            hfActiveDialog.Value = "dlgReservationEventOccurrence";
-
-            var schedule = new Schedule { iCalendarContent = sbSchedule.iCalendarContent };
-            tbCalendarEventName.Text = rtbName.Text;
-            sbEventOccurrenceSchedule.iCalendarContent = sbSchedule.iCalendarContent;
-            lEventOccurrenceScheduleText.Text = schedule.FriendlyScheduleText;
-
-            dlgReservationEventOccurrence.Show();
+            SetActiveWizardStep( ActiveWizardStep.Event );
         }
 
+
+        protected void lbReturnToReservation_Click( object sender, EventArgs e )
+        {
+            ExitWizard();
+        }
     }
 }

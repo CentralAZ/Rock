@@ -24,9 +24,12 @@ using System.Data.Entity.Infrastructure;
 using System.Data.Entity.ModelConfiguration;
 using System.Linq;
 using System.Runtime.Serialization;
-using Rock.Web.Cache;
+
+using Newtonsoft.Json;
+
 using Rock.Data;
 using Rock.Security;
+using Rock.Web.Cache;
 
 namespace Rock.Model
 {
@@ -210,6 +213,7 @@ namespace Rock.Model
         /// The parent note.
         /// </value>
         [DataMember]
+        [JsonIgnore]
         public virtual Note ParentNote { get; set; }
 
         /// <summary>
@@ -250,6 +254,15 @@ namespace Rock.Model
                 return viewableChildNotes;
             }
         }
+
+        /// <summary>
+        /// Gets or sets the note attachments.
+        /// </summary>
+        /// <value>
+        /// The note attachments.
+        /// </value>
+        [DataMember]
+        public virtual ICollection<NoteAttachment> Attachments { get; set; } = new Collection<NoteAttachment>();
 
         /// <summary>
         /// Gets the created by person photo URL.
@@ -412,18 +425,6 @@ namespace Rock.Model
             {
                 var noteType = NoteTypeCache.Get( this.NoteTypeId );
                 return noteType ?? base.ParentAuthority;
-            }
-        }
-
-        /// <summary>
-        /// An optional additional parent authority.  (i.e for Notes, the NoteType is main parent
-        /// authority, but parent note is an additional parent authority )
-        /// </summary>
-        public override ISecured ParentAuthorityPre
-        {
-            get
-            {
-                return this.ParentNote ?? base.ParentAuthorityPre;
             }
         }
 

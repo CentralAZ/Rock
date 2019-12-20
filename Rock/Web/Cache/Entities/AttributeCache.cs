@@ -16,6 +16,7 @@
 //
 using System;
 using System.Collections.Generic;
+using System.Data.Entity;
 using System.Linq;
 using System.Reflection;
 using System.Runtime.Serialization;
@@ -213,6 +214,34 @@ namespace Rock.Web.Cache
         public bool EnableHistory { get; private set; }
 
         /// <summary>
+        /// Gets or sets any HTML to be rendered before the attribute's edit control 
+        /// </summary>
+        /// <value>
+        /// The pre HTML.
+        /// </value>
+        [DataMember]
+        public string PreHtml { get; private set; }
+
+        /// <summary>
+        /// Gets or sets any HTML to be rendered after the attribute's edit control 
+        /// </summary>
+        /// <value>
+        /// The post HTML.
+        /// </value>
+        [DataMember]
+        public string PostHtml { get; private set; }
+
+        /// <summary>
+        /// Gets or sets the shortened name of the attribute.
+        /// If null or whitespace then the full name is returned.
+        /// </summary>
+        /// <value>
+        /// The abbreviated name of the Attribute.
+        /// </value>
+        [DataMember]
+        public string  AbbreviatedName { get; private set; }
+
+        /// <summary>
         /// Gets a value indicating whether changes to this attribute's attribute values should be logged in AttributeValueHistorical
         /// </summary>
         /// <value>
@@ -271,12 +300,20 @@ namespace Rock.Web.Cache
         public Dictionary<string, ConfigurationValue> QualifierValues { get; private set; }
 
         /// <summary>
-        /// Gets the default type of the value as.
+        /// The default value using the most appropriate datatype
         /// </summary>
         /// <value>
         /// The default type of the value as.
         /// </value>
         public object DefaultValueAsType => FieldType.Field.ValueAsFieldType( null, DefaultValue, QualifierValues );
+
+        /// <summary>
+        /// The default value formatted based on the field type and qualifiers
+        /// </summary>
+        /// <value>
+        /// The default value as formatted.
+        /// </value>
+        public string DefaultValueAsFormatted => FieldType.Field.FormatValue( null, DefaultValue, QualifierValues, false );
 
         /// <summary>
         /// Gets the default sort value.
@@ -294,6 +331,7 @@ namespace Rock.Web.Cache
         /// Copies from model.
         /// </summary>
         /// <param name="model">The model.</param>
+        [RockObsolete( "1.8" )]
         [Obsolete("Use SetFromEntity instead")]
         public override void CopyFromModel( Data.IEntity model )
         {
@@ -328,6 +366,7 @@ namespace Rock.Web.Cache
         /// </summary>
         /// <param name="attribute">The attribute.</param>
         /// <param name="qualifiers">The qualifiers.</param>
+        [RockObsolete( "1.8" )]
         [Obsolete( "Use SetFromEntity instead" )]
         public void CopyFromModel( Rock.Model.Attribute attribute, Dictionary<string, string> qualifiers )
         {
@@ -363,6 +402,9 @@ namespace Rock.Web.Cache
             IsAnalyticHistory = attribute.IsAnalyticHistory;
             IsActive = attribute.IsActive;
             EnableHistory = attribute.EnableHistory;
+            PreHtml = attribute.PreHtml;
+            PostHtml = attribute.PostHtml;
+            AbbreviatedName = attribute.AbbreviatedName;
 
             QualifierValues = new Dictionary<string, ConfigurationValue>();
             foreach ( var qualifier in qualifiers )
@@ -405,20 +447,61 @@ namespace Rock.Web.Cache
         /// <returns></returns>
         public Control AddControl( ControlCollection controls, string value, string validationGroup, bool setValue, bool setId, bool? required = null, string labelText = null, string helpText = null, string warningText = null )
         {
-            if ( labelText == null )
-            {
-                labelText = Name;
-            }
+            return AddControl( controls, value, validationGroup, setValue, setId, required, labelText, helpText, warningText, null );
+        }
 
-            if ( helpText == null )
+        /// <summary>
+        /// Adds the control.
+        /// </summary>
+        /// <param name="controls">The controls.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="validationGroup">The validation group.</param>
+        /// <param name="setValue">if set to <c>true</c> [set value].</param>
+        /// <param name="setId">if set to <c>true</c> [set identifier].</param>
+        /// <param name="required">The required.</param>
+        /// <param name="labelText">The label text.</param>
+        /// <param name="helpText">The help text.</param>
+        /// <param name="warningText">The warning text.</param>
+        /// <param name="attributeControlId">The attribute control identifier.</param>
+        /// <returns></returns>
+        public Control AddControl( ControlCollection controls, string value, string validationGroup, bool setValue, bool setId, bool? required, string labelText, string helpText, string warningText, string attributeControlId )
+        {
+            AttributeControlOptions attributeControlOptions = new AttributeControlOptions
             {
-                helpText = Description;
-            }
+                Value = value,
+                ValidationGroup = validationGroup,
+                SetValue = setValue,
+                SetId = setId,
+                Required = required,
+                LabelText = labelText,
+                HelpText = helpText,
+                WarningText = warningText,
+                AttributeControlId = attributeControlId
+            };
 
-            var attributeControl = FieldType.Field.EditControl( QualifierValues, setId ? $"attribute_field_{Id}" : string.Empty );
+            return AddControl( controls, attributeControlOptions );
+        }
+
+        /// <summary>
+        /// Adds the control.
+        /// </summary>
+        /// <param name="controls">The controls.</param>
+        /// <param name="options">The options.</param>
+        /// <returns></returns>
+        public Control AddControl( ControlCollection controls, AttributeControlOptions options )
+        {
+            options.LabelText = options.LabelText ?? Name;
+            options.HelpText = options.HelpText ?? Description;
+            options.AttributeControlId = options.AttributeControlId ?? $"attribute_field_{Id}";
+
+            EntityTypeCache entityType = EntityTypeId.HasValue ? EntityTypeCache.Get( this.EntityTypeId.Value ) : null;
+
+            bool showPrePostHtml = ( entityType?.AttributesSupportPrePostHtml ?? false ) && ( options?.ShowPrePostHtml ?? true );
+
+            var attributeControl = FieldType.Field.EditControl( QualifierValues, options.SetId ? options.AttributeControlId : string.Empty );
             if ( attributeControl == null ) return null;
 
-            if ( setId )
+            if ( options.SetId )
             {
                 attributeControl.ClientIDMode = ClientIDMode.AutoID;
             }
@@ -426,14 +509,22 @@ namespace Rock.Web.Cache
             // If the control is a RockControl
             var rockControl = attributeControl as IRockControl;
             var controlHasRequired = attributeControl as IHasRequired;
+
+            if ( showPrePostHtml )
+            {
+                if ( this.PreHtml.IsNotNullOrWhiteSpace() )
+                {
+                    controls.Add( new Literal { Text = this.PreHtml } );
+                }
+            }
             
             if ( rockControl != null )
             {
-                rockControl.Label = labelText;
-                rockControl.Help = helpText;
-                rockControl.Warning = warningText;
-                rockControl.Required = required ?? IsRequired;
-                rockControl.ValidationGroup = validationGroup;
+                rockControl.Label = options.LabelText;
+                rockControl.Help = options.HelpText;
+                rockControl.Warning = options.WarningText;
+                rockControl.Required = options.Required ?? IsRequired;
+                rockControl.ValidationGroup = options.ValidationGroup;
 
                 controls.Add( attributeControl );
             }
@@ -441,13 +532,13 @@ namespace Rock.Web.Cache
             {
                 if ( controlHasRequired != null )
                 {
-                    controlHasRequired.Required = required ?? IsRequired;
-                    controlHasRequired.ValidationGroup = validationGroup;
+                    controlHasRequired.Required = options.Required ?? IsRequired;
+                    controlHasRequired.ValidationGroup = options.ValidationGroup;
                 }
 
-                bool renderLabel = !string.IsNullOrEmpty( labelText );
-                bool renderHelp = !string.IsNullOrWhiteSpace( helpText );
-                bool renderWarning = !string.IsNullOrWhiteSpace( warningText );
+                bool renderLabel = !string.IsNullOrEmpty( options.LabelText );
+                bool renderHelp = !string.IsNullOrWhiteSpace( options.HelpText );
+                bool renderWarning = !string.IsNullOrWhiteSpace( options.WarningText );
 
                 if ( renderLabel || renderHelp || renderWarning )
                 {
@@ -472,7 +563,7 @@ namespace Rock.Web.Cache
                         {
                             ID = $"_label_{Id}",
                             ClientIDMode = ClientIDMode.AutoID,
-                            Text = labelText,
+                            Text = options.LabelText,
                             CssClass = "control-label",
                             AssociatedControlID = attributeControl.ID
                         };
@@ -485,7 +576,7 @@ namespace Rock.Web.Cache
                         {
                             ID = $"_helpBlock_{Id}",
                             ClientIDMode = ClientIDMode.AutoID,
-                            Text = helpText
+                            Text = options.HelpText
                         };
                         div.Controls.Add( helpBlock );
                     }
@@ -496,7 +587,7 @@ namespace Rock.Web.Cache
                         {
                             ID = $"_warningBlock_{Id}",
                             ClientIDMode = ClientIDMode.AutoID,
-                            Text = warningText
+                            Text = options.WarningText
                         };
                         div.Controls.Add( warningBlock );
                     }
@@ -509,9 +600,17 @@ namespace Rock.Web.Cache
                 }
             }
 
-            if ( setValue )
+            if ( options.ShowPrePostHtml )
             {
-                FieldType.Field.SetEditValue( attributeControl, QualifierValues, value );
+                if ( this.PostHtml.IsNotNullOrWhiteSpace() )
+                {
+                    controls.Add( new Literal { Text = this.PostHtml } );
+                }
+            }
+
+            if ( options.SetValue )
+            {
+                FieldType.Field.SetEditValue( attributeControl, QualifierValues, options.Value );
             }
 
             return attributeControl;
@@ -558,6 +657,7 @@ namespace Rock.Web.Cache
         /// <param name="attributeModel">The attribute model.</param>
         /// <param name="qualifiers">The qualifiers.</param>
         /// <returns></returns>
+        [RockObsolete( "1.8" )]
         [Obsolete("Use Get instead")]
         public static AttributeCache Read( Rock.Model.Attribute attributeModel, Dictionary<string, string> qualifiers )
         {
@@ -663,6 +763,7 @@ namespace Rock.Web.Cache
         /// Loads the entity attributes.
         /// </summary>
         /// <param name="rockContext">The rock context.</param>
+        [RockObsolete( "1.8" )]
         [Obsolete("No longer needed")]
         public static void LoadEntityAttributes( RockContext rockContext )
         {
@@ -672,6 +773,7 @@ namespace Rock.Web.Cache
         /// <summary>
         /// Flushes the entity attributes.
         /// </summary>
+        [RockObsolete( "1.8" )]
         [Obsolete( "Use RemoveEntityAttributes instead" )]
         public static void FlushEntityAttributes()
         {
@@ -683,7 +785,7 @@ namespace Rock.Web.Cache
         /// </summary>
         /// <param name="attribute">The attribute.</param>
         /// <param name="entityState">State of the entity.</param>
-        internal static void UpdateCacheEntityAttributes( Rock.Model.Attribute attribute, System.Data.Entity.EntityState entityState )
+        internal static void UpdateCacheEntityAttributes( Rock.Model.Attribute attribute, EntityState entityState )
         {
             EntityAttributesCache.UpdateCacheEntityAttributes( attribute, entityState );
         }
@@ -691,6 +793,92 @@ namespace Rock.Web.Cache
         #endregion
     }
 
+    /// <summary>
+    /// Defined options that be can used when calling AddControl
+    /// </summary>
+    public class AttributeControlOptions
+    {
+
+        /// <summary>
+        /// The value that should be set to the control after it is created.
+        /// </summary>
+        /// <value>
+        /// The value.
+        /// </value>
+        public string Value { get; set; }
+
+        /// <summary>
+        /// Gets or sets the validation group.
+        /// </summary>
+        /// <value>
+        /// The validation group.
+        /// </value>
+        public string ValidationGroup { get; set; }
+
+        /// <summary>
+        /// Apply or not to apply the value provided in Value
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [set value]; otherwise, <c>false</c>.
+        /// </value>
+        public bool SetValue { get; set; }
+
+        /// <summary>
+        /// Set the control ID or not. This must be true in order to use the value in AttributeControlId
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [set identifier]; otherwise, <c>false</c>.
+        /// </value>
+        public bool SetId { get; set; }
+
+        /// <summary>
+        /// Gets or sets the required.
+        /// </summary>
+        /// <value>
+        /// The required.
+        /// </value>
+        public bool? Required { get; set; }
+
+        /// <summary>
+        /// Gets or sets the label text.
+        /// </summary>
+        /// <value>
+        /// The label text.
+        /// </value>
+        public string LabelText { get; set; }
+
+        /// <summary>
+        /// Gets or sets the help text.
+        /// </summary>
+        /// <value>
+        /// The help text.
+        /// </value>
+        public string HelpText { get; set; }
+
+        /// <summary>
+        /// Gets or sets the warning text.
+        /// </summary>
+        /// <value>
+        /// The warning text.
+        /// </value>
+        public string WarningText { get; set; }
+
+        /// <summary>
+        /// If a custom ID is required put it here. If an auto generated one is okay then just set SetId to true and the control will be named attribute_field_{AttributeId}
+        /// </summary>
+        /// <value>
+        /// The attribute control identifier.
+        /// </value>
+        public string AttributeControlId { get; set; }
+
+        /// <summary>
+        /// Gets or sets a value indicating whether [show pre post HTML] (if EntityType supports it)
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [show pre post HTML]; otherwise, <c>false</c>.
+        /// </value>
+        public bool ShowPrePostHtml { get; set; }
+    }
 }
 
 

@@ -23,6 +23,7 @@ using System.Web.Configuration;
 using System.Web.UI;
 using System.Web.UI.HtmlControls;
 using System.Web.UI.WebControls;
+
 using Rock.Data;
 using Rock.Model;
 
@@ -266,6 +267,24 @@ namespace Rock.Web.UI.Controls
         }
 
         /// <summary>
+        /// Gets or sets the edit button tool tip.
+        /// </summary>
+        /// <value>
+        /// The edit button tool tip.
+        /// </value>
+        [
+        Bindable( true ),
+        Category( "Appearance" ),
+        DefaultValue( "" ),
+        Description( "The title attribute for the edit button." )
+        ]
+        public string ButtonToolTip
+        {
+            get { return ViewState["ButtonToolTip"] as string ?? string.Empty; }
+            set { ViewState["ButtonToolTip"] = value; }
+        }
+
+        /// <summary>
         /// Gets or sets the CSS class for the edit button.
         /// </summary>
         /// <value>
@@ -335,6 +354,7 @@ namespace Rock.Web.UI.Controls
         private ModalDialog _mdImageDialog;
         private Panel _pnlCropContainer;
         private NotificationBox _nbImageWarning;
+        private NotificationBox _nbErrorMessage;
         private Image _imgCropSource;
         private HiddenField _hfCropCoords;
 
@@ -591,6 +611,7 @@ namespace Rock.Web.UI.Controls
             _lbShowModal.ID = this.ID + "_lbShowModal";
             _lbShowModal.CssClass = this.ButtonCssClass;
             _lbShowModal.Text = this.ButtonText;
+            _lbShowModal.ToolTip = this.ButtonToolTip;
             _lbShowModal.Click += _lbShowModal_Click;
             _lbShowModal.CausesValidation = false;
             Controls.Add( _lbShowModal );
@@ -607,6 +628,7 @@ namespace Rock.Web.UI.Controls
             _lbUploadImage.ID = this.ID + "_lbUploadImage";
             _lbUploadImage.CssClass = this.ButtonCssClass;
             _lbUploadImage.Text = this.ButtonText;
+            _lbUploadImage.ToolTip = this.ButtonToolTip;
             _lbUploadImage.CausesValidation = false;
             Controls.Add( _lbUploadImage );
 
@@ -634,6 +656,12 @@ namespace Rock.Web.UI.Controls
             _nbImageWarning.ID = this.ID + "_nbImageWarning";
             _nbImageWarning.NotificationBoxType = NotificationBoxType.Warning;
             _nbImageWarning.Text = "SVG image cropping is not supported.";
+
+            _nbErrorMessage = new NotificationBox();
+            _nbErrorMessage.ID = this.ID + "_nbErrorMessage";
+            _nbErrorMessage.NotificationBoxType = NotificationBoxType.Danger;
+            _nbErrorMessage.Text = "File Type is not supported.";
+            _nbErrorMessage.Visible = false;
 
             _imgCropSource = new Image();
             _imgCropSource.ID = this.ID + "_imgCropSource";
@@ -796,7 +824,7 @@ namespace Rock.Web.UI.Controls
             // return if there's no image to crop or if this is a new upload before the image is replaced
             if ( !BinaryFileId.HasValue || ( sender == _lbUploadImage && OriginalBinaryFileId == BinaryFileId ) )
             {
-                // no image to crop. they probably cancelled the image upload dialog
+                // no image to crop. they probably canceled the image upload dialog
                 return;
             }
 
@@ -809,7 +837,7 @@ namespace Rock.Web.UI.Controls
             }
 
             _nbImageWarning.Visible = false;
-
+            _nbErrorMessage.Visible = false;
             var binaryFile = new BinaryFileService( new RockContext() ).Get( CropBinaryFileId ?? 0 );
             if ( binaryFile != null )
             {
@@ -820,9 +848,21 @@ namespace Rock.Web.UI.Controls
                     {
                         if ( stream != null )
                         {
-                            var bitMap = new System.Drawing.Bitmap( stream );
-                            _imgCropSource.Width = bitMap.Width;
-                            _imgCropSource.Height = bitMap.Height;
+                            try
+                            {
+                                var bitMap = new System.Drawing.Bitmap( stream );
+                                _imgCropSource.Width = bitMap.Width;
+                                _imgCropSource.Height = bitMap.Height;
+                            }
+                            catch ( Exception ex )
+                            {
+                                ExceptionLogService.LogException( ex );
+                                _imgCropSource.Width = Unit.Empty;
+                                _imgCropSource.Height = Unit.Empty;
+                                _nbErrorMessage.Visible = true;
+                                BinaryFileId = null;
+                                return;
+                            }
                         }
                     }
                 }
@@ -861,6 +901,7 @@ namespace Rock.Web.UI.Controls
         /// <param name="writer">The writer.</param>
         public void RenderBaseControl( HtmlTextWriter writer )
         {
+            _nbErrorMessage.RenderControl( writer );
             writer.AddAttribute( "id", this.ClientID );
             writer.AddAttribute( "class", "image-editor-group imageupload-group" );
             writer.RenderBeginTag( HtmlTextWriterTag.Div );
@@ -917,8 +958,13 @@ namespace Rock.Web.UI.Controls
             writer.WriteLine();
             _lSaveStatus.RenderControl( writer );
 
-            writer.WriteLine();
-            _aRemove.RenderControl( writer );
+            // Don't render the _aRemove control if there is no BinaryFile to remove.
+            if ( BinaryFileId != null )
+            {
+                writer.WriteLine();
+                _aRemove.RenderControl( writer );
+            }
+
             writer.WriteLine();
             writer.RenderEndTag();
             writer.WriteLine();
@@ -1009,10 +1055,11 @@ $('#{8}').click( function (e, data) {{
     $('#{0}').click();
 }});
 
-// hide/show buttons when remove is clicked (note: imageUploader.js also does stuff when remove is clicked)
+// hide/show buttons and remove this button when remove is clicked (note: imageUploader.js also does stuff when remove is clicked)
 $('#{5}').click(function () {{
     $('#{8}').show();
     $('#{9}').hide();
+    $('#{5}').remove();
 }});
 
 ",
@@ -1030,7 +1077,6 @@ $('#{5}').click(function () {{
                 this.NoPictureUrl, // {11}
                 maxUploadBytes.HasValue ? maxUploadBytes.Value.ToString() : "null"  // {12}
                 );
-
 
             _lbUploadImage.Enabled = false;
 

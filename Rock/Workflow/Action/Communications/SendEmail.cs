@@ -113,7 +113,7 @@ namespace Rock.Workflow.Action
             }
             else
             {
-                fromEmail = fromValue;
+                fromEmail = fromValue.ResolveMergeFields( mergeFields );
             }
 
             Guid? guid = to.AsGuidOrNull();
@@ -256,17 +256,20 @@ namespace Rock.Workflow.Action
             }
 
             emailMessage.FromEmail = fromEmail;
-            emailMessage.FromName = fromName;
+            emailMessage.FromName = fromName.IsNullOrWhiteSpace() ? fromEmail : fromName;
             emailMessage.Subject = subject;
             emailMessage.Message = body;
 
             foreach (BinaryFile b in attachments)
             {
-                emailMessage.Attachments.Add( b );
+                if ( b != null )
+                {
+                    emailMessage.Attachments.Add( b );
+                }
             }
             
             emailMessage.CreateCommunicationRecord = createCommunicationRecord;
-            emailMessage.AppRoot = GlobalAttributesCache.Get().GetValue( "InternalApplicationRoot" ) ?? string.Empty;
+            emailMessage.AppRoot = Rock.Web.Cache.GlobalAttributesCache.Get().GetValue( "InternalApplicationRoot" ) ?? string.Empty;
 
             emailMessage.Send();
         }

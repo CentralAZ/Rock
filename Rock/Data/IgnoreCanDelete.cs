@@ -14,12 +14,10 @@
 // limitations under the License.
 // </copyright>
 //
-using System.ComponentModel.DataAnnotations;
-
 namespace Rock.Data
 {
     /// <summary>
-    /// Attribute so that the CodeGenerator knows to ignore this column when generating CanDelete code
+    /// Attribute so that the CodeGenerator knows to ignore this column when generating CanDelete code for the Table that this is referencing
     /// </summary>
     public class IgnoreCanDelete : System.Attribute
     {

@@ -313,7 +313,7 @@ namespace Rock.Data
 
             foreach ( var propInfo in this.GetType().GetProperties() )
             {
-                if ( !propInfo.GetGetMethod().IsVirtual || virtualPropsWhiteList.Contains(propInfo.Name) )
+                if ( ( propInfo.GetGetMethod() != null && !propInfo.GetGetMethod().IsVirtual ) || virtualPropsWhiteList.Contains(propInfo.Name) )
                 {
                     dictionary.Add( propInfo.Name, propInfo.GetValue( this, null ) );
                 }
@@ -463,6 +463,10 @@ namespace Rock.Data
             return false;
         }
 
+        /// <summary>
+        /// Gets the type of the base.
+        /// </summary>
+        /// <returns></returns>
         private Type GetBaseType()
         {
             Type entityType = this.GetType();
@@ -474,29 +478,14 @@ namespace Rock.Data
             return entityType;
         }
 
+        /// <summary>
+        /// Determines whether the property is available to Lava
+        /// </summary>
+        /// <param name="propInfo">The property information.</param>
+        /// <returns></returns>
         private bool LiquidizableProperty( PropertyInfo propInfo )
         {
-            // If property has a [LavaIgnore] attribute return false
-            if ( propInfo.GetCustomAttributes( typeof( Rock.Data.LavaIgnoreAttribute ) ).Count() > 0 )
-            {
-                return false;
-            }
-
-            // If property has a [DataMember] attribute return true
-            if ( propInfo.GetCustomAttributes( typeof( System.Runtime.Serialization.DataMemberAttribute ) ).Count() > 0 )
-            {
-                return true;
-            }
-
-            // If property has a [LavaInclude] attribute return true
-            if ( propInfo.GetCustomAttributes( typeof( Rock.Data.LavaIncludeAttribute ) ).Count() > 0 )
-            {
-                return true;
-            }
-
-            // otherwise return false
-            return false;
-
+            return Rock.Lava.LavaHelper.IsLavaProperty( propInfo );
         }
 
         /// <summary>

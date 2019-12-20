@@ -91,7 +91,7 @@ namespace RockWeb.Blocks.Prayer
             this.EnablePublicDisplayFlag = GetAttributeValue( "EnablePublicDisplayFlag" ).AsBoolean();
             nbMessage.Text = GetAttributeValue( "SaveSuccessText" );
 
-            RockPage.AddScriptLink( Page, ResolveUrl( "~/Scripts/bootstrap-limit.js" ) );
+            RockPage.AddScriptLink( Page, "~/Scripts/bootstrap-limit.js" );
             var categoryGuid = GetAttributeValue( "GroupCategoryId" );
             if ( ! string.IsNullOrEmpty( categoryGuid ) )
             {
@@ -287,8 +287,8 @@ namespace RockWeb.Blocks.Prayer
         {
             Guid guid = new Guid( categoryGuid );
 
-            bddlCategory.DataSource = new CategoryService( new RockContext() ).GetByEntityTypeId( this.PrayerRequestEntityTypeId ).Where( c => c.Guid == guid ||
-                ( c.ParentCategory != null && c.ParentCategory.Guid == guid ) ).AsQueryable().ToList();
+            bddlCategory.DataSource = new CategoryService( new RockContext() ).GetByEntityTypeId( this.PrayerRequestEntityTypeId )
+                .Where( c => ( c.ParentCategory != null && c.ParentCategory.Guid == guid ) ).AsQueryable().ToList();
             bddlCategory.DataTextField = "Name";
             bddlCategory.DataValueField = "Id";
             bddlCategory.DataBind();

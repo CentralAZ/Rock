@@ -713,7 +713,7 @@ namespace RockWeb.Blocks.Reporting
         /// </summary>
         public int? GetReportId()
         {
-            int? reportId = PageParameter( "reportId" ).AsIntegerOrNull();
+            int? reportId = PageParameter( "ReportId" ).AsIntegerOrNull();
             var reportGuid = GetAttributeValue( "Report" ).AsGuidOrNull();
 
             if ( reportGuid.HasValue )
@@ -1100,13 +1100,15 @@ namespace RockWeb.Blocks.Reporting
 
             if ( report.Id == default( int ) )
             {
-                dataViewId = PageParameter( "dataViewId" ).AsIntegerOrNull();
-                if (dataViewId.HasValue)
+                dataViewId = PageParameter( "DataViewId" ).AsIntegerOrNull();
+                if ( dataViewId.HasValue )
                 {
                     var dataView = new DataViewService( rockContext ).Get( dataViewId.Value );
                     if ( dataView != null )
                     {
                         entityTypeId = dataView.EntityTypeId;
+                        tbName.Text = dataView.Name;
+                        tbDescription.Text = dataView.Description;
                     }
                 }
             }
@@ -1279,8 +1281,22 @@ namespace RockWeb.Blocks.Reporting
                 var dataSelectComponent = GetDataSelectComponent( rockContext, fieldSelection.AsInteger() );
                 if ( dataSelectComponent != null )
                 {
-                    dataSelectComponent.CreateChildControls( phDataSelectControls );
+                    Control[] dataSelectControls = dataSelectComponent.CreateChildControls( phDataSelectControls );
+                    SetDataSelectControlsValidationGroup( dataSelectControls, this.BlockValidationGroup );
                 }
+            }
+        }
+
+        /// <summary>
+        /// Sets the data select controls validation group.
+        /// </summary>
+        /// <param name="dataSelectControls">The data select controls.</param>
+        /// <param name="validationGroup">The validation group.</param>
+        private void SetDataSelectControlsValidationGroup( Control[] dataSelectControls, string validationGroup )
+        {
+            if ( dataSelectControls != null && validationGroup != null )
+            {
+                this.SetValidationGroup( dataSelectControls, validationGroup );
             }
         }
 

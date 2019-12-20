@@ -84,8 +84,15 @@ namespace RockWeb.Blocks.CheckIn
                     // Save the check-in state
                     SaveState();
 
-                    // Navigate to the check-in home (welcome) page
-                    NavigateToNextPage();
+                    // Navigate to the check-in home (welcome) page, passing family ID if it was included in the query string
+                    var queryParams = new Dictionary<string, string>();
+                    string familyId = PageParameter( "FamilyId" );
+                    if ( familyId.IsNotNullOrWhiteSpace() )
+                    {
+                        queryParams.Add( "FamilyId", familyId );
+                    }
+
+                    NavigateToNextPage( queryParams );
                 }
                 else
                 {

@@ -1,4 +1,4 @@
-// <copyright>
+﻿// <copyright>
 // Copyright by the Spark Development Network
 //
 // Licensed under the Rock Community License (the "License");
@@ -37,7 +37,7 @@ namespace RockWeb.Blocks.Administration
     /// </summary>
     [DisplayName( "Data Automation Settings" )]
     [Category( "Administration" )]
-    [Description( "Block used to set values specific to data automation (NCOA, Updating Person Status, Family Campus, Etc)." )]
+    [Description( "Block used to set values specific to data automation (Updating Person Status, Family Campus, Etc)." )]
     public partial class DataAutomationSettings : RockBlock
     {
         #region private variables
@@ -348,6 +348,13 @@ namespace RockWeb.Blocks.Administration
                         interactionChannelType.LastInteractionDays = settingInteractionItem.LastInteractionDays;
                     }
                 }
+
+                // Now UNCHECK all channels that were NOT *previously* saved
+                var remainingChannels = reactivateChannelTypes.Where( c => !_reactivateSettings.Interactions.Any( x => x.Guid == c.Guid ) );
+                foreach ( var nonSavedInteractionItem in remainingChannels )
+                {
+                    nonSavedInteractionItem.IsInteractionTypeEnabled = false;
+                }
             }
 
             rInteractions.DataSource = reactivateChannelTypes;
@@ -384,6 +391,13 @@ namespace RockWeb.Blocks.Administration
                         interactionChannelType.IsInteractionTypeEnabled = noneSelected || settingInteractionItem.IsInteractionTypeEnabled;
                         interactionChannelType.LastInteractionDays = settingInteractionItem.LastInteractionDays;
                     }
+                }
+
+                // Now UNCHECK all channels that were NOT *previously* saved
+                var remainingChannels = inactivateChannelTypes.Where( c => ! _inactivateSettings.NoInteractions.Any( x => x.Guid == c.Guid ) );
+                foreach ( var nonSavedInteractionItem in remainingChannels )
+                {
+                    nonSavedInteractionItem.IsInteractionTypeEnabled = false;
                 }
             }
 

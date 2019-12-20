@@ -14,19 +14,14 @@
 // limitations under the License.
 // </copyright>
 //
+using System;
 using System.ComponentModel;
 using System.ComponentModel.Composition;
-using System.IO;
 
 using Rock.Attribute;
 using Rock.Model;
-using Rock.Web.UI.Controls;
-using Rock.Data;
-using System.Collections.Generic;
-using System.Data;
-using System;
-using System.Diagnostics;
 using Rock.Web.Cache;
+using Rock.Web.UI.Controls;
 
 namespace Rock.PersonProfile.Badge
 {
@@ -60,7 +55,7 @@ namespace Rock.PersonProfile.Badge
                 Guid groupTypeGuid = GetAttributeValue( badge, "GroupType" ).AsGuid();
                 if ( groupTypeGuid != Guid.Empty )
                 {
-                    writer.Write( String.Format( "<div class='badge badge-ingroupoftype badge-id-{0}' data-toggle='tooltip' data-original-title=''>", badge.Id ) );
+                    writer.Write( String.Format( "<div class='badge badge-ingroupoftype badge-id-{0}' data-html='true'  data-toggle='tooltip' data-original-title=''>", badge.Id ) );
 
                     writer.Write( "</div>" );
 
@@ -83,6 +78,22 @@ namespace Rock.PersonProfile.Badge
                         if (data.PersonInGroup) {{
                             badgeHtml = '<i class=\'badge-icon ' + groupIcon + '\' style=\'color: {2}\'></i>';
                             var labelText = data.NickName + ' is in a ' + data.GroupTypeName + '.';
+                            var groupLength = data.GroupList.length;
+                            if(groupLength>5){{
+                                groupLength = 5;
+                            }}
+
+                            for (i = 0; i < groupLength; ++i) {{
+                               labelText = labelText + ' <br/> ' +  data.GroupList[i].GroupName;
+                            }}
+
+                            if(data.GroupList.length >5){{
+                                var restGroup = data.GroupList.length - 5;
+                                labelText = labelText + ' <br/> (...and ' + restGroup.toString() + ' more)';
+                            }}
+                            labelText = '<p>' + labelText + '</p>';
+
+
                         }} else {{
                             badgeHtml = '<i class=\'badge-icon badge-disabled ' + groupIcon + '\'></i>';
                             var labelText = data.NickName + ' is not in a ' + data.GroupTypeName + '.';

@@ -15,14 +15,11 @@ ul.rocktree ul {
 
 .rocktree {
   .rocktree-item {
+    color: @text-color;
     white-space: nowrap;
+
     &.is-inactive {
       color: lighten(@text-color, 20%);
-      opacity: 1;
-    }
-
-    &:not(.is-inactive) {
-      color: @text-color;
     }
 
     & > i {
@@ -70,6 +67,15 @@ ul.rocktree ul {
     cursor: pointer;
     border-radius: 3px;
     border-radius: var(--border-radius-base);
+  }
+
+  .disabled {
+    cursor: default;
+
+    &:hover {
+      color: @text-color;
+      background: inherit;
+    }
   }
 
   .rocktree-loading {

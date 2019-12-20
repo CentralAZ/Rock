@@ -16,8 +16,10 @@
 //
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Reflection;
 
 using Rock.Data;
 using Rock.Model;
@@ -100,7 +102,38 @@ namespace Rock.Utility
                 return Enum.Parse( propertyType, value );
             }
 
+            if ( propertyType == typeof( TimeSpan ) )
+            {
+                return value.AsTimeSpan();
+            }
+
             return Convert.ChangeType( value, propertyType );
+        }
+
+        /// <summary>
+        /// Apply the value to the comparison expression and return the result.
+        /// </summary>
+        /// <param name="attributeValueParameterExpression">The attribute value parameter expression.</param>
+        /// <param name="comparisonExpression">The comparison expression.</param>
+        /// <param name="value">The value.</param>
+        /// <returns>
+        ///   <c>true</c> if the comparison expression result in a true result; otherwise, <c>false</c>.
+        /// </returns>
+        private static bool IsComparedToValue( ParameterExpression attributeValueParameterExpression, Expression comparisonExpression, string value )
+        {
+            // Creates a dummy attribute value that uses the default value
+            AttributeValue attributeValue = AttributeValue.CreateNonPersistedAttributeValue( value );
+
+            // Assign the dummy attribute to the comparison expression
+            Expression assignExpr = Expression.Assign( attributeValueParameterExpression, Expression.Constant( attributeValue ) );
+            BlockExpression blockExpr = Expression.Block(
+                new ParameterExpression[] { attributeValueParameterExpression },
+                assignExpr,
+                comparisonExpression
+                );
+
+            // Execute the comparison expression
+            return Expression.Lambda<Func<bool>>( blockExpr ).Compile()();
         }
 
         /// <summary>
@@ -109,14 +142,14 @@ namespace Rock.Utility
         /// <param name="serviceInstance">The service instance.</param>
         /// <param name="parameterExpression">The parameter expression.</param>
         /// <param name="entityField">The entity field.</param>
-        /// <param name="values">The filter parameter values.</param>
+        /// <param name="values">The filter parameter values: FieldName, <see cref="ComparisonType">Comparison Type</see>, (optional) Comparison Value(s)</param>
         /// <returns></returns>
         public static Expression GetAttributeExpression( IService serviceInstance, ParameterExpression parameterExpression, EntityField entityField, List<string> values )
         {
             if ( !values.Any() )
             {
                 // if no filter parameter values where specified, don't filter
-                return Expression.Constant( true );
+                return new NoAttributeFilterExpression();
             }
 
             var service = new AttributeValueService( ( RockContext ) serviceInstance.Context );
@@ -146,12 +179,11 @@ namespace Rock.Utility
             // first we find the Attribute Values that match those values and then we exclude the associated Entities from the result set.
             ComparisonType? comparisonType = ComparisonType.EqualTo;
             ComparisonType? evaluatedComparisonType = comparisonType;
-            string compareToValue = null;
 
+            // If Values.Count >= 2, then Values[0] is ComparisonType, and Values[1] is a CompareToValue. Otherwise, Values[0] is a CompareToValue (for example, a SingleSelect attribute)
             if ( values.Count >= 2 )
             {
                 comparisonType = values[0].ConvertToEnumOrNull<ComparisonType>();
-                compareToValue = values[1];
 
                 switch ( comparisonType )
                 {
@@ -194,27 +226,10 @@ namespace Rock.Utility
             }
             else
             {
-                // AttributeFilterExpression returned NULL (the FieldType didn't specify any additional filter on AttributeValue),
-                // so just filter based on if the AttributeValue exists with a non-empty value
-                if ( entityField.FieldType.Field.FilterComparisonType.HasFlag( ComparisonType.IsBlank ) && string.IsNullOrEmpty( compareToValue ) )
-                {
-                    // in the case of EqualTo/NotEqualTo with a NULL compareToValue, filter this using an IsBlank/IsNotBlank filter ( if the fieldtype supports it )
-                    if ( comparisonType == ComparisonType.EqualTo )
-                    {
-                        // treat as IsBlank, but invert so that it ends being "NOT (people that *have* a value)"
-                        // this will make is so that the filter will return people that have a blank value or no AttributeValue record
-                        comparisonType = ComparisonType.IsBlank;
-                        evaluatedComparisonType = ComparisonType.IsNotBlank;
-                    }
-                    else if ( comparisonType == ComparisonType.NotEqualTo )
-                    {
-                        // treat as IsNotBlank
-                        comparisonType = ComparisonType.IsNotBlank;
-                        evaluatedComparisonType = ComparisonType.IsNotBlank;
-                    }
-                }
-
-                attributeValues = attributeValues.Where( a => !string.IsNullOrEmpty( a.Value ) );
+                // AttributeFilterExpression returned NULL ( the FieldType didn't specify any additional filter on AttributeValue),
+                // ideally the FieldType should have returned a NoAttributeFilterExpression, but just in case, don't filter
+                System.Diagnostics.Debug.WriteLine( $"Unexpected NULL result from FieldType.Field.AttributeFilterExpression for { entityField.FieldType }" );
+                return new NoAttributeFilterExpression();
             }
 
             IQueryable<int> ids = attributeValues.Select( v => v.EntityId.Value );
@@ -225,7 +240,9 @@ namespace Rock.Utility
 
             if ( attributeCache != null )
             {
-                var comparedToDefault = entityField.FieldType.Field.IsComparedToValue( values, attributeCache.DefaultValue );
+                // Test the default value against the expression filter. If it pass, then we can include all the attribute values with no value.
+                var comparedToDefault = IsComparedToValue( attributeValueParameterExpression, filterExpression, attributeCache.DefaultValue );
+
                 if ( comparedToDefault )
                 {
                     var allAttributeValueIds = service.Queryable().Where( v => v.Attribute.Id == attributeCache.Id && v.EntityId.HasValue && !string.IsNullOrEmpty( v.Value ) ).Select( a => a.EntityId.Value );
@@ -234,6 +251,43 @@ namespace Rock.Utility
                     Expression notContainsExpression = Expression.Not( Expression.Call( typeof( Queryable ), "Contains", new Type[] { typeof( int ) }, allIdsExpression, propertyExpression ) );
 
                     expression = Expression.Or( expression, notContainsExpression );
+                }
+
+                // If there is an EntityTypeQualifierColumn/Value on this attribute, also narrow down the entity query to the ones with matching QualifierColumn/Value
+                if ( attributeCache.EntityTypeQualifierColumn.IsNotNullOrWhiteSpace() && attributeCache.EntityTypeQualifierValue.IsNotNullOrWhiteSpace() )
+                {
+                    Expression qualifierParameterExpression = null;
+                    PropertyInfo qualifierColumnProperty = parameterExpression.Type.GetProperty( attributeCache.EntityTypeQualifierColumn );
+
+                    // make sure the QualifierColumn is an actual mapped property on the Entity
+                    if ( qualifierColumnProperty != null && qualifierColumnProperty.GetCustomAttribute<NotMappedAttribute>() == null )
+                    {
+                        qualifierParameterExpression = parameterExpression;
+                    }
+                    else
+                    {
+                        // Special Case for GroupMember with Qualifier of 'GroupTypeId' (which is really Group.GroupTypeId)
+                        if ( attributeCache.EntityTypeQualifierColumn == "GroupTypeId" && parameterExpression.Type == typeof( Rock.Model.GroupMember ) )
+                        {
+                            qualifierParameterExpression = Expression.Property( parameterExpression, "Group" );
+                        }
+                        else
+                        {
+                            // Unable to determine how the EntityTypeQualiferColumn relates to the Entity. Probably will be OK, but spit out a debug message
+                            System.Diagnostics.Debug.WriteLine( $"Unable to determine how the EntityTypeQualiferColumn {attributeCache.EntityTypeQualifierColumn} on attribute {attributeCache.Name}:{attributeCache.Guid}" );
+                        }
+                    }
+
+                    if ( qualifierParameterExpression != null )
+                    {
+                        // if we figured out the EntityQualifierColumn/Value expression, apply it
+                        // This would effectively add something like 'WHERE [GroupTypeId] = 10' to the WHERE clause
+                        MemberExpression entityQualiferColumnExpression = Expression.Property( qualifierParameterExpression, attributeCache.EntityTypeQualifierColumn );
+                        object entityTypeQualifierValueAsType = Convert.ChangeType( attributeCache.EntityTypeQualifierValue, entityQualiferColumnExpression.Type );
+                        Expression entityQualiferColumnEqualExpression = Expression.Equal( entityQualiferColumnExpression, Expression.Constant( entityTypeQualifierValueAsType, entityQualiferColumnExpression.Type ) );
+
+                        expression = Expression.And( entityQualiferColumnEqualExpression, expression );
+                    }
                 }
             }
 

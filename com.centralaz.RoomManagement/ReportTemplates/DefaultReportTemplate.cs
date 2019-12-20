@@ -26,6 +26,8 @@ using Rock;
 using Rock.Data;
 using Rock.Model;
 
+using Document = iTextSharp.text.Document;
+
 namespace com.centralaz.RoomManagement.ReportTemplates
 {
     /// <summary>

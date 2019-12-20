@@ -28,6 +28,8 @@ using Rock.Data;
 using Rock.Model;
 using Rock.Web.Cache;
 
+using Document = iTextSharp.text.Document;
+
 namespace com.centralaz.RoomManagement.ReportTemplates
 {
     /// <summary>

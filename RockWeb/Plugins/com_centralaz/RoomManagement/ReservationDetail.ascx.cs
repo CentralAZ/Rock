@@ -4107,7 +4107,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                         eventItem.Summary = tbEventSummary.Text;
                         eventItem.Description = htmlEventDescription.Text;
                         eventItem.IsActive = true;
-                        if ( eventItem.PhotoId != null )
+                        if ( imgupPhoto.BinaryFileId != null )
                         {
                             eventItem.PhotoId = imgupPhoto.BinaryFileId;
                         }
@@ -4212,7 +4212,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             else
             {
                 var qryEventDetail = new Dictionary<string, string>();
-                qryEventDetail.Add( "EventId", result.EventId );
+                qryEventDetail.Add( "EventItemId", result.EventId );
                 hlEventDetail.NavigateUrl = GetPageUrl( Rock.SystemGuid.Page.EVENT_DETAIL, qryEventDetail );
             }
 

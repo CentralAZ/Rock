@@ -196,11 +196,11 @@ namespace com.centralaz.RoomManagement.Model
 
             if ( arePotentialConflictsReturned )
             {
-                sb.Append( "<b>The following items have already been requested for the scheduled times:<br><ul>" );
+                sb.Append( "<b>The following items can be reserved, but have also been requested for the scheduled times:<br><ul>" );
             }
             else
             {
-                sb.Append( "<b>The following items are already reserved for the scheduled times:<br><ul>" );
+                sb.Append( "<b>The following items can not be reserved, as they are already reserved for the scheduled times:<br><ul>" );
             }
 
             var reservedLocationIds = GetReservedLocationIds( reservation, true, arePotentialConflictsReturned );

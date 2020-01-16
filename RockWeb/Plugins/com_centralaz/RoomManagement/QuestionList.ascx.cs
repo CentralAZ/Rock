@@ -308,7 +308,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     keyMap.AddOrReplace( attribute.Key, true );
                 }
 
-                var nextOrder = attributeService.Queryable().AsNoTracking().Max( a => a.Order ) + 1;
+                var nextOrder = attributeService.Queryable().AsNoTracking().Count() + 1;
 
                 // Copy questions from a source Resource..
                 if ( sourceResourceId != null )
@@ -563,7 +563,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             }
             else
             {
-                attribute.Order = attributeList.Any() ? attributeList.Max( a => a.Order ) + 1 : 0;
+                attribute.Order = attributeList.Any() ? attributeList.Count() + 1 : 0;
             }
 
             var entityTypeId = 0;
@@ -634,7 +634,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             }
             else
             {
-                newAttribute.Order = internalAttributeService.Queryable().AsNoTracking().Max( a => a.Order ) + 1;
+                newAttribute.Order = internalAttributeService.Queryable().AsNoTracking().Count() + 1;
             }
 
             edtAttribute.GetAttributeProperties( newAttribute );

@@ -2468,12 +2468,15 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             hfApprovalState.Value = reservation.ApprovalState.ConvertToString();
 
             reservation.LoadAttributes();
-            if ( reservation.AttributeValues.Where( av => av.Value != null && av.Value.Value.IsNotNullOrWhiteSpace() ).Count() > 0 )
+            var viewableAttributes = reservation.Attributes.Where( a => a.Value.IsAuthorized( Authorization.VIEW, this.CurrentPerson ) ).Select( a => a.Key ).ToList();
+
+            if ( reservation.AttributeValues.Where( av => av.Value != null && av.Value.Value.IsNotNullOrWhiteSpace() && viewableAttributes.Contains( av.Value.AttributeKey ) ).Count() > 0 )
             {
                 var headingTitle = new HtmlGenericControl( "h3" );
                 headingTitle.InnerText = "Reservation Attributes";
                 phAttributes.Controls.Add( headingTitle );
-                Rock.Attribute.Helper.AddDisplayControls( reservation, phAttributes, showHeading: false );
+                var excludeKeys = reservation.Attributes.Where( a => !viewableAttributes.Contains( a.Key ) ).Select( a => a.Key ).ToList();
+                Rock.Attribute.Helper.AddDisplayControls( reservation, phAttributes, excludeKeys, showHeading: false );
             }
 
             LoadQuestionsAndAnswers( false, true );
@@ -2677,13 +2680,15 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             reservation.ReservationType = ReservationType;
             reservation.ReservationTypeId = ReservationType.Id;
             reservation.LoadAttributes();
+            var editableAttributes = reservation.Attributes.Where( a => a.Value.IsAuthorized( Authorization.EDIT, this.CurrentPerson ) ).Select( a => a.Key ).ToList();
+            var excludeKeys = reservation.Attributes.Where( a => !editableAttributes.Contains( a.Key ) ).Select( a => a.Key ).ToList();
 
-            if ( reservation.Attributes.Count() > 0 )
+            if ( editableAttributes.Count() > 0 )
             {
                 var headingTitle = new HtmlGenericControl( "h3" );
                 headingTitle.InnerText = "Reservation Attributes";
                 phAttributeEdits.Controls.Add( headingTitle );
-                Rock.Attribute.Helper.AddEditControls( reservation, phAttributeEdits, setValues, BlockValidationGroup );
+                Rock.Attribute.Helper.AddEditControls( reservation, phAttributeEdits, setValues, BlockValidationGroup, excludeKeys );
             }
         }
 
@@ -3183,7 +3188,12 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 if ( headControl == null )
                 {
                     reservationLocation.LoadReservationLocationAttributes();
-                    if ( reservationLocation.Attributes.Count > 0 )
+                    var editableAttributes = isEditMode ? reservationLocation.Attributes.Where( a => a.Value.IsAuthorized( Authorization.EDIT, this.CurrentPerson ) ).Select( a => a.Key ).ToList() : new List<string>();
+                    var viewableAttributes = reservationLocation.Attributes.Where( a => a.Value.IsAuthorized( Authorization.VIEW, this.CurrentPerson ) ).Select( a => a.Key ).ToList();
+
+
+                    if ( ( isEditMode && editableAttributes.Count > 0 ) ||
+                        ( !isEditMode && viewableAttributes.Count > 0 ) )
                     {
                         Control childControl = new Control();
                         HiddenField hfReservationLocationGuid = new HiddenField();
@@ -3197,14 +3207,17 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                         hfReservationLocationGuid.ID = "hfReservationLocationGuid_" + reservationLocation.Guid.ToString();
                         phAttributes.ID = "phAttributes_" + reservationLocation.Guid.ToString();
 
+
                         if ( isEditMode )
                         {
-                            Rock.Attribute.Helper.AddEditControls( reservationLocation, phAttributes, reservationLocation.IsNew, BlockValidationGroup );
+                            var excludeKeys = reservationLocation.Attributes.Where( a => !editableAttributes.Contains( a.Key ) ).Select( a => a.Key ).ToList();
+                            Rock.Attribute.Helper.AddEditControls( reservationLocation, phAttributes, reservationLocation.IsNew, BlockValidationGroup, excludeKeys );
                             reservationLocation.IsNew = false;
                         }
                         else
                         {
-                            Rock.Attribute.Helper.AddDisplayControls( reservationLocation, phAttributes, showHeading: false );
+                            var excludeKeys = reservationLocation.Attributes.Where( a => !viewableAttributes.Contains( a.Key ) ).Select( a => a.Key ).ToList();
+                            Rock.Attribute.Helper.AddDisplayControls( reservationLocation, phAttributes, excludeKeys, showHeading: false );
                         }
 
                         childControl.Controls.Add( headingTitle );
@@ -3485,7 +3498,12 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 if ( headControl == null )
                 {
                     reservationResource.LoadReservationResourceAttributes();
-                    if ( reservationResource.Attributes.Count > 0 )
+                    var editableAttributes = isEditMode ? reservationResource.Attributes.Where( a => a.Value.IsAuthorized( Authorization.EDIT, this.CurrentPerson ) ).Select( a => a.Key ).ToList() : new List<string>();
+                    var viewableAttributes = reservationResource.Attributes.Where( a => a.Value.IsAuthorized( Authorization.VIEW, this.CurrentPerson ) ).Select( a => a.Key ).ToList();
+
+
+                    if ( ( isEditMode && editableAttributes.Count > 0 ) ||
+                        ( !isEditMode && viewableAttributes.Count > 0 ) )
                     {
                         Control childControl = new Control();
                         HiddenField hfReservationResourceGuid = new HiddenField();
@@ -3502,12 +3520,14 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
                         if ( isEditMode )
                         {
-                            Rock.Attribute.Helper.AddEditControls( reservationResource, phAttributes, reservationResource.IsNew, BlockValidationGroup );
+                            var excludeKeys = reservationResource.Attributes.Where( a => !editableAttributes.Contains( a.Key ) ).Select( a => a.Key ).ToList();
+                            Rock.Attribute.Helper.AddEditControls( reservationResource, phAttributes, reservationResource.IsNew, BlockValidationGroup, excludeKeys );
                             reservationResource.IsNew = false;
                         }
                         else
                         {
-                            Rock.Attribute.Helper.AddDisplayControls( reservationResource, phAttributes, showHeading: false );
+                            var excludeKeys = reservationResource.Attributes.Where( a => !viewableAttributes.Contains( a.Key ) ).Select( a => a.Key ).ToList();
+                            Rock.Attribute.Helper.AddDisplayControls( reservationResource, phAttributes, excludeKeys, showHeading: false );
                         }
 
                         childControl.Controls.Add( headingTitle );

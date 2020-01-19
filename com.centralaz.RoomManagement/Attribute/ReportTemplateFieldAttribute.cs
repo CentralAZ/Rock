@@ -36,6 +36,7 @@ namespace com.centralaz.RoomManagement.Attribute
         /// <param name="category">The category.</param>
         /// <param name="order">The order.</param>
         /// <param name="key">The key.</param>
+        /// <param name="fieldTypeAssembly">The field type assembly.</param>
         public ReportTemplateFieldAttribute( string name = "", string description = "", bool required = true, string defaultValue = "", string category = "", int order = 0, string key = null, string fieldTypeAssembly = "com.centralaz.RoomManagement" )
             : base( name, description, required, defaultValue, category, order, key, typeof( com.centralaz.RoomManagement.Field.Types.ReportTemplateFieldType ).FullName, fieldTypeAssembly )
         {

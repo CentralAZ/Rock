@@ -18,14 +18,25 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 4, "1.4.5" )]
     public class UpdateFieldType : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             RockMigrationHelper.UpdateFieldType( "Reservation", "", "com.centralaz.RoomManagement", "com.centralaz.RoomManagement.Field.Types.ReservationFieldType", "66739D2C-1F39-44C4-BDBB-9AB181DA4ED7" );
             RockMigrationHelper.UpdateFieldType( "ReservationStatus", "", "com.centralaz.RoomManagement", "com.centralaz.RoomManagement.Field.Types.ReservationStatusFieldType", "D3D17BE3-33BF-4CDF-89E1-F70C57317B4E" );
         }
+
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
             RockMigrationHelper.DeleteFieldType( "66739D2C-1F39-44C4-BDBB-9AB181DA4ED7" );

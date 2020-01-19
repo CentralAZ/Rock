@@ -33,26 +33,68 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Entity Properties
 
+        /// <summary>
+        /// Gets or sets the name.
+        /// </summary>
+        /// <value>
+        /// The name.
+        /// </value>
         [DataMember]
         [Required]
         [MaxLength( 50 )]
         public string Name { get; set; }
 
+        /// <summary>
+        /// Gets or sets the category id.
+        /// </summary>
+        /// <value>
+        /// The category id.
+        /// </value>
         [DataMember]
         public int? CategoryId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the campus identifier.
+        /// </summary>
+        /// <value>
+        /// The campus identifier.
+        /// </value>
         [DataMember]
         public int? CampusId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the location identifier.
+        /// </summary>
+        /// <value>
+        /// The location identifier.
+        /// </value>
         [DataMember]
         public int? LocationId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the approval group identifier.
+        /// </summary>
+        /// <value>
+        /// The approval group identifier.
+        /// </value>
         [DataMember]
         public int? ApprovalGroupId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the quantity.
+        /// </summary>
+        /// <value>
+        /// The quantity.
+        /// </value>
         [DataMember]
         public int Quantity { get; set; }
 
+        /// <summary>
+        /// Gets or sets the note.
+        /// </summary>
+        /// <value>
+        /// The note.
+        /// </value>
         [DataMember]
         [MaxLength( 2000 )]
         public string Note { get; set; }
@@ -61,12 +103,36 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Virtual Properties
 
+        /// <summary>
+        /// Gets or sets the category.
+        /// </summary>
+        /// <value>
+        /// The category.
+        /// </value>
         public virtual Category Category { get; set; }
 
+        /// <summary>
+        /// Gets or sets the campus.
+        /// </summary>
+        /// <value>
+        /// The campus.
+        /// </value>
         public virtual Campus Campus { get; set; }
 
+        /// <summary>
+        /// Gets or sets the location.
+        /// </summary>
+        /// <value>
+        /// The location.
+        /// </value>
         public virtual Location Location { get; set; }
 
+        /// <summary>
+        /// Gets or sets the approval group.
+        /// </summary>
+        /// <value>
+        /// The approval group.
+        /// </value>
         [LavaInclude]
         public virtual Group ApprovalGroup { get; set; }
 
@@ -91,6 +157,9 @@ namespace com.centralaz.RoomManagement.Model
     #region Entity Configuration
 
 
+    /// <summary>
+    /// The EF configuration for the Resource model
+    /// </summary>
     public partial class ResourceConfiguration : EntityTypeConfiguration<Resource>
     {
         /// <summary>

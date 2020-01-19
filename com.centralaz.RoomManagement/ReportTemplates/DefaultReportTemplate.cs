@@ -55,6 +55,7 @@ namespace com.centralaz.RoomManagement.ReportTemplates
         /// <param name="font"></param>
         /// <param name="filterStartDate"></param>
         /// <param name="filterEndDate"></param>
+        /// <param name="lavaTemplate"></param>
         /// <returns></returns>
         public override byte[] GenerateReport( List<ReservationService.ReservationSummary> reservationSummaryList, string logoFileUrl, string font, DateTime? filterStartDate, DateTime? filterEndDate, string lavaTemplate = "" )
         {

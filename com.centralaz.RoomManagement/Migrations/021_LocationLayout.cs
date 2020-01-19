@@ -24,9 +24,16 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 21, "1.6.0" )]
     public class LocationLayout : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             Sql( @"
@@ -80,8 +87,11 @@ namespace com.centralaz.RoomManagement.Migrations
             RockMigrationHelper.AddBlock( true, "2BECFB85-D566-464F-B6AC-0BE90189A418","","AA41242C-DF95-40E2-B184-0E024A07FDFF","Location Layout List","Main","","",1,"BA2F9650-C9E9-4819-8293-445AC14DAD81");   
             // Attrib for BlockType: Location Layout List:Layout Image Height
             RockMigrationHelper.UpdateBlockTypeAttribute("AA41242C-DF95-40E2-B184-0E024A07FDFF","A75DFC58-7A1B-4799-BF31-451B2BBE38FF","Layout Image Height","LayoutImageHeight","","",0,@"150","CB24F528-929E-45D5-BDB2-96DADD53BDEE");  
-            }
+        }
 
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
             RockMigrationHelper.DeleteAttribute( "CB24F528-929E-45D5-BDB2-96DADD53BDEE" );

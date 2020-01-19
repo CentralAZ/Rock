@@ -18,21 +18,38 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 17, "1.6.0" )]
     public class AddDetailPageToReservationList : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             AddBlockAttributeValue( true, "4D4882F8-5ACC-4AE1-BC75-4FFDDA26F270", "3DD653FB-771D-4EE5-8C75-1BF1B6F773B8", @"4cbd2b96-e076-46df-a576-356bca5e577f,893ff97e-57d2-42e0-bf9a-6027d673773c" ); // Detail Page
-
         }
+
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
 
         }
 
-        // Temporarily copying a v7 method here
-        public void AddBlockAttributeValue( bool skipIfAlreadyExists, string blockGuid, string attributeGuid, string value, bool appendToExisting = false )
+        /// <summary>
+        /// Adds the block attribute value. Temporarily copying a v7 method here
+        /// </summary>
+        /// <param name="skipIfAlreadyExists">if set to <c>true</c> [skip if already exists].</param>
+        /// <param name="blockGuid">The block unique identifier.</param>
+        /// <param name="attributeGuid">The attribute unique identifier.</param>
+        /// <param name="value">The value.</param>
+        /// <param name="appendToExisting">if set to <c>true</c> [append to existing].</param>
+        private void AddBlockAttributeValue( bool skipIfAlreadyExists, string blockGuid, string attributeGuid, string value, bool appendToExisting = false )
         {
             var addBlockValueSQL = string.Format( @"
 

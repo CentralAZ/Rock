@@ -18,9 +18,16 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 6, "1.6.0" )]
     public class OptionalResourceLocation : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             // AddColumn is currently only available in Rock v7
@@ -37,6 +44,9 @@ namespace com.centralaz.RoomManagement.Migrations
             RockMigrationHelper.AddBlockAttributeValue( "1B4F3A33-656B-4FCB-A446-D481782DE8B4", "85ECB608-B64E-43C0-986C-FC8FD38F9D81", "4CBD2B96-E076-46DF-A576-356BCA5E577F" ); // Detail Page
         }
 
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
             // DropColumn & DropForeignKey are currently only available in Rock v7

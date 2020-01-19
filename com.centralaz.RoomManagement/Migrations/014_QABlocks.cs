@@ -18,9 +18,16 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 14, "1.6.0" )]
     public class QABlocks : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             // Page: Resource Detail
@@ -29,8 +36,11 @@ namespace com.centralaz.RoomManagement.Migrations
 
             // Page: Named Locations
             RockMigrationHelper.AddBlock( "2BECFB85-D566-464F-B6AC-0BE90189A418", "", "349C4CDB-713E-4E23-9628-17B9938DDFC5", "Question List", "Main", "", "", 2, "177C531A-F93D-400C-8923-624D07D7B57D" );
-
         }
+
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
             RockMigrationHelper.DeleteBlock( "177C531A-F93D-400C-8923-624D07D7B57D" );

@@ -18,9 +18,16 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 9, "1.6.0" )]
     public class NotificationSystemEmail : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             #region Room Reservation Approval Notification (System Email)
@@ -120,6 +127,9 @@ return reservation.Schedule.GetCalenderEvent().Duration.Hours + "" hrs "" + rese
             #endregion
         }
 
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
         }

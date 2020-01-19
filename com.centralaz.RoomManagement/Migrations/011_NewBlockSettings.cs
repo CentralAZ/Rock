@@ -21,9 +21,16 @@ using Rock;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 11, "1.6.0" )]
     public class NewBlockSettings : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             #region New Reservation Detail block settings
@@ -246,6 +253,9 @@ return reservation.Schedule.GetCalenderEvent().Duration.Hours + "" hrs "" + rese
             #endregion
         }
 
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
             RockMigrationHelper.DeleteAttribute( "7162CFE4-FACD-4D75-8F09-2D42DBF1A887" );

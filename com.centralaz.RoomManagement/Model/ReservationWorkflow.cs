@@ -25,7 +25,7 @@ namespace com.centralaz.RoomManagement.Model
     /// <summary>
     /// A Reservation Workflow
     /// </summary>
-    /// <seealso cref="Rock.Data.Model{com.centralaz.RoomManagement.Model.ReservationWorkflow}" />
+    /// <seealso cref="Rock.Model" />
     /// <seealso cref="Rock.Data.IRockEntity" />
     [Table( "_com_centralaz_RoomManagement_ReservationWorkflow" )]
     [DataContract]
@@ -114,7 +114,9 @@ namespace com.centralaz.RoomManagement.Model
 
     #region Entity Configuration
 
-
+    /// <summary>
+    /// The EF Configuration class for the ReservationWorkflow
+    /// </summary>
     public partial class ReservationWorkflowConfiguration : EntityTypeConfiguration<ReservationWorkflow>
     {
         /// <summary>

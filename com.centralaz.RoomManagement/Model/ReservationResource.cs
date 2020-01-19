@@ -29,20 +29,43 @@ namespace com.centralaz.RoomManagement.Model
     [DataContract]
     public class ReservationResource : Rock.Data.Model<ReservationResource>, Rock.Data.IRockEntity
     {
-
         #region Entity Properties
+        /// <summary>
+        /// Gets or sets the reservation identifier.
+        /// </summary>
+        /// <value>
+        /// The reservation identifier.
+        /// </value>
         [Required]
         [DataMember]
         public int ReservationId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the resource identifier.
+        /// </summary>
+        /// <value>
+        /// The resource identifier.
+        /// </value>
         [Required]
         [DataMember]
         public int ResourceId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the quantity.
+        /// </summary>
+        /// <value>
+        /// The quantity.
+        /// </value>
         [Required]
         [DataMember]
         public int Quantity { get; set; }
 
+        /// <summary>
+        /// Gets or sets the state of the approval.
+        /// </summary>
+        /// <value>
+        /// The state of the approval.
+        /// </value>
         [Required]
         [DataMember]
         public ReservationResourceApprovalState ApprovalState { get; set; }
@@ -51,14 +74,30 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Virtual Properties
 
+        /// <summary>
+        /// Gets or sets the reservation.
+        /// </summary>
+        /// <value>
+        /// The reservation.
+        /// </value>
         public virtual Reservation Reservation { get; set; }
 
+        /// <summary>
+        /// Gets or sets the resource.
+        /// </summary>
+        /// <value>
+        /// The resource.
+        /// </value>
         [LavaInclude]
         public virtual Resource Resource { get; set; }
 
         #endregion
 
         #region Methods
+        /// <summary>
+        /// Copies the properties from.
+        /// </summary>
+        /// <param name="source">The source.</param>
         public void CopyPropertiesFrom( ReservationResource source )
         {
             this.Id = source.Id;
@@ -77,12 +116,13 @@ namespace com.centralaz.RoomManagement.Model
         }
 
         #endregion
-
     }
 
     #region Entity Configuration
 
-
+    /// <summary>
+    /// EF configuration class for the ReservationResource model
+    /// </summary>
     public partial class ReservationResourceConfiguration : EntityTypeConfiguration<ReservationResource>
     {
         /// <summary>

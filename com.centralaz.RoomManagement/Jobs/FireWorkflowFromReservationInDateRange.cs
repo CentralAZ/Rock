@@ -33,6 +33,11 @@ using Rock.Web.UI.Controls;
 
 namespace com.centralaz.RoomManagement.Jobs
 {
+    /// <summary>
+    /// Launches a workflow for any reservations that match the configured criteria and sets the 'ReservationId' into
+    /// the workflow's attribute.
+    /// </summary>
+    /// <seealso cref="Quartz.IJob" />
     [SlidingDateRangeField( "Date Range", "The range of reservations to fire a workflow for.", required: true )]
     [BooleanField( "Include only reservations that start in date range", key: "StartsInDateRange" )]
     [WorkflowTypeField( "Workflow Type", "The workflow type to fire for eligible reservations.  The type MUST have a 'ReservationId' attribute that will be set by this job.", required: true )]
@@ -40,7 +45,6 @@ namespace com.centralaz.RoomManagement.Jobs
     [DisallowConcurrentExecution]
     public class FireWorkflowFromReservationInDateRange : IJob
     {
-
         /// <summary>
         /// Initializes a new instance of the <see cref="FireWorkflowFromReservationInDateRange"/> class.
         /// </summary>
@@ -133,7 +137,7 @@ namespace com.centralaz.RoomManagement.Jobs
                         // set attributes
                         workflow.SetAttributeValue( "ReservationId", reservation.Id.ToString() );
 
-                        // lauch workflow
+                        // launch workflow
                         workflowService.Process( workflow, reservation, out workflowErrors );
 
                         reservationsProcessed++;

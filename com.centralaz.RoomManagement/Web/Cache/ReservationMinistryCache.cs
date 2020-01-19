@@ -90,6 +90,12 @@ namespace com.centralaz.RoomManagement.Web.Cache
         [DataMember]
         public int Order { get; set; }
 
+        /// <summary>
+        /// Gets or sets the type of the reservation.
+        /// </summary>
+        /// <value>
+        /// The type of the reservation.
+        /// </value>
         public virtual ReservationType ReservationType { get; set; }
 
         #endregion

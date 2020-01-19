@@ -18,9 +18,16 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 2, "1.4.5" )]
     public class Pages : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             // Page: Room Management
@@ -129,6 +136,10 @@ namespace com.centralaz.RoomManagement.Migrations
             RockMigrationHelper.AddSecurityAuthForPage( "0FF1D7F4-BF6D-444A-BD71-645BD764EC40", 0, "Edit", true, "FBE0324F-F29A-4ACF-8EC3-5386C5562D70", 0, "1EE92B5E-E44C-434C-AA50-2D6C22388A4D" );
             RockMigrationHelper.AddSecurityAuthForPage( "0FF1D7F4-BF6D-444A-BD71-645BD764EC40", 0, "Administrate", true, "FBE0324F-F29A-4ACF-8EC3-5386C5562D70", 0, "70D9BC19-4328-4158-A110-46DE8E816F4E" );
         }
+
+        /// <summary>
+        /// The commands to undo a migration from a specific version
+        /// </summary>
         public override void Down()
         {
             RockMigrationHelper.DeleteSecurityRoleGroup( "FBE0324F-F29A-4ACF-8EC3-5386C5562D70" );

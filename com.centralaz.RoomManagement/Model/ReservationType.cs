@@ -39,46 +39,130 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Entity Properties
 
+        /// <summary>
+        /// Gets or sets the name.
+        /// </summary>
+        /// <value>
+        /// The name.
+        /// </value>
         [DataMember]
         [MaxLength( 50 )]
         public string Name { get; set; }
 
+        /// <summary>
+        /// Gets or sets the description.
+        /// </summary>
+        /// <value>
+        /// The description.
+        /// </value>
         [DataMember]
         public string Description { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is active.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is active; otherwise, <c>false</c>.
+        /// </value>
         [DataMember]
         public bool IsActive { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is system.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is system; otherwise, <c>false</c>.
+        /// </value>
         [DataMember]
         public bool IsSystem { get; set; }
 
+        /// <summary>
+        /// Gets or sets the icon CSS class.
+        /// </summary>
+        /// <value>
+        /// The icon CSS class.
+        /// </value>
         [DataMember]
         public string IconCssClass { get; set; }
 
+        /// <summary>
+        /// Gets or sets the final approval group identifier.
+        /// </summary>
+        /// <value>
+        /// The final approval group identifier.
+        /// </value>
         [DataMember]
         public int? FinalApprovalGroupId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the super admin group identifier.
+        /// </summary>
+        /// <value>
+        /// The super admin group identifier.
+        /// </value>
         [DataMember]
         public int? SuperAdminGroupId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the notification email identifier.
+        /// </summary>
+        /// <value>
+        /// The notification email identifier.
+        /// </value>
         [DataMember]
         public int? NotificationEmailId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the default setup time.
+        /// </summary>
+        /// <value>
+        /// The default setup time.
+        /// </value>
         [DataMember]
         public int? DefaultSetupTime { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is communication history saved.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is communication history saved; otherwise, <c>false</c>.
+        /// </value>
         [DataMember]
         public bool IsCommunicationHistorySaved { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is number attending required.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is number attending required; otherwise, <c>false</c>.
+        /// </value>
         [DataMember]
         public bool IsNumberAttendingRequired { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is contact details required.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is contact details required; otherwise, <c>false</c>.
+        /// </value>
         [DataMember]
         public bool IsContactDetailsRequired { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is setup time required.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is setup time required; otherwise, <c>false</c>.
+        /// </value>
         [DataMember]
         public bool IsSetupTimeRequired { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is reservation booked on approval.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is reservation booked on approval; otherwise, <c>false</c>.
+        /// </value>
         [DataMember]
         public bool IsReservationBookedOnApproval { get; set; }
 
@@ -86,15 +170,39 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Virtual Properties
 
+        /// <summary>
+        /// Gets or sets the final approval group.
+        /// </summary>
+        /// <value>
+        /// The final approval group.
+        /// </value>
         [LavaInclude]
         public virtual Group FinalApprovalGroup { get; set; }
 
+        /// <summary>
+        /// Gets or sets the super admin group.
+        /// </summary>
+        /// <value>
+        /// The super admin group.
+        /// </value>
         [LavaInclude]
         public virtual Group SuperAdminGroup { get; set; }
 
+        /// <summary>
+        /// Gets or sets the notification email.
+        /// </summary>
+        /// <value>
+        /// The notification email.
+        /// </value>
         [LavaInclude]
         public virtual SystemEmail NotificationEmail { get; set; }
 
+        /// <summary>
+        /// Gets or sets the reservations.
+        /// </summary>
+        /// <value>
+        /// The reservations.
+        /// </value>
         [LavaInclude]
         public virtual ICollection<Reservation> Reservations
         {
@@ -103,6 +211,12 @@ namespace com.centralaz.RoomManagement.Model
         }
         private ICollection<Reservation> _reservations;
 
+        /// <summary>
+        /// Gets or sets the reservation ministries.
+        /// </summary>
+        /// <value>
+        /// The reservation ministries.
+        /// </value>
         [LavaInclude]
         public virtual ICollection<ReservationMinistry> ReservationMinistries
         {
@@ -111,6 +225,12 @@ namespace com.centralaz.RoomManagement.Model
         }
         private ICollection<ReservationMinistry> _reservationMinistries;
 
+        /// <summary>
+        /// Gets or sets the reservation workflow triggers.
+        /// </summary>
+        /// <value>
+        /// The reservation workflow triggers.
+        /// </value>
         [LavaInclude]
         public virtual ICollection<ReservationWorkflowTrigger> ReservationWorkflowTriggers
         {
@@ -137,12 +257,14 @@ namespace com.centralaz.RoomManagement.Model
         }
 
         #endregion
-
     }
 
     #region Entity Configuration
 
 
+    /// <summary>
+    /// EF configuration class for the ReservationType model
+    /// </summary>
     public partial class ReservationTypeConfiguration : EntityTypeConfiguration<ReservationType>
     {
         /// <summary>

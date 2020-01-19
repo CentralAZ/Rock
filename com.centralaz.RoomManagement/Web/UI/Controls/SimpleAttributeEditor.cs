@@ -44,30 +44,109 @@ namespace com.centralaz.RoomManagement.Web.UI.Controls
 
         #region Controls
 
+        /// <summary>
+        /// The hf existing key names
+        /// </summary>
         protected HtmlInputHidden _hfExistingKeyNames;
+
+        /// <summary>
+        /// The l attribute action title
+        /// </summary>
         protected Literal _lAttributeActionTitle;
+
+        /// <summary>
+        /// The validation summary
+        /// </summary>
         protected ValidationSummary _validationSummary;
 
+        /// <summary>
+        /// The text box name
+        /// </summary>
         protected RockTextBox _tbName;
+
+        /// <summary>
+        /// The text box description
+        /// </summary>
         protected RockTextBox _tbDescription;
 
+        /// <summary>
+        /// The cp categories
+        /// </summary>
         protected CategoryPicker _cpCategories;
+
+        /// <summary>
+        /// The l key
+        /// </summary>
         protected RockLiteral _lKey;
+
+        /// <summary>
+        /// The tb key
+        /// </summary>
         protected RockTextBox _tbKey;
+
+        /// <summary>
+        /// The custom validator key
+        /// </summary>
         protected CustomValidator _cvKey;
+
+        /// <summary>
+        /// The text box icon CSS class
+        /// </summary>
         protected RockTextBox _tbIconCssClass;
+
+        /// <summary>
+        /// The check box for controlling whether it is required
+        /// </summary>
         protected RockCheckBox _cbRequired;
+
+        /// <summary>
+        /// The check box for controlling whether it will be shown in grid
+        /// </summary>
         protected RockCheckBox _cbShowInGrid;
+
+        /// <summary>
+        /// The check box for controlling whether it allows search
+        /// </summary>
         protected RockCheckBox _cbAllowSearch;
+
+        /// <summary>
+        /// The check box for controlling whether it is indexing enabled
+        /// </summary>
         protected RockCheckBox _cbIsIndexingEnabled;
+
+        /// <summary>
+        /// The check box for controlling whether it is analytic
+        /// </summary>
         protected RockCheckBox _cbIsAnalytic;
+
+        /// <summary>
+        /// The check box for controlling whether it is analytic history
+        /// </summary>
         protected RockCheckBox _cbIsAnalyticHistory;
 
+        /// <summary>
+        /// The DDL field type
+        /// </summary>
         protected RockDropDownList _ddlFieldType;
+
+        /// <summary>
+        /// The PlaceHolder for qualifiers
+        /// </summary>
         protected PlaceHolder _phQualifiers;
+
+        /// <summary>
+        /// The ph default value
+        /// </summary>
         protected PlaceHolder _phDefaultValue;
 
+        /// <summary>
+        /// The save button
+        /// </summary>
         protected LinkButton _btnSave;
+
+        /// <summary>
+        /// The cancel button
+        /// </summary>
         protected LinkButton _btnCancel;
 
         #endregion Controls

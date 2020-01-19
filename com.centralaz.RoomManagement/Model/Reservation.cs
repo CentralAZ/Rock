@@ -39,49 +39,133 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Entity Properties
 
+        /// <summary>
+        /// Gets or sets the reservation type identifier.
+        /// </summary>
+        /// <value>
+        /// The reservation type identifier.
+        /// </value>
         [Required]
         [DataMember]
         public int ReservationTypeId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the name.
+        /// </summary>
+        /// <value>
+        /// The name.
+        /// </value>
         [DataMember]
         [MaxLength( 50 )]
         public string Name { get; set; }
 
+        /// <summary>
+        /// Gets or sets the schedule identifier.
+        /// </summary>
+        /// <value>
+        /// The schedule identifier.
+        /// </value>
         [Required]
         [DataMember]
         public int ScheduleId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the campus identifier.
+        /// </summary>
+        /// <value>
+        /// The campus identifier.
+        /// </value>
         [DataMember]
         public int? CampusId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the event item occurrence identifier.
+        /// </summary>
+        /// <value>
+        /// The event item occurrence identifier.
+        /// </value>
         [DataMember]
         public int? EventItemOccurrenceId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the reservation ministry identifier.
+        /// </summary>
+        /// <value>
+        /// The reservation ministry identifier.
+        /// </value>
         [DataMember]
         public int? ReservationMinistryId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the state of the approval.
+        /// </summary>
+        /// <value>
+        /// The state of the approval.
+        /// </value>
         [DataMember]
         public ReservationApprovalState ApprovalState { get; set; }
 
+        /// <summary>
+        /// Gets or sets the requester alias identifier.
+        /// </summary>
+        /// <value>
+        /// The requester alias identifier.
+        /// </value>
         [DataMember]
         public int? RequesterAliasId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the approver alias identifier.
+        /// </summary>
+        /// <value>
+        /// The approver alias identifier.
+        /// </value>
         [DataMember]
         public int? ApproverAliasId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the setup time.
+        /// </summary>
+        /// <value>
+        /// The setup time.
+        /// </value>
         [DataMember]
         public int? SetupTime { get; set; }
 
+        /// <summary>
+        /// Gets or sets the cleanup time.
+        /// </summary>
+        /// <value>
+        /// The cleanup time.
+        /// </value>
         [DataMember]
         public int? CleanupTime { get; set; }
 
+        /// <summary>
+        /// Gets or sets the number attending.
+        /// </summary>
+        /// <value>
+        /// The number attending.
+        /// </value>
         [DataMember]
         public int? NumberAttending { get; set; }
 
+        /// <summary>
+        /// Gets or sets the note.
+        /// </summary>
+        /// <value>
+        /// The note.
+        /// </value>
         [DataMember]
         [MaxLength( 2500 )]
         public string Note { get; set; }
 
+        /// <summary>
+        /// Gets or sets the setup photo identifier.
+        /// </summary>
+        /// <value>
+        /// The setup photo identifier.
+        /// </value>
         [DataMember]
         public int? SetupPhotoId { get; set; }
 
@@ -167,27 +251,75 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Virtual Properties
 
+        /// <summary>
+        /// Gets or sets the type of the reservation.
+        /// </summary>
+        /// <value>
+        /// The type of the reservation.
+        /// </value>
         [DataMember]
         public virtual ReservationType ReservationType { get; set; }
 
+        /// <summary>
+        /// Gets or sets the schedule.
+        /// </summary>
+        /// <value>
+        /// The schedule.
+        /// </value>
         [LavaInclude]
         public virtual Schedule Schedule { get; set; }
 
+        /// <summary>
+        /// Gets or sets the campus.
+        /// </summary>
+        /// <value>
+        /// The campus.
+        /// </value>
         [LavaInclude]
         public virtual Campus Campus { get; set; }
 
+        /// <summary>
+        /// Gets or sets the event item occurrence.
+        /// </summary>
+        /// <value>
+        /// The event item occurrence.
+        /// </value>
         [LavaInclude]
         public virtual EventItemOccurrence EventItemOccurrence { get; set; }
 
+        /// <summary>
+        /// Gets or sets the reservation ministry.
+        /// </summary>
+        /// <value>
+        /// The reservation ministry.
+        /// </value>
         [LavaInclude]
         public virtual ReservationMinistry ReservationMinistry { get; set; }
 
+        /// <summary>
+        /// Gets or sets the requester alias.
+        /// </summary>
+        /// <value>
+        /// The requester alias.
+        /// </value>
         [LavaInclude]
         public virtual PersonAlias RequesterAlias { get; set; }
 
+        /// <summary>
+        /// Gets or sets the approver alias.
+        /// </summary>
+        /// <value>
+        /// The approver alias.
+        /// </value>
         [LavaInclude]
         public virtual PersonAlias ApproverAlias { get; set; }
 
+        /// <summary>
+        /// Gets or sets the reservation workflows.
+        /// </summary>
+        /// <value>
+        /// The reservation workflows.
+        /// </value>
         [LavaInclude]
         public virtual ICollection<ReservationWorkflow> ReservationWorkflows
         {
@@ -196,6 +328,12 @@ namespace com.centralaz.RoomManagement.Model
         }
         private ICollection<ReservationWorkflow> _reservationWorkflows;
 
+        /// <summary>
+        /// Gets or sets the reservation resources.
+        /// </summary>
+        /// <value>
+        /// The reservation resources.
+        /// </value>
         [LavaInclude]
         public virtual ICollection<ReservationResource> ReservationResources
         {
@@ -204,6 +342,12 @@ namespace com.centralaz.RoomManagement.Model
         }
         private ICollection<ReservationResource> _reservationResources;
 
+        /// <summary>
+        /// Gets or sets the reservation locations.
+        /// </summary>
+        /// <value>
+        /// The reservation locations.
+        /// </value>
         [LavaInclude]
         public virtual ICollection<ReservationLocation> ReservationLocations
         {
@@ -212,6 +356,12 @@ namespace com.centralaz.RoomManagement.Model
         }
         private ICollection<ReservationLocation> _reservationLocations;
 
+        /// <summary>
+        /// Gets the setup photo URL.
+        /// </summary>
+        /// <value>
+        /// The setup photo URL.
+        /// </value>
         [LavaInclude]
         [NotMapped]
         public virtual string SetupPhotoUrl
@@ -227,6 +377,12 @@ namespace com.centralaz.RoomManagement.Model
             }
         }
 
+        /// <summary>
+        /// Gets or sets the setup photo.
+        /// </summary>
+        /// <value>
+        /// The setup photo.
+        /// </value>
         [DataMember]
         public virtual BinaryFile SetupPhoto { get; set; }
 
@@ -248,6 +404,12 @@ namespace com.centralaz.RoomManagement.Model
         [DataMember]
         public virtual PersonAlias AdministrativeContactPersonAlias { get; set; }
 
+        /// <summary>
+        /// Gets the friendly reservation time.
+        /// </summary>
+        /// <value>
+        /// The friendly reservation time.
+        /// </value>
         [LavaInclude]
         [NotMapped]
         public virtual string FriendlyReservationTime
@@ -309,7 +471,7 @@ namespace com.centralaz.RoomManagement.Model
                         .OrderBy(a=> a.StartDateTime)
                         .ToList();
                     {
-                        // ensure the the datetime is DateTimeKind.Local since iCal returns DateTimeKind.UTC
+                        // ensure the datetime is DateTimeKind.Local since iCal returns DateTimeKind.UTC
                     }
                 }
 
@@ -322,11 +484,25 @@ namespace com.centralaz.RoomManagement.Model
 
         }
 
+        /// <summary>
+        /// Gets the setup photo URL.
+        /// </summary>
+        /// <param name="reservation">The reservation.</param>
+        /// <param name="maxWidth">The maximum width.</param>
+        /// <param name="maxHeight">The maximum height.</param>
+        /// <returns></returns>
         public static string GetSetupPhotoUrl( Reservation reservation, int? maxWidth = null, int? maxHeight = null )
         {
             return GetSetupPhotoUrl( reservation.Id, reservation.SetupPhotoId, maxWidth, maxHeight );
         }
 
+        /// <summary>
+        /// Gets the setup photo URL.
+        /// </summary>
+        /// <param name="reservationId">The reservation identifier.</param>
+        /// <param name="maxWidth">The maximum width.</param>
+        /// <param name="maxHeight">The maximum height.</param>
+        /// <returns></returns>
         public static string GetSetupPhotoUrl( int reservationId, int? maxWidth = null, int? maxHeight = null )
         {
             using ( RockContext rockContext = new RockContext() )
@@ -336,6 +512,14 @@ namespace com.centralaz.RoomManagement.Model
             }
         }
 
+        /// <summary>
+        /// Gets the setup photo URL.
+        /// </summary>
+        /// <param name="reservationId">The reservation identifier.</param>
+        /// <param name="setupPhotoId">The setup photo identifier.</param>
+        /// <param name="maxWidth">The maximum width.</param>
+        /// <param name="maxHeight">The maximum height.</param>
+        /// <returns></returns>
         public static string GetSetupPhotoUrl( int? reservationId, int? setupPhotoId, int? maxWidth = null, int? maxHeight = null )
         {
             string virtualPath = string.Empty;
@@ -365,6 +549,15 @@ namespace com.centralaz.RoomManagement.Model
             }
         }
 
+        /// <summary>
+        /// Gets the setup photo image tag.
+        /// </summary>
+        /// <param name="reservation">The reservation.</param>
+        /// <param name="maxWidth">The maximum width.</param>
+        /// <param name="maxHeight">The maximum height.</param>
+        /// <param name="altText">The alt text.</param>
+        /// <param name="className">Name of the class.</param>
+        /// <returns></returns>
         public static string GetSetupPhotoImageTag( Reservation reservation, int? maxWidth = null, int? maxHeight = null, string altText = "", string className = "" )
         {
             if ( reservation != null )
@@ -378,6 +571,16 @@ namespace com.centralaz.RoomManagement.Model
 
         }
 
+        /// <summary>
+        /// Gets the setup photo image tag.
+        /// </summary>
+        /// <param name="reservationId">The reservation identifier.</param>
+        /// <param name="setupPhotoId">The setup photo identifier.</param>
+        /// <param name="maxWidth">The maximum width.</param>
+        /// <param name="maxHeight">The maximum height.</param>
+        /// <param name="altText">The alt text.</param>
+        /// <param name="className">Name of the class.</param>
+        /// <returns></returns>
         public static string GetSetupPhotoImageTag( int? reservationId, int? setupPhotoId, int? maxWidth = null, int? maxHeight = null, string altText = "", string className = "" )
         {
             var photoUrl = new StringBuilder();
@@ -411,6 +614,10 @@ namespace com.centralaz.RoomManagement.Model
             return string.Empty;
         }
 
+        /// <summary>
+        /// Gets the friendly reservation schedule text.
+        /// </summary>
+        /// <returns></returns>
         public string GetFriendlyReservationScheduleText()
         {
             string result = "";
@@ -454,8 +661,6 @@ namespace com.centralaz.RoomManagement.Model
             return result;
         }
 
-
-
         /// <summary>
         /// Creates a transaction to act a hook for workflow triggers before changes occur
         /// </summary>
@@ -473,12 +678,14 @@ namespace com.centralaz.RoomManagement.Model
         }
 
         #endregion
-
     }
 
     #region Entity Configuration
 
 
+    /// <summary>
+    /// The EF configuration for the Reservation model
+    /// </summary>
     public partial class ReservationConfiguration : EntityTypeConfiguration<Reservation>
     {
         /// <summary>
@@ -505,28 +712,60 @@ namespace com.centralaz.RoomManagement.Model
     #endregion
 
     #region Enumerations
+    /// <summary>
+    /// The enumeration for the reservation approval state
+    /// </summary>
     public enum ReservationApprovalState
     {
+        /// <summary>
+        /// The unapproved
+        /// </summary>
         Unapproved = 1,
 
+        /// <summary>
+        /// The approved
+        /// </summary>
         Approved = 2,
 
+        /// <summary>
+        /// The denied
+        /// </summary>
         Denied = 3,
 
+        /// <summary>
+        /// The changes needed
+        /// </summary>
         ChangesNeeded = 4,
 
+        /// <summary>
+        /// The pending review
+        /// </summary>
         PendingReview = 5
     }
 
     #endregion
 
     #region Helper Classes
+    /// <summary>
+    /// The view model for a Reservation DateTime
+    /// </summary>
     public class ReservationDateTime
     {
+        /// <summary>
+        /// Gets or sets the start date time.
+        /// </summary>
+        /// <value>
+        /// The start date time.
+        /// </value>
         public DateTime StartDateTime { get; set; }
+        /// <summary>
+        /// Gets or sets the end date time.
+        /// </summary>
+        /// <value>
+        /// The end date time.
+        /// </value>
         public DateTime EndDateTime { get; set; }
     }
 
     #endregion
-
 }

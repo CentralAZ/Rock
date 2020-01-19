@@ -57,6 +57,7 @@ namespace com.centralaz.RoomManagement.ReportTemplates
         /// <param name="font"></param>
         /// <param name="filterStartDate"></param>
         /// <param name="filterEndDate"></param>
+        /// <param name="lavaTemplate"></param>
         /// <returns></returns>
         public override byte[] GenerateReport( List<ReservationService.ReservationSummary> reservationSummaryList, string logoFileUrl, string font, DateTime? filterStartDate, DateTime? filterEndDate, string lavaTemplate = "" )
         {
@@ -282,6 +283,9 @@ namespace com.centralaz.RoomManagement.ReportTemplates
     }
 }
 
+/// <summary>
+/// Class that manages parts of the PDF page.
+/// </summary>
 public class TwoColumnHeaderFooter : PdfPageEventHelper
 {
     // This is the contentbyte object of the writer
@@ -295,14 +299,25 @@ public class TwoColumnHeaderFooter : PdfPageEventHelper
 
     #region Properties
     private string _Title;
+    /// <summary>
+    /// Gets or sets the title.
+    /// </summary>
+    /// <value>
+    /// The title.
+    /// </value>
     public string Title
     {
         get { return _Title; }
         set { _Title = value; }
     }
 
-
     private string _CalendarDate;
+    /// <summary>
+    /// Gets or sets the calendar date.
+    /// </summary>
+    /// <value>
+    /// The calendar date.
+    /// </value>
     public string CalendarDate
     {
         get { return _CalendarDate; }
@@ -310,24 +325,48 @@ public class TwoColumnHeaderFooter : PdfPageEventHelper
     }
 
     private string _HeaderLeft;
+    /// <summary>
+    /// Gets or sets the header left.
+    /// </summary>
+    /// <value>
+    /// The header left.
+    /// </value>
     public string HeaderLeft
     {
         get { return _HeaderLeft; }
         set { _HeaderLeft = value; }
     }
     private string _HeaderRight;
+    /// <summary>
+    /// Gets or sets the header right.
+    /// </summary>
+    /// <value>
+    /// The header right.
+    /// </value>
     public string HeaderRight
     {
         get { return _HeaderRight; }
         set { _HeaderRight = value; }
     }
     private Font _HeaderFont;
+    /// <summary>
+    /// Gets or sets the header font.
+    /// </summary>
+    /// <value>
+    /// The header font.
+    /// </value>
     public Font HeaderFont
     {
         get { return _HeaderFont; }
         set { _HeaderFont = value; }
     }
     private Font _SubHeaderFont;
+    /// <summary>
+    /// Gets or sets the sub header font.
+    /// </summary>
+    /// <value>
+    /// The sub header font.
+    /// </value>
     public Font SubHeaderFont
     {
         get { return _SubHeaderFont; }
@@ -335,6 +374,12 @@ public class TwoColumnHeaderFooter : PdfPageEventHelper
     }
 
     private bool _IsHeaderShown;
+    /// <summary>
+    /// Gets or sets a value indicating whether this instance is header shown.
+    /// </summary>
+    /// <value>
+    ///   <c>true</c> if this instance is header shown; otherwise, <c>false</c>.
+    /// </value>
     public bool IsHeaderShown
     {
         get { return _IsHeaderShown; }
@@ -342,7 +387,12 @@ public class TwoColumnHeaderFooter : PdfPageEventHelper
     }
 
     #endregion
-    // we override the onOpenDocument method
+    
+    /// <summary>
+    /// we override the onOpenDocument method. Called when on opening of the document.
+    /// </summary>
+    /// <param name="writer">The writer.</param>
+    /// <param name="document">The document.</param>
     public override void OnOpenDocument( PdfWriter writer, Document document )
     {
         try
@@ -358,6 +408,11 @@ public class TwoColumnHeaderFooter : PdfPageEventHelper
         }
     }
 
+    /// <summary>
+    /// Called when the start page event occurs.
+    /// </summary>
+    /// <param name="writer">The writer.</param>
+    /// <param name="document">The document.</param>
     public override void OnStartPage( PdfWriter writer, Document document )
     {
         base.OnStartPage( writer, document );
@@ -386,6 +441,11 @@ public class TwoColumnHeaderFooter : PdfPageEventHelper
         }
     }
 
+    /// <summary>
+    /// Called when the end page event occurs.
+    /// </summary>
+    /// <param name="writer">The writer.</param>
+    /// <param name="document">The document.</param>
     public override void OnEndPage( PdfWriter writer, Document document )
     {
         base.OnEndPage( writer, document );
@@ -409,6 +469,11 @@ public class TwoColumnHeaderFooter : PdfPageEventHelper
         pageSize.GetBottom( 30 ), 0 );
         cb.EndText();
     }
+    /// <summary>
+    /// Called when the close document event occurs.
+    /// </summary>
+    /// <param name="writer">The writer.</param>
+    /// <param name="document">The document.</param>
     public override void OnCloseDocument( PdfWriter writer, Document document )
     {
         base.OnCloseDocument( writer, document );

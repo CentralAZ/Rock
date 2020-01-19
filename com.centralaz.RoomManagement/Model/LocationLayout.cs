@@ -33,28 +33,69 @@ namespace com.centralaz.RoomManagement.Model
     [DataContract]
     public class LocationLayout : Rock.Data.Model<LocationLayout>, Rock.Data.IRockEntity
     {
-
         #region Entity Properties
 
+        /// <summary>
+        /// Gets or sets the location identifier.
+        /// </summary>
+        /// <value>
+        /// The location identifier.
+        /// </value>
         [DataMember]
         public int LocationId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the layout photo identifier.
+        /// </summary>
+        /// <value>
+        /// The layout photo identifier.
+        /// </value>
         [DataMember]
         public int? LayoutPhotoId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the name.
+        /// </summary>
+        /// <value>
+        /// The name.
+        /// </value>
         [MaxLength( 50 )]
         [DataMember]
         public string Name { get; set; }
 
+        /// <summary>
+        /// Gets or sets the description.
+        /// </summary>
+        /// <value>
+        /// The description.
+        /// </value>
         [DataMember]
         public string Description { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is active.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is active; otherwise, <c>false</c>.
+        /// </value>
         [DataMember]
         public bool IsActive { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is default.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is default; otherwise, <c>false</c>.
+        /// </value>
         [DataMember]
         public bool IsDefault { get; set; }
 
+        /// <summary>
+        /// Gets or sets a value indicating whether this instance is system.
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if this instance is system; otherwise, <c>false</c>.
+        /// </value>
         [DataMember]
         public bool IsSystem { get; set; }
 
@@ -62,6 +103,12 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Virtual Properties
 
+        /// <summary>
+        /// Gets the layout photo URL.
+        /// </summary>
+        /// <value>
+        /// The layout photo URL.
+        /// </value>
         [LavaInclude]
         [NotMapped]
         public virtual string LayoutPhotoUrl
@@ -77,8 +124,20 @@ namespace com.centralaz.RoomManagement.Model
             }
         }
 
+        /// <summary>
+        /// Gets or sets the layout photo.
+        /// </summary>
+        /// <value>
+        /// The layout photo.
+        /// </value>
         public virtual BinaryFile LayoutPhoto { get; set; }
 
+        /// <summary>
+        /// Gets or sets the location.
+        /// </summary>
+        /// <value>
+        /// The location.
+        /// </value>
         [DataMember]
         public virtual Location Location { get; set; }
 
@@ -86,11 +145,25 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Methods
 
+        /// <summary>
+        /// Gets the layout photo URL.
+        /// </summary>
+        /// <param name="locationLayout">The location layout.</param>
+        /// <param name="maxWidth">The maximum width.</param>
+        /// <param name="maxHeight">The maximum height.</param>
+        /// <returns></returns>
         public static string GetLayoutPhotoUrl( LocationLayout locationLayout, int? maxWidth = null, int? maxHeight = null )
         {
             return GetLayoutPhotoUrl( locationLayout.Id, locationLayout.LayoutPhotoId, maxWidth, maxHeight );
         }
 
+        /// <summary>
+        /// Gets the layout photo URL.
+        /// </summary>
+        /// <param name="locationLayoutId">The location layout identifier.</param>
+        /// <param name="maxWidth">The maximum width.</param>
+        /// <param name="maxHeight">The maximum height.</param>
+        /// <returns></returns>
         public static string GetLayoutPhotoUrl( int locationLayoutId, int? maxWidth = null, int? maxHeight = null )
         {
             using ( RockContext rockContext = new RockContext() )
@@ -100,6 +173,14 @@ namespace com.centralaz.RoomManagement.Model
             }
         }
 
+        /// <summary>
+        /// Gets the layout photo URL.
+        /// </summary>
+        /// <param name="locationLayoutId">The location layout identifier.</param>
+        /// <param name="layoutPhotoId">The layout photo identifier.</param>
+        /// <param name="maxWidth">The maximum width.</param>
+        /// <param name="maxHeight">The maximum height.</param>
+        /// <returns></returns>
         public static string GetLayoutPhotoUrl( int? locationLayoutId, int? layoutPhotoId, int? maxWidth = null, int? maxHeight = null )
         {
             string virtualPath = string.Empty;
@@ -129,6 +210,15 @@ namespace com.centralaz.RoomManagement.Model
             }
         }
 
+        /// <summary>
+        /// Gets the layout photo image tag.
+        /// </summary>
+        /// <param name="locationLayout">The location layout.</param>
+        /// <param name="maxWidth">The maximum width.</param>
+        /// <param name="maxHeight">The maximum height.</param>
+        /// <param name="altText">The alt text.</param>
+        /// <param name="className">Name of the class.</param>
+        /// <returns></returns>
         public static string GetLayoutPhotoImageTag( LocationLayout locationLayout, int? maxWidth = null, int? maxHeight = null, string altText = "", string className = "" )
         {
             if ( locationLayout != null )
@@ -142,6 +232,16 @@ namespace com.centralaz.RoomManagement.Model
 
         }
 
+        /// <summary>
+        /// Gets the layout photo image tag.
+        /// </summary>
+        /// <param name="locationLayoutId">The location layout identifier.</param>
+        /// <param name="layoutPhotoId">The layout photo identifier.</param>
+        /// <param name="maxWidth">The maximum width.</param>
+        /// <param name="maxHeight">The maximum height.</param>
+        /// <param name="altText">The alt text.</param>
+        /// <param name="className">Name of the class.</param>
+        /// <returns></returns>
         public static string GetLayoutPhotoImageTag( int? locationLayoutId, int? layoutPhotoId, int? maxWidth = null, int? maxHeight = null, string altText = "", string className = "" )
         {
             var photoUrl = new StringBuilder();
@@ -175,6 +275,10 @@ namespace com.centralaz.RoomManagement.Model
             return string.Empty;
         }
 
+        /// <summary>
+        /// Copies the properties from.
+        /// </summary>
+        /// <param name="source">The source.</param>
         public void CopyPropertiesFrom( LocationLayout source )
         {
             this.Id = source.Id;
@@ -200,6 +304,9 @@ namespace com.centralaz.RoomManagement.Model
     #region Entity Configuration
 
 
+    /// <summary>
+    /// EF configration class for the LocationLayout model
+    /// </summary>
     public partial class LocationLayoutConfiguration : EntityTypeConfiguration<LocationLayout>
     {
         /// <summary>

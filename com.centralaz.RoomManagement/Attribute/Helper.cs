@@ -13,6 +13,10 @@ namespace com.centralaz.RoomManagement.Attribute
     /// </summary>
     public static class Helper
     {
+        /// <summary>
+        /// Loads the reservation location attributes.
+        /// </summary>
+        /// <param name="reservationLocation">The reservation location.</param>
         public static void LoadReservationLocationAttributes( this ReservationLocation reservationLocation )
         {
             var rockContext = new RockContext();
@@ -33,6 +37,10 @@ namespace com.centralaz.RoomManagement.Attribute
             attributeValueList.ForEach( a => reservationLocation.AttributeValues.AddOrIgnore( a.Key, a.Value ) );
         }
 
+        /// <summary>
+        /// Loads the reservation resource attributes.
+        /// </summary>
+        /// <param name="reservationResource">The reservation resource.</param>
         public static void LoadReservationResourceAttributes( this ReservationResource reservationResource )
         {
             var rockContext = new RockContext();

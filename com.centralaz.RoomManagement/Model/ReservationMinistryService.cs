@@ -30,8 +30,17 @@ namespace com.centralaz.RoomManagement.Model
         public ReservationMinistryService( RockContext context ) : base( context ) { }
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     public static partial class ReservationMinistryExtensionMethods
     {
+        /// <summary>
+        /// Clones the specified deep copy.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="deepCopy">if set to <c>true</c> [deep copy].</param>
+        /// <returns></returns>
         public static ReservationMinistry Clone( this ReservationMinistry source, bool deepCopy )
         {
             if ( deepCopy )
@@ -46,6 +55,11 @@ namespace com.centralaz.RoomManagement.Model
             }
         }
 
+        /// <summary>
+        /// Copies the properties from.
+        /// </summary>
+        /// <param name="target">The target.</param>
+        /// <param name="source">The source.</param>
         public static void CopyPropertiesFrom( this ReservationMinistry target, ReservationMinistry source )
         {
             target.Id = source.Id;

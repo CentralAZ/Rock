@@ -18,9 +18,18 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration to provide performance improvements to the Room Management's Reservations
+    /// by running a nightly job to populate the FirstOccurrenceStartDateTime and LastOccurrenceEndDateTime
+    /// fields on the Reservation table.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 23, "1.8.2" )]
     public class PerformanceImprovements : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             Sql( @"
@@ -51,6 +60,9 @@ namespace com.centralaz.RoomManagement.Migrations
 
         }
 
+        /// <summary>
+        /// The commands to undo a migration from a specific version
+        /// </summary>
         public override void Down()
         {
             Sql( @"

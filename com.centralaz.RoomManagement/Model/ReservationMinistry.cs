@@ -31,6 +31,12 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Entity Properties
 
+        /// <summary>
+        /// Gets or sets the reservation type identifier.
+        /// </summary>
+        /// <value>
+        /// The reservation type identifier.
+        /// </value>
         [Required]
         [DataMember]
         public int ReservationTypeId { get; set; }
@@ -81,6 +87,12 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Virtual Properties
 
+        /// <summary>
+        /// Gets or sets the type of the reservation.
+        /// </summary>
+        /// <value>
+        /// The type of the reservation.
+        /// </value>
         [DataMember]
         public virtual ReservationType ReservationType { get; set; }
 
@@ -91,6 +103,9 @@ namespace com.centralaz.RoomManagement.Model
     #region Entity Configuration
 
 
+    /// <summary>
+    /// The EF configuration class for the ReservationMinistry
+    /// </summary>
     public partial class ReservationMinistryConfiguration : EntityTypeConfiguration<ReservationMinistry>
     {
         /// <summary>

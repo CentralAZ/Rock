@@ -18,9 +18,16 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 16, "1.6.0" )]
     public class UpdateWFLavaTemplateAttribute : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             // Add the missing Lava Template attribute values for the Room Reservation Approval Notification workflow.
@@ -28,11 +35,14 @@ namespace com.centralaz.RoomManagement.Migrations
             AddActionTypeAttributeValue( "B0EE1D6E-07F8-4C1F-9320-B0855EF68703", "972F19B9-598B-474B-97A4-50E56E7B59D2", "1D0D3794-C210-48A8-8C68-3FBEC08A6BA5", "Lava Template", "LavaTemplate", "By default this action will set the attribute value equal to the guid (or id) of the entity that was passed in for processing. If you include a lava template here, the action will instead set the attribute value to the output of this template. The mergefield to use for the entity is 'Entity.' For example, use {{ Entity.Name }} if the entity has a Name property. <span class='tip tip-lava'></span>", 4, @"", "{{ Entity.RequesterAlias.Guid }}" ); // Room Reservation Approval Notification:Set Attributes:Set Requester From Entity:Lava Template
             AddActionTypeAttributeValue( "4D71BFDF-E3B1-4E79-9577-F8BB765A18A7", "972F19B9-598B-474B-97A4-50E56E7B59D2", "1D0D3794-C210-48A8-8C68-3FBEC08A6BA5", "Lava Template", "LavaTemplate", "By default this action will set the attribute value equal to the guid (or id) of the entity that was passed in for processing. If you include a lava template here, the action will instead set the attribute value to the output of this template. The mergefield to use for the entity is 'Entity.' For example, use {{ Entity.Name }} if the entity has a Name property. <span class='tip tip-lava'></span>", 4, @"", "{{ Entity.ApprovalState }}" ); // Room Reservation Approval Notification:Set Attributes:Set Approval State From Entity:Lava Template
         }
+
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
 
         }
-
 
         /// <summary>
         /// Adds the action type attribute value in the situation where the attributeGuid
@@ -47,7 +57,7 @@ namespace com.centralaz.RoomManagement.Migrations
         /// <param name="attributeOrder">The attribute order.</param>
         /// <param name="attributeDefaultValue">The attribute default value.</param>
         /// <param name="value">The value.</param>
-        public void AddActionTypeAttributeValue( string actionTypeGuid, string actionEntityTypeGuid, string fieldTypeGuid, string attributeName, string attributeKey, string attributeDescription, int attributeOrder, string attributeDefaultValue, string value )
+        private void AddActionTypeAttributeValue( string actionTypeGuid, string actionEntityTypeGuid, string fieldTypeGuid, string attributeName, string attributeKey, string attributeDescription, int attributeOrder, string attributeDefaultValue, string value )
         {
 
             Sql( string.Format( @"

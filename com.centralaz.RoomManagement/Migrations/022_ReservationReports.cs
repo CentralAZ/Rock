@@ -27,9 +27,16 @@ using Rock.Web.Cache;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 22, "1.6.0" )]
     public class ReservationReports : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             //throw new NotImplementedException();
@@ -211,6 +218,9 @@ namespace com.centralaz.RoomManagement.Migrations
             RockMigrationHelper.AddBlockAttributeValue("CB1EB73E-3DE7-4326-A915-BE37A6CE0FF9","2CD75CE0-D3C8-470D-8DE1-A2964AB98887",@"False");  
         }
 
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
 

@@ -31,13 +31,19 @@ using Rock.Web.Cache;
 
 namespace Rock.Rest.Controllers
 {
+    /// <summary>
+    /// Controller for the scheduled Resources.
+    /// </summary>
     public partial class ScheduledResourcesController : Rock.Rest.ApiController<Rock.Model.Category>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ScheduledResourcesController"/> class.
+        /// </summary>
         public ScheduledResourcesController() : base( new Rock.Model.CategoryService( new Rock.Data.RockContext() ) ) { }
     }
 
     /// <summary>
-    /// 
+    /// Controller for the scheduled Resources.
     /// </summary>
     public partial class ScheduledResourcesController
     {
@@ -47,13 +53,20 @@ namespace Rock.Rest.Controllers
         /// <param name="id">The identifier.</param>
         /// <param name="rootCategoryId">The root category identifier.</param>
         /// <param name="getCategorizedItems">if set to <c>true</c> [get categorized items].</param>
-        /// <param name="entityTypeId">The entity type identifier.</param>
+        /// <param name="reservationId">The reservation identifier.</param>
+        /// <param name="iCalendarContent">Content of the i calendar.</param>
+        /// <param name="setupTime">The setup time.</param>
+        /// <param name="cleanupTime">The cleanup time.</param>
+        /// <param name="locationIds">The location ids.</param>
         /// <param name="entityQualifier">The entity qualifier.</param>
         /// <param name="entityQualifierValue">The entity qualifier value.</param>
         /// <param name="showUnnamedEntityItems">if set to <c>true</c> [show unnamed entity items].</param>
         /// <param name="showCategoriesThatHaveNoChildren">if set to <c>true</c> [show categories that have no children].</param>
+        /// <param name="includeAllCampuses">if set to <c>true</c> [include all campuses].</param>
+        /// <param name="campusId">The campus identifier.</param>
         /// <param name="includedCategoryIds">The included category ids.</param>
         /// <param name="excludedCategoryIds">The excluded category ids.</param>
+        /// <param name="defaultIconCssClass">The default icon CSS class.</param>
         /// <returns></returns>
         [Authenticate, Secured]
         [System.Web.Http.Route( "api/com_centralaz/ScheduledResources/GetChildren/{id}" )]
@@ -104,7 +117,7 @@ namespace Rock.Rest.Controllers
             if ( includedCategoryIdList.Any() )
             {
                 // if includedCategoryIdList is specified, only get categories that are in the includedCategoryIdList
-                // NOTE: no need to factor in excludedCategoryIdList since included would take precendance and the excluded ones would already not be included
+                // NOTE: no need to factor in excludedCategoryIdList since included would take precedence and the excluded ones would already not be included
                 qry = qry.Where( a => includedCategoryIdList.Contains( a.Id ) );
             }
             else if ( excludedCategoryIdList.Any() )

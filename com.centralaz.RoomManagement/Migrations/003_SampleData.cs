@@ -22,9 +22,16 @@ using Rock.Web.Cache;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 3, "1.4.5" )]
     public class SampleData : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             int entityTypeId = EntityTypeCache.Get( com.centralaz.RoomManagement.SystemGuid.EntityType.RESOURCE.AsGuid() ).Id;
@@ -75,13 +82,16 @@ namespace com.centralaz.RoomManagement.Migrations
 
             AddSecurityAuthForReservationStatus( "E739F883-8B84-4755-92C0-3DB6606381F1", 0, "Edit", true, Rock.SystemGuid.Group.GROUP_ADMINISTRATORS, Rock.Model.SpecialRole.None, "0AD21D60-C750-4FD7-9D89-106692854BA4" );
             AddSecurityAuthForReservationStatus( "E739F883-8B84-4755-92C0-3DB6606381F1", 1, "Edit", true, "FBE0324F-F29A-4ACF-8EC3-5386C5562D70", Rock.Model.SpecialRole.None, "CCBC6C0C-EEDB-4B55-9D07-528253624FD0" );
-
         }
+
+        /// <summary>
+        /// The commands to undo a migration from a specific version
+        /// </summary>
         public override void Down()
         {
         }
 
-        public void AddSecurityAuthForReservationStatus( string statusGuid, int order, string action, bool allow, string groupGuid, Rock.Model.SpecialRole specialRole, string authGuid )
+        private void AddSecurityAuthForReservationStatus( string statusGuid, int order, string action, bool allow, string groupGuid, Rock.Model.SpecialRole specialRole, string authGuid )
         {
             if ( string.IsNullOrWhiteSpace( groupGuid ) )
             {

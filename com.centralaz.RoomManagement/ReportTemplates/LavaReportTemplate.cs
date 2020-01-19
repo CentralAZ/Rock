@@ -51,9 +51,12 @@ namespace com.centralaz.RoomManagement.ReportTemplates
         /// <summary>
         /// Creates the document.
         /// </summary>
-        /// <param name="mergeTemplate">The merge template.</param>
-        /// <param name="mergeObjectList">The merge object list.</param>
-        /// <param name="globalMergeFields">The global merge fields.</param>
+        /// <param name="reservationSummaryList"></param>
+        /// <param name="logoFileUrl"></param>
+        /// <param name="font"></param>
+        /// <param name="filterStartDate"></param>
+        /// <param name="filterEndDate"></param>
+        /// <param name="lavaTemplate"></param>
         /// <returns></returns>
         public override byte[] GenerateReport( List<ReservationService.ReservationSummary> reservationSummaryList, string logoFileUrl, string font, DateTime? filterStartDate, DateTime? filterEndDate, string lavaTemplate = "" )
         {

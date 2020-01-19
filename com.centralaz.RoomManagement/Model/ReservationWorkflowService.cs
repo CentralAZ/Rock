@@ -101,9 +101,18 @@ namespace com.centralaz.RoomManagement.Model
         }
 
     }
+    /// <summary>
+    /// Extensions methods for the ConnectionRequestWorkflow Service
+    /// </summary>
     public static partial class ConnectionRequestWorkflowExtensionMethods
     {
 
+        /// <summary>
+        /// Clones a specified deep copy.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="deepCopy">if set to <c>true</c> [deep copy].</param>
+        /// <returns></returns>
         public static ReservationWorkflow Clone( this ReservationWorkflow source, bool deepCopy )
         {
             if ( deepCopy )
@@ -118,8 +127,11 @@ namespace com.centralaz.RoomManagement.Model
             }
         }
 
-       
-
+        /// <summary>
+        /// Copies the properties from the source to the target.
+        /// </summary>
+        /// <param name="target">The target.</param>
+        /// <param name="source">The source.</param>
         public static void CopyPropertiesFrom( this ReservationWorkflow target, ReservationWorkflow source )
         {
             target.Id = source.Id;

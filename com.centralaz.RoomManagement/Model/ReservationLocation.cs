@@ -33,15 +33,39 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Entity Properties
 
+        /// <summary>
+        /// Gets or sets the reservation identifier.
+        /// </summary>
+        /// <value>
+        /// The reservation identifier.
+        /// </value>
         [DataMember]
         public int ReservationId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the location identifier.
+        /// </summary>
+        /// <value>
+        /// The location identifier.
+        /// </value>
         [DataMember]
         public int LocationId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the location layout identifier.
+        /// </summary>
+        /// <value>
+        /// The location layout identifier.
+        /// </value>
         [DataMember]
         public int? LocationLayoutId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the state of the approval.
+        /// </summary>
+        /// <value>
+        /// The state of the approval.
+        /// </value>
         [DataMember]
         public ReservationLocationApprovalState ApprovalState { get; set; }
 
@@ -49,11 +73,29 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Virtual Properties
 
+        /// <summary>
+        /// Gets or sets the reservation.
+        /// </summary>
+        /// <value>
+        /// The reservation.
+        /// </value>
         public virtual Reservation Reservation { get; set; }
 
+        /// <summary>
+        /// Gets or sets the location.
+        /// </summary>
+        /// <value>
+        /// The location.
+        /// </value>
         [LavaInclude]
         public virtual Location Location { get; set; }
 
+        /// <summary>
+        /// Gets or sets the location layout.
+        /// </summary>
+        /// <value>
+        /// The location layout.
+        /// </value>
         [LavaInclude]
         public virtual LocationLayout LocationLayout { get; set; }
 
@@ -61,6 +103,10 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Methods
 
+        /// <summary>
+        /// Copies the properties from.
+        /// </summary>
+        /// <param name="source">The source.</param>
         public void CopyPropertiesFrom( ReservationLocation source )
         {
             this.Id = source.Id;
@@ -83,7 +129,9 @@ namespace com.centralaz.RoomManagement.Model
 
     #region Entity Configuration
 
-
+    /// <summary>
+    /// The EF configuration class for the ReservationLocation.
+    /// </summary>
     public partial class ReservationLocationConfiguration : EntityTypeConfiguration<ReservationLocation>
     {
         /// <summary>

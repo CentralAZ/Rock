@@ -34,6 +34,12 @@ namespace com.centralaz.RoomManagement.Web.UI.Controls
     {
         #region Controls
 
+        /// <summary>
+        /// Gets or sets the campus identifier.
+        /// </summary>
+        /// <value>
+        /// The campus identifier.
+        /// </value>
         public int? CampusId
         {
             get { return ViewState["CampusId"] as int? ?? 0; }
@@ -48,6 +54,12 @@ namespace com.centralaz.RoomManagement.Web.UI.Controls
         /// </summary>
         private RockCheckBox _cbShowAllResources;
 
+        /// <summary>
+        /// Gets a value indicating whether [show all resources].
+        /// </summary>
+        /// <value>
+        ///   <c>true</c> if [show all resources]; otherwise, <c>false</c>.
+        /// </value>
         public bool ShowAllResources
         {
             get

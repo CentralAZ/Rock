@@ -22,6 +22,9 @@ namespace com.centralaz.RoomManagement.SystemGuid
     /// </summary>
     public static class Group
     {
+        /// <summary>
+        /// The group reservation administrators
+        /// </summary>
         public const string GROUP_RESERVATION_ADMINISTRATORS= "FBE0324F-F29A-4ACF-8EC3-5386C5562D70";
     }
 }

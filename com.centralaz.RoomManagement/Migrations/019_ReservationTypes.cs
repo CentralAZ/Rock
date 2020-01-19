@@ -24,9 +24,16 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 19, "1.6.0" )]
     public class ReservationType : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             Sql( @"
@@ -147,7 +154,6 @@ namespace com.centralaz.RoomManagement.Migrations
             // Add Block to Page: Reservation Type Detail, Site: Rock RMS
             RockMigrationHelper.AddBlock( true, "DC6D7ACE-E23F-4CE6-9D66-A63348A1EF4E", "", "CBAAEC6D-9B97-4FCB-96A9-5C53FB4E030E", "Reservation Type Detail", "Main", "", "", 0, "160ED605-4BC3-46FD-8C24-A1BB9AD4ECB4" );
 
-
             // Update Approval Workflow
             var activityTypeIdSql = SqlScalar( @"
                 Select Id
@@ -171,7 +177,6 @@ namespace com.centralaz.RoomManagement.Migrations
                 RockMigrationHelper.AddActionTypeAttributeValue( "44D1AF13-D6D6-4ACF-8325-4EC63499A8FD", "83E27C1E-1491-4AE2-93F1-909791D4B70A", @"True" ); // Room Reservation Approval Notification:Set Attributes:Set Final Approval Group from Entity:Entity Is Required
                 RockMigrationHelper.AddActionTypeAttributeValue( "44D1AF13-D6D6-4ACF-8325-4EC63499A8FD", "1246C53A-FD92-4E08-ABDE-9A6C37E70C7B", @"False" ); // Room Reservation Approval Notification:Set Attributes:Set Final Approval Group from Entity:Use Id instead of Guid
                 AddActionTypeAttributeValue( "44D1AF13-D6D6-4ACF-8325-4EC63499A8FD", "972F19B9-598B-474B-97A4-50E56E7B59D2", "1D0D3794-C210-48A8-8C68-3FBEC08A6BA5", "Lava Template", "LavaTemplate", "By default this action will set the attribute value equal to the guid (or id) of the entity that was passed in for processing. If you include a lava template here, the action will instead set the attribute value to the output of this template. The mergefield to use for the entity is 'Entity.' For example, use {{ Entity.Name }} if the entity has a Name property. <span class='tip tip-lava'></span>", 4, @"", @"{{ Entity.ReservationType.FinalApprovalGroup.Guid }}" );
-
             }
 
             // Report Templates
@@ -214,6 +219,9 @@ namespace com.centralaz.RoomManagement.Migrations
             AddSecurityAuthForReservationType( "E443F926-0882-41D5-91EF-480EA366F660", 1, Rock.Security.Authorization.ADMINISTRATE, true, Rock.SystemGuid.Group.GROUP_STAFF_LIKE_MEMBERS, SpecialRole.None, "BAF614AC-D741-43EC-8D80-BAC36E89E848" );
         }
 
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
             RockMigrationHelper.DeleteAttribute( "614CD413-DCB7-4DA2-80A0-C7ABE5A11047" );
@@ -233,7 +241,6 @@ namespace com.centralaz.RoomManagement.Migrations
             RockMigrationHelper.AddPage( "0FF1D7F4-BF6D-444A-BD71-645BD764EC40", "D65F783D-87A9-4CC9-8110-E83466A0EADB", "Reservation Configuration", "", "CFF84B6D-C852-4FC4-B602-9F045EDC8854", "fa fa-gear" ); // Site:Rock RMS
             RockMigrationHelper.UpdateBlockType( "Reservation Configuration", "Displays the details of the given Connection Type for editing.", "~/Plugins/com_centralaz/RoomManagement/ReservationConfiguration.ascx", "com_centralaz > Room Management", "6931E212-A76A-4DBB-9B97-86E5CDD0793A" );
             RockMigrationHelper.AddBlock( "CFF84B6D-C852-4FC4-B602-9F045EDC8854", "", "6931E212-A76A-4DBB-9B97-86E5CDD0793A", "Reservation Configuration", "Main", "", "", 0, "2B864E89-27DE-41F9-A24B-8D2EA5C40D10" );
-
 
             Sql( @"
                 ALTER TABLE [dbo].[_com_centralaz_RoomManagement_ReservationMinistry] DROP CONSTRAINT [FK__com_centralaz_RoomManagement_Reservation_ReservationTypeId]
@@ -382,7 +389,7 @@ VALUES
             }
         }
 
-        public void AddSecurityAuthForReservationType( string reservationTypeGuid, int order, string action, bool allow, string groupGuid, Rock.Model.SpecialRole specialRole, string authGuid )
+        private void AddSecurityAuthForReservationType( string reservationTypeGuid, int order, string action, bool allow, string groupGuid, Rock.Model.SpecialRole specialRole, string authGuid )
         {
             if ( string.IsNullOrWhiteSpace( groupGuid ) )
             {
@@ -457,9 +464,8 @@ VALUES
         /// <param name="attributeOrder">The attribute order.</param>
         /// <param name="attributeDefaultValue">The attribute default value.</param>
         /// <param name="value">The value.</param>
-        public void AddActionTypeAttributeValue( string actionTypeGuid, string actionEntityTypeGuid, string fieldTypeGuid, string attributeName, string attributeKey, string attributeDescription, int attributeOrder, string attributeDefaultValue, string value )
+        private void AddActionTypeAttributeValue( string actionTypeGuid, string actionEntityTypeGuid, string fieldTypeGuid, string attributeName, string attributeKey, string attributeDescription, int attributeOrder, string attributeDefaultValue, string value )
         {
-
             Sql( string.Format( @"
 
                 DECLARE @ActionEntityTypeId int = (SELECT [Id] FROM [EntityType] WHERE [Guid] = '{0}')
@@ -520,8 +526,6 @@ VALUES
                     actionTypeGuid,
                     value.Replace( "'", "''" ) )
             );
-
         }
-
     }
 }

@@ -18,9 +18,16 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 18, "1.6.0" )]
     public class ModifyApprovalWorkflow : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             RockMigrationHelper.UpdateWorkflowTypeAttribute( "543D4FCD-310B-4048-BFCB-BAE582CBB890", "9C204CD0-1233-41C5-818A-C5DA439445AA", "Approval State", "ApprovalState", "", 0, @"", "9E1FD102-AA41-4F7A-A52D-601DB1852A44" ); // Room Reservation Approval Notification:Approval State
@@ -86,6 +93,11 @@ Notes: {{ reservation.Note }}<br/>
             RockMigrationHelper.AddActionTypeAttributeValue( "A9D101D2-A87C-4A12-8BCA-118F15B682CC", "E2B75188-6DE3-4BB3-80E6-CD88187F498D", @"Completed" ); // Room Reservation Approval Notification:Notify Approval group that the Reservation is Pending Review:Complete Workflow:Status|Status Attribute
 
         }
+
+
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
 

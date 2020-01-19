@@ -45,6 +45,7 @@ namespace com.centralaz.RoomManagement.Model
         /// <param name="qry">The qry.</param>
         /// <param name="filterStartDateTime">The filter start date time.</param>
         /// <param name="filterEndDateTime">The filter end date time.</param>
+        /// <param name="roundToDay">if set to <c>true</c> [round to day].</param>
         /// <returns></returns>
         public List<ReservationSummary> GetReservationSummaries( IQueryable<Reservation> qry, DateTime filterStartDateTime, DateTime filterEndDateTime, bool roundToDay = false )
         {
@@ -127,6 +128,7 @@ namespace com.centralaz.RoomManagement.Model
         /// Gets the conflicting reservation summaries.
         /// </summary>
         /// <param name="newReservation">The new reservation.</param>
+        /// <param name="arePotentialConflictsReturned">if set to <c>true</c> [are potential conflicts returned].</param>
         /// <returns></returns>
         private IEnumerable<ReservationSummary> GetConflictingReservationSummaries( Reservation newReservation, bool arePotentialConflictsReturned = false )
         {
@@ -138,6 +140,7 @@ namespace com.centralaz.RoomManagement.Model
         /// </summary>
         /// <param name="newReservation">The new reservation.</param>
         /// <param name="existingReservationQry">The existing reservation qry.</param>
+        /// <param name="arePotentialConflictsReturned">if set to <c>true</c> [are potential conflicts returned].</param>
         /// <returns></returns>
         private IEnumerable<ReservationSummary> GetConflictingReservationSummaries( Reservation newReservation, IQueryable<Reservation> existingReservationQry, bool arePotentialConflictsReturned = false )
         {
@@ -187,6 +190,7 @@ namespace com.centralaz.RoomManagement.Model
         /// </summary>
         /// <param name="reservation">The reservation.</param>
         /// <param name="detailPageRoute">The detail page route.</param>
+        /// <param name="arePotentialConflictsReturned">if set to <c>true</c> [are potential conflicts returned].</param>
         /// <returns></returns>
         public string GenerateConflictInfo( Reservation reservation, string detailPageRoute, bool arePotentialConflictsReturned = false )
         {
@@ -250,7 +254,7 @@ namespace com.centralaz.RoomManagement.Model
         /// </summary>
         /// <param name="reservation">The reservation.</param>
         /// <param name="currentReservationApprovalState">State of the current reservation approval.</param>
-        /// <param name="person">The person.</param>
+        /// <param name="isOverride">if set to <c>true</c> [is override].</param>
         /// <returns></returns>
         public Reservation UpdateApproval( Reservation reservation, ReservationApprovalState currentReservationApprovalState, bool isOverride = false )
         {
@@ -431,6 +435,11 @@ namespace com.centralaz.RoomManagement.Model
             return canApprove;
         }
 
+        /// <summary>
+        /// Builds the content of the schedule from i cal.
+        /// </summary>
+        /// <param name="filterICalContent">Content of the filter i cal.</param>
+        /// <returns></returns>
         public static Schedule BuildScheduleFromICalContent( string filterICalContent )
         {
             var filterSchedule = new Schedule();
@@ -497,6 +506,11 @@ namespace com.centralaz.RoomManagement.Model
             }
         }
 
+        /// <summary>
+        /// Sets the first last occurrence date times.
+        /// </summary>
+        /// <param name="reservation">The reservation.</param>
+        /// <returns></returns>
         public Reservation SetFirstLastOccurrenceDateTimes( Reservation reservation )
         {
             var occurrences = reservation.GetReservationTimes( DateTime.MinValue, DateTime.MaxValue ).ToList();
@@ -526,6 +540,8 @@ namespace com.centralaz.RoomManagement.Model
         /// Gets the  location ids for any existing non-denied reservations that have the a location as the ones in the given newReservation object.
         /// </summary>
         /// <param name="newReservation">The new reservation.</param>
+        /// <param name="filterByLocations">if set to <c>true</c> [filter by locations].</param>
+        /// <param name="arePotentialConflictsReturned">if set to <c>true</c> [are potential conflicts returned].</param>
         /// <returns></returns>
         public List<int> GetReservedLocationIds( Reservation newReservation, bool filterByLocations = true, bool arePotentialConflictsReturned = false )
         {
@@ -569,6 +585,7 @@ namespace com.centralaz.RoomManagement.Model
         /// </summary>
         /// <param name="locationId">The location identifier.</param>
         /// <param name="newReservation">The new reservation.</param>
+        /// <param name="arePotentialConflictsReturned">if set to <c>true</c> [are potential conflicts returned].</param>
         /// <returns></returns>
         public List<ReservationConflict> GetConflictsForLocationId( int locationId, Reservation newReservation, bool arePotentialConflictsReturned = false )
         {
@@ -604,9 +621,13 @@ namespace com.centralaz.RoomManagement.Model
         /// <summary>
         /// Builds a conflict message string (as HTML List) and returns it if there are location conflicts.
         /// </summary>
+        /// <param name="newReservation">The new reservation.</param>
         /// <param name="locationId">The location identifier.</param>
-        /// <param name="rockContext">The rock context.</param>
-        /// <returns>an HTML List if conflicts exists; null otherwise.</returns>
+        /// <param name="detailPageRoute">The detail page route.</param>
+        /// <param name="arePotentialConflictsReturned">if set to <c>true</c> [are potential conflicts returned].</param>
+        /// <returns>
+        /// an HTML List if conflicts exists; null otherwise.
+        /// </returns>
         public string BuildLocationConflictHtmlList( Reservation newReservation, int locationId, string detailPageRoute, bool arePotentialConflictsReturned = false )
         {
             var conflicts = GetConflictsForLocationId( locationId, newReservation, arePotentialConflictsReturned );
@@ -637,9 +658,13 @@ namespace com.centralaz.RoomManagement.Model
         /// <summary>
         /// Builds a conflict message string (as HTML List) and returns it if there are resource conflicts.
         /// </summary>
-        /// <param name="locationId">The resource identifier.</param>
-        /// <param name="rockContext">The rock context.</param>
-        /// <returns>an HTML List if conflicts exists; null otherwise.</returns>
+        /// <param name="newReservation">The new reservation.</param>
+        /// <param name="resourceId">The resource identifier.</param>
+        /// <param name="detailPageRoute">The detail page route.</param>
+        /// <param name="arePotentialConflictsReturned">if set to <c>true</c> [are potential conflicts returned].</param>
+        /// <returns>
+        /// an HTML List if conflicts exists; null otherwise.
+        /// </returns>
         public string BuildResourceConflictHtmlList( Reservation newReservation, int resourceId, string detailPageRoute, bool arePotentialConflictsReturned = false )
         {
             var conflicts = GetConflictsForResourceId( resourceId, newReservation, arePotentialConflictsReturned );
@@ -678,7 +703,10 @@ namespace com.centralaz.RoomManagement.Model
         /// </summary>
         /// <param name="resource">The resource.</param>
         /// <param name="reservation">The reservation.</param>
-        /// <returns>a quantity of available resources at </returns>
+        /// <param name="arePotentialConflictsReturned">if set to <c>true</c> [are potential conflicts returned].</param>
+        /// <returns>
+        /// a quantity of available resources at
+        /// </returns>
         public int GetAvailableResourceQuantity( Resource resource, Reservation reservation, bool arePotentialConflictsReturned = false )
         {
             // For each new reservation summary, make sure that the quantities of existing summaries that come into contact with it
@@ -718,6 +746,7 @@ namespace com.centralaz.RoomManagement.Model
         /// </summary>
         /// <param name="resourceId">The resource identifier.</param>
         /// <param name="newReservation">The new reservation.</param>
+        /// <param name="arePotentialConflictsReturned">if set to <c>true</c> [are potential conflicts returned].</param>
         /// <returns></returns>
         public List<ReservationConflict> GetConflictsForResourceId( int resourceId, Reservation newReservation, bool arePotentialConflictsReturned = false )
         {
@@ -844,54 +873,242 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Helper Classes
 
+        /// <summary>
+        /// Holds the view model for a Reservation Summary
+        /// </summary>
         public class ReservationSummary
         {
+            /// <summary>
+            /// Gets or sets the identifier.
+            /// </summary>
+            /// <value>
+            /// The identifier.
+            /// </value>
             public int Id { get; set; }
+            /// <summary>
+            /// Gets or sets the type of the reservation.
+            /// </summary>
+            /// <value>
+            /// The type of the reservation.
+            /// </value>
             public ReservationType ReservationType { get; set; }
+            /// <summary>
+            /// Gets or sets the state of the approval.
+            /// </summary>
+            /// <value>
+            /// The state of the approval.
+            /// </value>
             public ReservationApprovalState ApprovalState { get; set; }
+            /// <summary>
+            /// Gets or sets the name of the reservation.
+            /// </summary>
+            /// <value>
+            /// The name of the reservation.
+            /// </value>
             public String ReservationName { get; set; }
+            /// <summary>
+            /// Gets or sets the event date time description.
+            /// </summary>
+            /// <value>
+            /// The event date time description.
+            /// </value>
             public String EventDateTimeDescription { get; set; }
+            /// <summary>
+            /// Gets or sets the event time description.
+            /// </summary>
+            /// <value>
+            /// The event time description.
+            /// </value>
             public String EventTimeDescription { get; set; }
+            /// <summary>
+            /// Gets or sets the reservation date time description.
+            /// </summary>
+            /// <value>
+            /// The reservation date time description.
+            /// </value>
             public String ReservationDateTimeDescription { get; set; }
+            /// <summary>
+            /// Gets or sets the reservation time description.
+            /// </summary>
+            /// <value>
+            /// The reservation time description.
+            /// </value>
             public String ReservationTimeDescription { get; set; }
+            /// <summary>
+            /// Gets or sets the reservation locations.
+            /// </summary>
+            /// <value>
+            /// The reservation locations.
+            /// </value>
             public List<ReservationLocation> ReservationLocations { get; set; }
+            /// <summary>
+            /// Gets or sets the reservation resources.
+            /// </summary>
+            /// <value>
+            /// The reservation resources.
+            /// </value>
             public List<ReservationResource> ReservationResources { get; set; }
+            /// <summary>
+            /// Gets or sets the reservation start date time.
+            /// </summary>
+            /// <value>
+            /// The reservation start date time.
+            /// </value>
             public DateTime ReservationStartDateTime { get; set; }
+            /// <summary>
+            /// Gets or sets the reservation end date time.
+            /// </summary>
+            /// <value>
+            /// The reservation end date time.
+            /// </value>
             public DateTime ReservationEndDateTime { get; set; }
+            /// <summary>
+            /// Gets or sets the event start date time.
+            /// </summary>
+            /// <value>
+            /// The event start date time.
+            /// </value>
             public DateTime EventStartDateTime { get; set; }
+            /// <summary>
+            /// Gets or sets the event end date time.
+            /// </summary>
+            /// <value>
+            /// The event end date time.
+            /// </value>
             public DateTime EventEndDateTime { get; set; }
+            /// <summary>
+            /// Gets or sets the reservation ministry.
+            /// </summary>
+            /// <value>
+            /// The reservation ministry.
+            /// </value>
             public ReservationMinistry ReservationMinistry { get; set; }
+            /// <summary>
+            /// Gets or sets the event contact person alias.
+            /// </summary>
+            /// <value>
+            /// The event contact person alias.
+            /// </value>
             public PersonAlias EventContactPersonAlias { get; set; }
+            /// <summary>
+            /// Gets or sets the event contact phone number.
+            /// </summary>
+            /// <value>
+            /// The event contact phone number.
+            /// </value>
             public String EventContactPhoneNumber { get; set; }
+            /// <summary>
+            /// Gets or sets the event contact email.
+            /// </summary>
+            /// <value>
+            /// The event contact email.
+            /// </value>
             public String EventContactEmail { get; set; }
+            /// <summary>
+            /// Gets or sets the setup photo identifier.
+            /// </summary>
+            /// <value>
+            /// The setup photo identifier.
+            /// </value>
             public int? SetupPhotoId { get; set; }
+            /// <summary>
+            /// Gets or sets the note.
+            /// </summary>
+            /// <value>
+            /// The note.
+            /// </value>
             public string Note { get; set; }
+            /// <summary>
+            /// Gets or sets the requester alias.
+            /// </summary>
+            /// <value>
+            /// The requester alias.
+            /// </value>
             public PersonAlias RequesterAlias { get; set; }
         }
 
+        /// <summary>
+        /// The view model for a Reservation Date
+        /// </summary>
         public class ReservationDate
         {
+            /// <summary>
+            /// Gets or sets the reservation.
+            /// </summary>
+            /// <value>
+            /// The reservation.
+            /// </value>
             public Reservation Reservation { get; set; }
+            /// <summary>
+            /// Gets or sets the reservation date times.
+            /// </summary>
+            /// <value>
+            /// The reservation date times.
+            /// </value>
             public List<ReservationDateTime> ReservationDateTimes { get; set; }
         }
 
+        /// <summary>
+        /// The view model for a Reservation Conflict
+        /// </summary>
         public class ReservationConflict
         {
+            /// <summary>
+            /// Gets or sets the location identifier.
+            /// </summary>
+            /// <value>
+            /// The location identifier.
+            /// </value>
             public int LocationId { get; set; }
 
+            /// <summary>
+            /// Gets or sets the location.
+            /// </summary>
+            /// <value>
+            /// The location.
+            /// </value>
             public Location Location { get; set; }
 
+            /// <summary>
+            /// Gets or sets the resource identifier.
+            /// </summary>
+            /// <value>
+            /// The resource identifier.
+            /// </value>
             public int ResourceId { get; set; }
 
+            /// <summary>
+            /// Gets or sets the resource.
+            /// </summary>
+            /// <value>
+            /// The resource.
+            /// </value>
             public Resource Resource { get; set; }
 
+            /// <summary>
+            /// Gets or sets the resource quantity.
+            /// </summary>
+            /// <value>
+            /// The resource quantity.
+            /// </value>
             public int ResourceQuantity { get; set; }
 
+            /// <summary>
+            /// Gets or sets the reservation identifier.
+            /// </summary>
+            /// <value>
+            /// The reservation identifier.
+            /// </value>
             public int ReservationId { get; set; }
 
+            /// <summary>
+            /// Gets or sets the reservation.
+            /// </summary>
+            /// <value>
+            /// The reservation.
+            /// </value>
             public Reservation Reservation { get; set; }
         }
-
         #endregion
     }
 

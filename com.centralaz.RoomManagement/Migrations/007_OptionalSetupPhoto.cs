@@ -18,9 +18,16 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 7, "1.6.0" )]
     public class OptionalSetupPhoto : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             // AddColumn is currently only available in Rock v7
@@ -29,8 +36,12 @@ namespace com.centralaz.RoomManagement.Migrations
                 ALTER TABLE [dbo].[_com_centralaz_RoomManagement_Reservation] ADD [SetupPhotoId] INT
                 ALTER TABLE [dbo].[_com_centralaz_RoomManagement_Reservation]  WITH CHECK ADD  CONSTRAINT [FK__com_centralaz_RoomManagement_Reservation_SetupPhoto] FOREIGN KEY([SetupPhotoId])
                 REFERENCES [dbo].[BinaryFile] ([Id])
-" );}
+" );
+        }
 
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
             // DropColumn & DropForeignKey are currently only available in Rock v7

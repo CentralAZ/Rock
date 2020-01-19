@@ -18,9 +18,16 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration to add the EventItem (occurrence) relationship
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 24, "1.8.2" )]
     public class AddEventItemRelationship : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version.
+        /// </summary>
         public override void Up()
         {
             Sql( @"
@@ -37,7 +44,7 @@ namespace com.centralaz.RoomManagement.Migrations
             RockMigrationHelper.UpdateBlockType( "Reservation List", "Block for viewing a list of reservations.", "~/Plugins/com_centralaz/RoomManagement/ReservationList.ascx", "com_centralaz > Room Management", "8169F541-9544-4A41-BD90-0DC2D0144AFD" );
             // Add Block to Page: Event Occurrence, Site: Rock RMS
             RockMigrationHelper.AddBlock( true, "4B0C44EE-28E3-4753-A95B-8C57CD958FD1", "", "8169F541-9544-4A41-BD90-0DC2D0144AFD", "Reservation List", "Main", "", "", 4, "B16EB997-3107-4A64-AA9B-93CF01460622" );
-            /// Attrib for BlockType: Reservation List:Related Entity Query String Parameter
+            // Attrib for BlockType: Reservation List:Related Entity Query String Parameter
             RockMigrationHelper.UpdateBlockTypeAttribute( "8169F541-9544-4A41-BD90-0DC2D0144AFD", "9C204CD0-1233-41C5-818A-C5DA439445AA", "Related Entity Query String Parameter", "RelatedEntityQueryStringParameter", "", "The query string parameter that holds id to the related entity.", 0, @"", "81CCF555-CCD5-4FAB-9B90-DE449888E066" );
             // Attrib for BlockType: Reservation List:Detail Page
             RockMigrationHelper.UpdateBlockTypeAttribute( "8169F541-9544-4A41-BD90-0DC2D0144AFD", "BD53F9C9-EBA9-4D3F-82EA-DE5DD34A8108", "Detail Page", "DetailPage", "", "", 0, @"", "3DD653FB-771D-4EE5-8C75-1BF1B6F773B8" );
@@ -107,6 +114,9 @@ namespace com.centralaz.RoomManagement.Migrations
             RockMigrationHelper.AddBlockAttributeValue( "65091E04-77CE-411C-989F-EAD7D15778A0", "A21B09B1-0FD5-43EF-9FEA-5693850F14A2", @"" );
         }
 
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
             RockMigrationHelper.DeleteAttribute( "A21B09B1-0FD5-43EF-9FEA-5693850F14A2" );

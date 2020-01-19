@@ -19,6 +19,9 @@ using System.Reflection;
 
 namespace com.centralaz.RoomManagement
 {
+    /// <summary>
+    /// The VersionInfo class holds information about the version of the plugin.
+    /// </summary>
     public static class VersionInfo
     {
         /// <summary>

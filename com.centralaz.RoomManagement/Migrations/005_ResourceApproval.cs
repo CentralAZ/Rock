@@ -18,9 +18,16 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 5, "1.4.5" )]
     public class ResourceApproval : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             RockMigrationHelper.DeleteSecurityAuth( "0AD21D60-C750-4FD7-9D89-106692854BA4" );
@@ -339,6 +346,10 @@ INSERT [dbo].[_com_centralaz_RoomManagement_ReservationWorkflowTrigger] ([Workfl
                 REFERENCES [dbo].[Workflow] ([Id])
                 ON DELETE CASCADE" );
         }
+
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
             Sql( @"

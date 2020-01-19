@@ -32,12 +32,30 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Entity Properties
 
+        /// <summary>
+        /// Gets or sets the resource identifier.
+        /// </summary>
+        /// <value>
+        /// The resource identifier.
+        /// </value>
         [DataMember]
         public int? ResourceId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the location identifier.
+        /// </summary>
+        /// <value>
+        /// The location identifier.
+        /// </value>
         [DataMember]
         public int? LocationId { get; set; }
 
+        /// <summary>
+        /// Gets or sets the attribute identifier.
+        /// </summary>
+        /// <value>
+        /// The attribute identifier.
+        /// </value>
         [DataMember]
         public int AttributeId { get; set; }
 
@@ -45,10 +63,28 @@ namespace com.centralaz.RoomManagement.Model
 
         #region Virtual Properties
 
+        /// <summary>
+        /// Gets or sets the resource.
+        /// </summary>
+        /// <value>
+        /// The resource.
+        /// </value>
         public virtual Resource Resource { get; set; }
 
+        /// <summary>
+        /// Gets or sets the location.
+        /// </summary>
+        /// <value>
+        /// The location.
+        /// </value>
         public virtual Location Location { get; set; }
 
+        /// <summary>
+        /// Gets or sets the attribute.
+        /// </summary>
+        /// <value>
+        /// The attribute.
+        /// </value>
         public virtual Rock.Model.Attribute Attribute { get; set; }
 
         #endregion
@@ -58,6 +94,9 @@ namespace com.centralaz.RoomManagement.Model
     #region Entity Configuration
 
 
+    /// <summary>
+    /// The EF configuration for the Question model
+    /// </summary>
     public partial class QuestionConfiguration : EntityTypeConfiguration<Question>
     {
         /// <summary>

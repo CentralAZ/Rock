@@ -32,8 +32,14 @@ using static com.centralaz.RoomManagement.Model.ReservationService;
 
 namespace Rock.Rest.Controllers
 {
+    /// <summary>
+    /// API Controller class for the Reservation model
+    /// </summary>
     public partial class ReservationsController : Rock.Rest.ApiController<com.centralaz.RoomManagement.Model.Reservation>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReservationsController"/> class.
+        /// </summary>
         public ReservationsController() : base( new com.centralaz.RoomManagement.Model.ReservationService( new Rock.Data.RockContext() ) ) { }
     }
 
@@ -185,20 +191,110 @@ namespace Rock.Rest.Controllers
     /// </summary>
     public class ReservationOccurrence
     {
+        /// <summary>
+        /// Gets or sets the reservation identifier.
+        /// </summary>
+        /// <value>
+        /// The reservation identifier.
+        /// </value>
         public int ReservationId { get; set; }
+        /// <summary>
+        /// Gets or sets the type of the reservation.
+        /// </summary>
+        /// <value>
+        /// The type of the reservation.
+        /// </value>
         public ReservationType ReservationType { get; set; }
+        /// <summary>
+        /// Gets or sets the state of the approval.
+        /// </summary>
+        /// <value>
+        /// The state of the approval.
+        /// </value>
         public ReservationApprovalState ApprovalState { get; set; }
+        /// <summary>
+        /// Gets or sets the name of the reservation.
+        /// </summary>
+        /// <value>
+        /// The name of the reservation.
+        /// </value>
         public String ReservationName { get; set; }
+        /// <summary>
+        /// Gets or sets the reservation locations.
+        /// </summary>
+        /// <value>
+        /// The reservation locations.
+        /// </value>
         public List<ReservationLocation> ReservationLocations { get; set; }
+        /// <summary>
+        /// Gets or sets the reservation resources.
+        /// </summary>
+        /// <value>
+        /// The reservation resources.
+        /// </value>
         public List<ReservationResource> ReservationResources { get; set; }
+        /// <summary>
+        /// Gets or sets the reservation start date time.
+        /// </summary>
+        /// <value>
+        /// The reservation start date time.
+        /// </value>
         public DateTime ReservationStartDateTime { get; set; }// EventStartDateTime - Setup Time
+        /// <summary>
+        /// Gets or sets the reservation end date time.
+        /// </summary>
+        /// <value>
+        /// The reservation end date time.
+        /// </value>
         public DateTime ReservationEndDateTime { get; set; }// EventEndDateTime + Cleanup Time
+        /// <summary>
+        /// Gets or sets the event start date time.
+        /// </summary>
+        /// <value>
+        /// The event start date time.
+        /// </value>
         public DateTime EventStartDateTime { get; set; }
+        /// <summary>
+        /// Gets or sets the event end date time.
+        /// </summary>
+        /// <value>
+        /// The event end date time.
+        /// </value>
         public DateTime EventEndDateTime { get; set; }
+        /// <summary>
+        /// Gets or sets the setup photo identifier.
+        /// </summary>
+        /// <value>
+        /// The setup photo identifier.
+        /// </value>
         public int? SetupPhotoId { get; set; }
+        /// <summary>
+        /// Gets or sets the note.
+        /// </summary>
+        /// <value>
+        /// The note.
+        /// </value>
         public string Note { get; set; }
+        /// <summary>
+        /// Gets or sets the number attending.
+        /// </summary>
+        /// <value>
+        /// The number attending.
+        /// </value>
         public int? NumberAttending { get; set; }
+        /// <summary>
+        /// Gets or sets the modified date time.
+        /// </summary>
+        /// <value>
+        /// The modified date time.
+        /// </value>
         public DateTime? ModifiedDateTime { get; set; }
+        /// <summary>
+        /// Gets or sets the schedule identifier.
+        /// </summary>
+        /// <value>
+        /// The schedule identifier.
+        /// </value>
         public int? ScheduleId { get; set; }
 
     }

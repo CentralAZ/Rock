@@ -18,9 +18,16 @@ using Rock.Plugin;
 
 namespace com.centralaz.RoomManagement.Migrations
 {
+    /// <summary>
+    /// Migration for the RoomManagement system.
+    /// </summary>
+    /// <seealso cref="Rock.Plugin.Migration" />
     [MigrationNumber( 13, "1.6.0" )]
     public class QuestionsAndAnswers : Migration
     {
+        /// <summary>
+        /// The commands to run to migrate plugin to the specific version
+        /// </summary>
         public override void Up()
         {
             Sql( @"
@@ -77,6 +84,10 @@ namespace com.centralaz.RoomManagement.Migrations
                 WHERE Id IN (SELECT [SetupPhotoId] FROM [_com_centralaz_RoomManagement_Reservation])" );
 
         }
+
+        /// <summary>
+        /// The commands to undo a migration from a specific version.
+        /// </summary>
         public override void Down()
         {
             RockMigrationHelper.DeleteEntityType( "F42FB8A5-D646-4FA8-AABE-D47B53A9CE35" );

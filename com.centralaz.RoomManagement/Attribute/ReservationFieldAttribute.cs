@@ -38,6 +38,7 @@ namespace com.centralaz.RoomManagement.Attribute
         /// <param name="category">The category.</param>
         /// <param name="order">The order.</param>
         /// <param name="key">The key.</param>
+        /// <param name="fieldTypeAssembly">The field type assembly.</param>
         public ReservationFieldAttribute( string name = "Reservation", string description = "", bool required = true, string defaultReservationId = "", string category = "", int order = 0, string key = null, string fieldTypeAssembly = "com.centralaz.RoomManagement" )
             : base( name, description, required, defaultReservationId, category, order, key, typeof( com.centralaz.RoomManagement.Field.Types.ReservationFieldType ).FullName, fieldTypeAssembly )
         {
@@ -46,7 +47,7 @@ namespace com.centralaz.RoomManagement.Attribute
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="ReservationFieldAttribute"/> class.
+        /// Initializes a new instance of the <see cref="ReservationFieldAttribute" /> class.
         /// </summary>
         /// <param name="name">The name.</param>
         /// <param name="description">The description.</param>
@@ -56,6 +57,7 @@ namespace com.centralaz.RoomManagement.Attribute
         /// <param name="category">The category.</param>
         /// <param name="order">The order.</param>
         /// <param name="key">The key.</param>
+        /// <param name="fieldTypeAssembly">The field type assembly.</param>
         public ReservationFieldAttribute( string name = "Reservation", string description = "", bool required = true, string defaultReservationId = "", bool includeInactive = false, string category = "", int order = 0, string key = null, string fieldTypeAssembly = "com.centralaz.RoomManagement" )
             : base( name, description, required, defaultReservationId, category, order, key, typeof( com.centralaz.RoomManagement.Field.Types.ReservationFieldType ).FullName )
         {

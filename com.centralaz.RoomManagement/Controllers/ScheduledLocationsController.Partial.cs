@@ -27,13 +27,19 @@ using Rock.Web.UI.Controls;
 
 namespace Rock.Rest.Controllers
 {
+    /// <summary>
+    /// The controller class for the ScheduledLocations
+    /// </summary>
     public partial class ScheduledLocationsController : Rock.Rest.ApiController<Rock.Model.Category>
     {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ScheduledLocationsController"/> class.
+        /// </summary>
         public ScheduledLocationsController() : base( new Rock.Model.CategoryService( new Rock.Data.RockContext() ) ) { }
     }
 
     /// <summary>
-    /// 
+    /// The controller class for the ScheduledLocations
     /// </summary>
     public partial class ScheduledLocationsController
     {
@@ -41,15 +47,12 @@ namespace Rock.Rest.Controllers
         /// Gets the children.
         /// </summary>
         /// <param name="id">The identifier.</param>
-        /// <param name="rootCategoryId">The root category identifier.</param>
-        /// <param name="getCategorizedItems">if set to <c>true</c> [get categorized items].</param>
-        /// <param name="entityTypeId">The entity type identifier.</param>
-        /// <param name="entityQualifier">The entity qualifier.</param>
-        /// <param name="entityQualifierValue">The entity qualifier value.</param>
-        /// <param name="showUnnamedEntityItems">if set to <c>true</c> [show unnamed entity items].</param>
-        /// <param name="showCategoriesThatHaveNoChildren">if set to <c>true</c> [show categories that have no children].</param>
-        /// <param name="includedCategoryIds">The included category ids.</param>
-        /// <param name="excludedCategoryIds">The excluded category ids.</param>
+        /// <param name="rootLocationId">The root location identifier.</param>
+        /// <param name="reservationId">The reservation identifier.</param>
+        /// <param name="iCalendarContent">Content of the i calendar.</param>
+        /// <param name="setupTime">The setup time.</param>
+        /// <param name="cleanupTime">The cleanup time.</param>
+        /// <param name="attendeeCount">The attendee count.</param>
         /// <returns></returns>
         [Authenticate, Secured]
         [System.Web.Http.Route( "api/com_centralaz/ScheduledLocations/GetChildren/{id}/{rootLocationId}" )]

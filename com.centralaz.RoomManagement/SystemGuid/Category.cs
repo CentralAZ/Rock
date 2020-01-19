@@ -23,6 +23,9 @@ namespace com.centralaz.RoomManagement.SystemGuid
     /// </summary>
     public static class Category
     {
+        /// <summary>
+        /// The history reservation changes
+        /// </summary>
         public const string HISTORY_RESERVATION_CHANGES = "806E96DE-3744-4F56-B12F-787F36A1CEB5";
     }
 }

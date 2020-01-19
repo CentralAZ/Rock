@@ -87,8 +87,17 @@ namespace com.centralaz.RoomManagement.Model
         }
     }
 
+    /// <summary>
+    /// Class for ReservationWorkflowTrigger extension methods.
+    /// </summary>
     public static partial class ReservationWorkflowTriggerExtensionMethods
     {
+        /// <summary>
+        /// Clones a specified deep copy.
+        /// </summary>
+        /// <param name="source">The source.</param>
+        /// <param name="deepCopy">if set to <c>true</c> [deep copy].</param>
+        /// <returns></returns>
         public static ReservationWorkflowTrigger Clone( this ReservationWorkflowTrigger source, bool deepCopy )
         {
             if ( deepCopy )

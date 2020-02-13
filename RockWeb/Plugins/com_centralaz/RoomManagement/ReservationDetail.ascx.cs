@@ -2931,7 +2931,10 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             if ( ReservationType == null )
             {
-                ReservationType = reservationTypeService.Get( "E443F926-0882-41D5-91EF-480EA366F660".AsGuid() );
+                var reservationTypes = reservationTypeService.Queryable().ToList();
+                var authorizedReservationTypes = reservationTypes.Where( rt => rt.IsAuthorized( Authorization.EDIT, CurrentPerson ) ).ToList();
+
+                ReservationType = authorizedReservationTypes.OrderBy( rt => rt.Id ).FirstOrDefault();
             }
 
             reservation.ReservationType = ReservationType;

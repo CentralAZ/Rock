@@ -515,6 +515,22 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     reservation = new Reservation { Id = 0 };
                     reservation.ApprovalState = ReservationApprovalState.Unapproved;
                     reservation.RequesterAliasId = CurrentPersonAliasId;
+
+                    if ( PageParameter( "ForeignKey" ).IsNotNullOrWhiteSpace() )
+                    {
+                        reservation.ForeignKey = PageParameter( "ForeignKey" );
+                    }
+
+                    if ( PageParameter( "ForeignId" ).AsInteger() != 0 )
+                    {
+                        reservation.ForeignId = PageParameter( "ForeignId" ).AsInteger();
+                    }
+
+                    if ( PageParameter( "ForeignGuid" ).AsGuidOrNull() != null )
+                    {
+                        reservation.ForeignGuid = PageParameter( "ForeignGuid" ).AsGuid();
+                    }
+
                     changes.Add( new History.HistoryChange( History.HistoryVerb.Add, History.HistoryChangeType.Record, "Reservation" ) );
                 }
                 else

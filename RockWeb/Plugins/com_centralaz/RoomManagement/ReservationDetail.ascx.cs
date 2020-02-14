@@ -2547,17 +2547,6 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     srpResource.Enabled = true;
                     slpLocation.Enabled = true;
                 }
-                else
-                {
-                    if ( PageParameter( "ScheduleId" ).AsInteger() != 0 )
-                    {
-                        var schedule = new ScheduleService( rockContext ).Get( PageParameter( "ScheduleId" ).AsInteger() );
-                        if ( schedule != null )
-                        {
-                            sbSchedule.iCalendarContent = schedule.iCalendarContent;
-                        }
-                    }
-                }
 
                 fuSetupPhoto.BinaryFileId = reservation.SetupPhotoId;
 
@@ -2939,43 +2928,168 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             reservation.ReservationType = ReservationType;
 
+            if ( PageParameter( "Name" ).IsNotNullOrWhiteSpace() )
+            {
+                reservation.Name = PageParameter( "Name" );
+            }
+
+            if ( PageParameter( "ScheduleId" ).AsInteger() != 0 )
+            {
+                var schedule = new ScheduleService( rockContext ).Get( PageParameter( "ScheduleId" ).AsInteger() );
+                if ( schedule != null )
+                {
+                    reservation.Schedule = new Schedule { iCalendarContent = schedule.iCalendarContent };
+                }
+            }
+
+            if ( PageParameter( "SetupTime" ).AsInteger() != 0 )
+            {
+                reservation.SetupTime = PageParameter( "SetupTime" ).AsInteger();
+            }
+
+            if ( PageParameter( "CleanupTime" ).AsInteger() != 0 )
+            {
+                reservation.CleanupTime = PageParameter( "CleanupTime" ).AsInteger();
+            }
+
+            if ( PageParameter( "CampusId" ).AsInteger() != 0 )
+            {
+                var campus = new CampusService( rockContext ).Get( PageParameter( "CampusId" ).AsInteger() );
+                if ( campus != null )
+                {
+                    reservation.Campus = campus;
+                    reservation.CampusId = campus.Id;
+                }
+            }
+
+            if ( PageParameter( "MinistryId" ).AsInteger() != 0 )
+            {
+                var ministry = new ReservationMinistryService( rockContext ).Get( PageParameter( "MinistryId" ).AsInteger() );
+                if ( ministry != null && ReservationType.ReservationMinistries.Select( m => m.Id ).Contains( ministry.Id ) )
+                {
+                    reservation.ReservationMinistry = ministry;
+                    reservation.ReservationMinistryId = ministry.Id;
+                }
+            }
+
+            if ( PageParameter( "NumberAttending" ).AsInteger() != 0 )
+            {
+                reservation.NumberAttending = PageParameter( "NumberAttending" ).AsInteger();
+            }
+
+            if ( PageParameter( "PhotoId" ).AsInteger() != 0 )
+            {
+                var photo = new BinaryFileService( rockContext ).Get( PageParameter( "PhotoId" ).AsInteger() );
+                if ( photo != null )
+                {
+                    reservation.SetupPhoto = photo;
+                    reservation.SetupPhotoId = photo.Id;
+                }
+            }
+
+            if ( PageParameter( "EventContactPersonAliasId" ).AsInteger() != 0 )
+            {
+                var eventContactPersonAlias = new PersonAliasService( rockContext ).Get( PageParameter( "EventContactPersonAliasId" ).AsInteger() );
+                if ( eventContactPersonAlias != null )
+                {
+                    reservation.EventContactPersonAlias = eventContactPersonAlias;
+                    reservation.EventContactPersonAliasId = eventContactPersonAlias.Id;
+                    reservation.EventContactEmail = eventContactPersonAlias.Person.Email;
+                    reservation.EventContactPhone = eventContactPersonAlias.Person.PhoneNumbers.OrderBy( n => n.NumberTypeValue.Order )
+                                    .Select( n => n.NumberFormatted )
+                                    .FirstOrDefault();
+                }
+            }
+
+            if ( PageParameter( "AdministrativeContactPersonAliasId" ).AsInteger() != 0 )
+            {
+                var adminContactPersonAlias = new PersonAliasService( rockContext ).Get( PageParameter( "AdministrativeContactPersonAliasId" ).AsInteger() );
+                if ( adminContactPersonAlias != null )
+                {
+                    reservation.AdministrativeContactPersonAlias = adminContactPersonAlias;
+                    reservation.AdministrativeContactPersonAliasId = adminContactPersonAlias.Id;
+                    reservation.AdministrativeContactEmail = adminContactPersonAlias.Person.Email;
+                    reservation.AdministrativeContactPhone = adminContactPersonAlias.Person.PhoneNumbers.OrderBy( n => n.NumberTypeValue.Order )
+                                    .Select( n => n.NumberFormatted )
+                                    .FirstOrDefault();
+                }
+            }
+
+            if ( PageParameter( "Note" ).IsNotNullOrWhiteSpace() )
+            {
+                reservation.Note = PageParameter( "Note" );
+            }
+
             if ( PageParameter( "LocationId" ).AsInteger() != 0 )
             {
-                ReservationLocation reservationLocation = new ReservationLocation();
-                reservationLocation.LocationId = PageParameter( "LocationId" ).AsInteger();
-                reservationLocation.ApprovalState = ReservationLocationApprovalState.Unapproved;
-
                 // set the campus based on the location that was passed in:
-                var location = new LocationService( new RockContext() ).Get( reservationLocation.LocationId );
+                var location = new LocationService( new RockContext() ).Get( PageParameter( "LocationId" ).AsInteger() );
                 if ( location != null )
                 {
+                    ReservationLocation reservationLocation = new ReservationLocation();
+                    reservationLocation.LocationId = location.Id;
+                    reservationLocation.ApprovalState = ReservationLocationApprovalState.Unapproved;
                     reservation.CampusId = location.CampusId;
+                    reservation.ReservationLocations.Add( reservationLocation );
+
+                    // Add any attached resources...
+                    AddAttachedResources( reservationLocation.LocationId, reservation );
                 }
+            }
 
-                reservation.ReservationLocations.Add( reservationLocation );
+            var locationIds = PageParameter( "LocationIds" ).SplitDelimitedValues().AsIntegerList();
+            foreach ( var locationId in locationIds )
+            {
+                // set the campus based on the location that was passed in:
+                var location = new LocationService( new RockContext() ).Get( locationId );
+                if ( location != null )
+                {
+                    ReservationLocation reservationLocation = new ReservationLocation();
+                    reservationLocation.LocationId = location.Id;
+                    reservationLocation.ApprovalState = ReservationLocationApprovalState.Unapproved;
+                    reservation.CampusId = location.CampusId;
+                    reservation.ReservationLocations.Add( reservationLocation );
 
-                // Add any attached resources...
-                AddAttachedResources( reservationLocation.LocationId, reservation );
+                    // Add any attached resources...
+                    AddAttachedResources( reservationLocation.LocationId, reservation );
+                }
             }
 
             if ( PageParameter( "ResourceId" ).AsInteger() != 0 )
             {
-                ReservationResource reservationResource = new ReservationResource();
-                reservationResource.ResourceId = PageParameter( "ResourceId" ).AsInteger();
-                reservationResource.Quantity = 1;
-                reservationResource.ApprovalState = ReservationResourceApprovalState.Unapproved;
-
                 // set the campus based on the resource that was passed in:
-                var resource = new ResourceService( new RockContext() ).Get( reservationResource.ResourceId );
+                var resource = new ResourceService( new RockContext() ).Get( PageParameter( "ResourceId" ).AsInteger() );
                 if ( resource != null )
                 {
+                    ReservationResource reservationResource = new ReservationResource();
+                    reservationResource.ResourceId = resource.Id;
+                    reservationResource.Quantity = 1;
+                    reservationResource.ApprovalState = ReservationResourceApprovalState.Unapproved;
                     reservation.CampusId = resource.CampusId;
+                    reservation.ReservationResources.Add( reservationResource );
+
+                    // Add any attached locations...
+                    AddAttachedLocations( reservationResource.ResourceId, reservation );
                 }
+            }
 
-                reservation.ReservationResources.Add( reservationResource );
+            var resourceIds = PageParameter( "ResourceIds" ).SplitDelimitedValues().AsIntegerList();
+            foreach ( var resourceId in resourceIds )
+            {
+                // set the campus based on the resource that was passed in:
+                var resource = new ResourceService( new RockContext() ).Get( resourceId );
+                if ( resource != null )
+                {
+                    ReservationResource reservationResource = new ReservationResource();
+                    reservationResource.ResourceId = resource.Id;
+                    reservationResource.Quantity = 1;
+                    reservationResource.ApprovalState = ReservationResourceApprovalState.Unapproved;
+                    reservation.CampusId = resource.CampusId;
+                    reservation.ReservationResources.Add( reservationResource );
 
-                // Add any attached locations...
-                AddAttachedLocations( reservationResource.ResourceId, reservation );
+                    // Add any attached locations...
+                    AddAttachedLocations( reservationResource.ResourceId, reservation );
+                }
             }
 
             return reservation;

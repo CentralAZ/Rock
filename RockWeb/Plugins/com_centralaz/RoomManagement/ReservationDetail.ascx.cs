@@ -2376,11 +2376,13 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             if ( readOnly )
             {
                 btnEdit.Visible = false;
+                ShowHideEventLinkButtons( reservation, false );
                 ShowReadonlyDetails( reservation );
             }
             else
             {
                 btnEdit.Visible = true;
+                ShowHideEventLinkButtons( reservation, true );
 
                 if ( !reservationId.Equals( 0 ) )
                 {
@@ -2442,13 +2444,6 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             if ( reservation.EventItemOccurrenceId.HasValue )
             {
                 lEventOccurrence.Text = String.Format( "<a href='/page/402?EventItemOccurrenceId={0}'>{1}</a>", reservation.EventItemOccurrenceId, reservation.EventItemOccurrence.EventItem.Name );
-                lbDeleteEventLinkage.Visible = true;
-                lbCreateNewEventLinkage.Visible = false;
-            }
-            else
-            {
-                lbDeleteEventLinkage.Visible = false;
-                lbCreateNewEventLinkage.Visible = true;
             }
 
             bool canApprove = false;
@@ -2460,13 +2455,12 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             btnDeny.Visible = ( reservation.ApprovalState == ReservationApprovalState.PendingReview && ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId ) ) || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId );
             btnOverride.Visible = ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId );
 
-
-
             // Show the delete button if the person is authorized to delete it
             if ( canApprove || CurrentPersonAliasId == reservation.CreatedByPersonAliasId || reservation.AdministrativeContactPersonAliasId == CurrentPersonAliasId )
             {
                 btnEdit.Visible = true;
                 btnDelete.Visible = true;
+                ShowHideEventLinkButtons( reservation, true );
             }
 
             if ( reservation.IsAuthorized( Authorization.DELETE, CurrentPerson ) )
@@ -2550,6 +2544,20 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 {
                     lblWorkflows.Visible = false;
                 }
+            }
+        }
+
+        private void ShowHideEventLinkButtons( Reservation reservation, bool isEditAuthorized )
+        {
+            if ( reservation.EventItemOccurrenceId.HasValue )
+            {
+                lbDeleteEventLinkage.Visible = isEditAuthorized;
+                lbCreateNewEventLinkage.Visible = false;
+            }
+            else
+            {
+                lbDeleteEventLinkage.Visible = false;
+                lbCreateNewEventLinkage.Visible = isEditAuthorized;
             }
         }
 

@@ -2308,6 +2308,16 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
                 reservation = GenerateNewReservation( rockContext );
 
+                if ( reservation.ReservationType == null )
+                {
+                    pnlDetails.Visible = false;
+                    HideSecondaryBlocks( true );
+
+                    nbNotAuthorized.Visible = true;
+                    nbNotAuthorized.Text = "You are not authorized to create reservations.";
+                    return;
+                }
+
                 // hide the panel drawer that show created and last modified dates
                 pdAuditDetails.Visible = false;
             }
@@ -2987,7 +2997,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             if ( PageParameter( "MinistryId" ).AsInteger() != 0 )
             {
                 var ministry = new ReservationMinistryService( rockContext ).Get( PageParameter( "MinistryId" ).AsInteger() );
-                if ( ministry != null && ReservationType.ReservationMinistries.Select( m => m.Id ).Contains( ministry.Id ) )
+                if ( ministry != null && ReservationType != null && ReservationType.ReservationMinistries.Select( m => m.Id ).Contains( ministry.Id ) )
                 {
                     reservation.ReservationMinistry = ministry;
                     reservation.ReservationMinistryId = ministry.Id;

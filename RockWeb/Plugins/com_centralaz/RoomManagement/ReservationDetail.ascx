@@ -10,6 +10,8 @@
         <asp:AsyncPostBackTrigger ControlID="cblCalendars" EventName="SelectedIndexChanged" />
     </Triggers>
     <ContentTemplate>
+        <Rock:NotificationBox ID="nbNotAuthorized" runat="server" NotificationBoxType="Danger" />
+
         <asp:Panel ID="pnlLavaInstructions" runat="server" Visible="false">
             <asp:Literal ID="lLavaInstructions" runat="server" />
         </asp:Panel>

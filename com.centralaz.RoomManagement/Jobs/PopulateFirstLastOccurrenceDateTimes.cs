@@ -39,6 +39,8 @@ namespace com.centralaz.RoomManagement.Jobs
         private int _commandTimeout = 0;
 
         private int _remainingReservationRecords = 0;
+        private int _reservationRecordsLoaded = 0;
+        private int _reservationRecordsRead = 0;
         private int _reservationRecordsUpdated = 0;
 
         /// <summary>
@@ -77,7 +79,9 @@ namespace com.centralaz.RoomManagement.Jobs
 
             PopulateOccurrenceData( context );
 
-            context.UpdateLastStatusMessage( $@"Reservation Records Read: {_reservationRecordsUpdated}, 
+            context.UpdateLastStatusMessage( $@"Remaining Reservation Records: {_remainingReservationRecords},
+                    Reservation Records Loaded: {_reservationRecordsLoaded}, 
+                    Reservation Records Read: {_reservationRecordsRead}, 
                     Reservation Records Updated: { _reservationRecordsUpdated}
                     " );
         }
@@ -90,6 +94,7 @@ namespace com.centralaz.RoomManagement.Jobs
         {
             List<int> reservationIdList = new List<int>();
             _reservationRecordsUpdated = 0;
+            _reservationRecordsRead = 0;
             using ( var rockContext = new RockContext() )
             {
                 reservationIdList = new ReservationService( rockContext ).Queryable()
@@ -98,6 +103,7 @@ namespace com.centralaz.RoomManagement.Jobs
                     .Select( r => r.Id )
                     .ToList();
             }
+            _reservationRecordsLoaded = reservationIdList.Count();
 
             try
             {
@@ -107,13 +113,23 @@ namespace com.centralaz.RoomManagement.Jobs
                     {
                         rockContext.Database.CommandTimeout = _commandTimeout;
                         var reservationService = new ReservationService( rockContext );
-
                         var reservation = reservationService.Get( reservationId );
+
                         if ( reservation != null )
                         {
-                            reservation = reservationService.SetFirstLastOccurrenceDateTimes( reservation );
-                            rockContext.SaveChanges();
-                            _reservationRecordsUpdated++;
+                            _reservationRecordsRead++;
+
+                            try
+                            {
+                                reservation = reservationService.SetFirstLastOccurrenceDateTimes( reservation );
+                                rockContext.SaveChanges();
+                                _reservationRecordsUpdated++;
+                            }
+                            catch
+                            {
+
+                            }
+
                         }
                     }
                 }

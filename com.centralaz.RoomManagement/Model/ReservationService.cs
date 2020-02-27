@@ -148,7 +148,7 @@ namespace com.centralaz.RoomManagement.Model
             var conflictingSummaryList = GetReservationSummaries( existingReservationQry.AsNoTracking().Where( r => r.Id != newReservation.Id
                                                                     && r.ApprovalState != ReservationApprovalState.Denied
                                                                     && (
-                                                                        ( arePotentialConflictsReturned == false && ( !r.ReservationType.IsReservationBookedOnApproval || r.ApprovalState == ReservationApprovalState.Approved )) ||
+                                                                        ( arePotentialConflictsReturned == false && ( !r.ReservationType.IsReservationBookedOnApproval || r.ApprovalState == ReservationApprovalState.Approved ) ) ||
                                                                         ( arePotentialConflictsReturned == true && r.ReservationType.IsReservationBookedOnApproval && r.ApprovalState != ReservationApprovalState.Approved )
                                                                         )
                                                         ), RockDateTime.Now.AddMonths( -1 ), RockDateTime.Now.AddYears( 1 ) )
@@ -519,13 +519,29 @@ namespace com.centralaz.RoomManagement.Model
                 if ( reservation.FirstOccurrenceStartDateTime == null )
                 {
                     var reservationOccurrence = occurrences.First();
-                    reservation.FirstOccurrenceStartDateTime = reservationOccurrence.StartDateTime.AddMinutes( -reservation.SetupTime ?? 0 );
+                    try
+                    {
+                        reservation.FirstOccurrenceStartDateTime = reservationOccurrence.StartDateTime.AddMinutes( -reservation.SetupTime ?? 0 );
+                    }
+                    catch
+                    {
+                        reservation.FirstOccurrenceStartDateTime = reservationOccurrence.StartDateTime;
+                    }
                 }
 
                 if ( reservation.LastOccurrenceEndDateTime == null )
                 {
                     var reservationOccurrence = occurrences.Last();
-                    reservation.LastOccurrenceEndDateTime = reservationOccurrence.EndDateTime.AddMinutes( reservation.CleanupTime ?? 0 );
+                    try
+                    {
+                        reservation.LastOccurrenceEndDateTime = reservationOccurrence.EndDateTime.AddMinutes( reservation.CleanupTime ?? 0 );
+
+                    }
+                    catch
+                    {
+                        reservation.LastOccurrenceEndDateTime = reservationOccurrence.EndDateTime;
+
+                    }
                 }
             }
 
@@ -719,7 +735,7 @@ namespace com.centralaz.RoomManagement.Model
                 .Where( r => r.Id != reservation.Id
                         && r.ApprovalState != ReservationApprovalState.Denied
                         && (
-                            ( arePotentialConflictsReturned == false && ( !r.ReservationType.IsReservationBookedOnApproval || r.ApprovalState == ReservationApprovalState.Approved )) ||
+                            ( arePotentialConflictsReturned == false && ( !r.ReservationType.IsReservationBookedOnApproval || r.ApprovalState == ReservationApprovalState.Approved ) ) ||
                             ( arePotentialConflictsReturned == true && r.ReservationType.IsReservationBookedOnApproval && r.ApprovalState != ReservationApprovalState.Approved )
                             )
                         && r.ReservationResources.Any( rr => resource.Id == rr.ResourceId )

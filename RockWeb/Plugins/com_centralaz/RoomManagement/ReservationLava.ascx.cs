@@ -647,7 +647,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                         }
 
                         qry = qry.Where( r => r.ReservationLocations.Any( rl => ( myLocationsToApproveIds.Contains( rl.LocationId ) ) ) ||
-                                            r.ReservationResources.Any( rr => ( myResourcesToApproveIds.Contains( rr.ResourceId ) ) )
+                                            r.ReservationResources.Any( rr => ( myResourcesToApproveIds.Contains( rr.ResourceId ) ) ||
+                                            ( r.ReservationType.FinalApprovalGroup != null && r.ReservationType.FinalApprovalGroup.Members.Any( m => m.PersonId == CurrentPersonId.Value && m.GroupMemberStatus == GroupMemberStatus.Active ) ) )
                                         );
                     }
                     break;

@@ -1001,11 +1001,17 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 ResourcesState.Add( rrSummary );
             }
 
-            EventItemOccurrence = new EventItemOccurrence();
-            EventItemOccurrence.CopyPropertiesFrom( newItem.EventItemOccurrence );
+            if ( newItem.EventItemOccurrence != null )
+            {
+                EventItemOccurrence = new EventItemOccurrence();
+                EventItemOccurrence.CopyPropertiesFrom( newItem.EventItemOccurrence );
 
-            EventItem = new EventItem();
-            EventItem.CopyPropertiesFrom( newItem.EventItemOccurrence.EventItem );
+                if ( newItem.EventItemOccurrence.EventItem != null )
+                {
+                    EventItem = new EventItem();
+                    EventItem.CopyPropertiesFrom( newItem.EventItemOccurrence.EventItem );
+                }
+            }
 
             btnCopy.Visible = false;
             btnDelete.Visible = false;

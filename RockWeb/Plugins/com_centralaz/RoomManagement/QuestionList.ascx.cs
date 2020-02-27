@@ -217,7 +217,33 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 questionService.Add( question );
             }
 
-            Rock.Model.Attribute savedAttribute = SaveAttribute( rockContext );
+            var newAttribute = GetAttribute( rockContext );
+
+            var entityTypeId = 0;
+            if ( ResourceId != 0 )
+            {
+                entityTypeId = new EntityTypeService( rockContext ).Get( com.centralaz.RoomManagement.SystemGuid.EntityType.RESERVATION_RESOURCE.AsGuid() ).Id;
+            }
+            else if ( LocationId != 0 )
+            {
+                entityTypeId = new EntityTypeService( rockContext ).Get( com.centralaz.RoomManagement.SystemGuid.EntityType.RESERVATION_LOCATION.AsGuid() ).Id;
+            }
+            newAttribute.EntityTypeId = entityTypeId;
+
+            if ( newAttribute.AbbreviatedName == "" || ( newAttribute.AbbreviatedName == newAttribute.Name && newAttribute.Name.Length > 100 ) )
+            {
+                newAttribute.AbbreviatedName = newAttribute.Name.Substring( 0, 100 );
+            }
+
+            // Controls will show warnings
+            if ( !newAttribute.IsValid )
+            {
+                return;
+            }
+
+            Rock.Model.Attribute savedAttribute = Helper.SaveAttributeEdits( newAttribute, entityTypeId, null, null, rockContext );
+
+            AttributeCache.RemoveEntityAttributes();
 
             question.AttributeId = savedAttribute.Id;
 
@@ -521,6 +547,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             //edtQuestion.IncludedFieldTypes = includeFields.ToArray();
 
             edtQuestion.ReservedKeyNames = reservedKeyNames.ToList();
+            edtQuestion.IsKeyEditable = false;
 
             Type objectType = null;
             if ( ResourceId != 0 )
@@ -546,16 +573,12 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// </summary>
         /// <param name="rockContext">The rock context.</param>
         /// <returns></returns>
-        private Rock.Model.Attribute SaveAttribute( RockContext rockContext )
+        private Rock.Model.Attribute GetAttribute( RockContext rockContext )
         {
             List<Rock.Model.Attribute> attributeList = GetAttributeList();
 
             Rock.Model.Attribute attribute = new Rock.Model.Attribute();
             edtQuestion.GetAttributeProperties( attribute );
-            if ( !attribute.IsValid )
-            {
-                attribute = null;
-            }
 
             if ( attributeList.Any( a => a.Guid.Equals( attribute.Guid ) ) )
             {
@@ -566,19 +589,45 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 attribute.Order = attributeList.Any() ? attributeList.Count() + 1 : 0;
             }
 
-            var entityTypeId = 0;
-            if ( ResourceId != 0 )
+
+
+            // Create and update a new attribute object with new values
+            rockContext = rockContext ?? new RockContext();
+            var internalAttributeService = new AttributeService( rockContext );
+
+            Rock.Model.Attribute oldAttribute = null;
+            var newAttribute = new Rock.Model.Attribute();
+
+            if ( edtQuestion.AttributeId.HasValue )
             {
-                entityTypeId = new EntityTypeService( rockContext ).Get( com.centralaz.RoomManagement.SystemGuid.EntityType.RESERVATION_RESOURCE.AsGuid() ).Id;
-            }
-            else if ( LocationId != 0 )
-            {
-                entityTypeId = new EntityTypeService( rockContext ).Get( com.centralaz.RoomManagement.SystemGuid.EntityType.RESERVATION_LOCATION.AsGuid() ).Id;
+                oldAttribute = internalAttributeService.Get( edtQuestion.AttributeId.Value );
             }
 
-            var savedAttribute = SaveAttributeEdits( edtQuestion, entityTypeId, null, null, ResourceId, LocationId, rockContext );
-            AttributeCache.RemoveEntityAttributes();
-            return savedAttribute;
+            if ( oldAttribute != null )
+            {
+                newAttribute.CopyPropertiesFrom( oldAttribute );
+            }
+            else
+            {
+                newAttribute.Order = internalAttributeService.Queryable().AsNoTracking().Count() + 1;
+            }
+
+            edtQuestion.GetAttributeProperties( newAttribute );
+
+            if ( !newAttribute.Key.Contains( "_ResourceId" ) && !newAttribute.Key.Contains( "_LocationId" ) )
+            {
+                if ( ResourceId != 0 )
+                {
+                    newAttribute.Key = String.Format( "Q{0}_ResourceId{1}", newAttribute.Order, ResourceId );
+                }
+                else if ( LocationId != 0 )
+                {
+                    newAttribute.Key = String.Format( "Q{0}_LocationId{1}", newAttribute.Order, LocationId );
+                }
+            }
+
+
+            return newAttribute;
         }
 
         /// <summary>
@@ -603,55 +652,6 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             }
 
             return attributeList;
-        }
-
-        /// <summary>
-        /// Saves the attribute edits.
-        /// </summary>
-        /// <param name="edtAttribute">The edt attribute.</param>
-        /// <param name="entityTypeId">The entity type identifier.</param>
-        /// <param name="entityTypeQualifierColumn">The entity type qualifier column.</param>
-        /// <param name="entityTypeQualifierValue">The entity type qualifier value.</param>
-        /// <param name="rockContext">The rock context.</param>
-        /// <returns></returns>
-        public static Rock.Model.Attribute SaveAttributeEdits( SimpleAttributeEditor edtAttribute, int? entityTypeId, string entityTypeQualifierColumn, string entityTypeQualifierValue, int resourceId, int locationId, RockContext rockContext = null )
-        {
-            // Create and update a new attribute object with new values
-            rockContext = rockContext ?? new RockContext();
-            var internalAttributeService = new AttributeService( rockContext );
-
-            Rock.Model.Attribute attribute = null;
-            var newAttribute = new Rock.Model.Attribute();
-
-            if ( edtAttribute.AttributeId.HasValue )
-            {
-                attribute = internalAttributeService.Get( edtAttribute.AttributeId.Value );
-            }
-
-            if ( attribute != null )
-            {
-                newAttribute.CopyPropertiesFrom( attribute );
-            }
-            else
-            {
-                newAttribute.Order = internalAttributeService.Queryable().AsNoTracking().Count() + 1;
-            }
-
-            edtAttribute.GetAttributeProperties( newAttribute );
-
-            if ( !newAttribute.Key.Contains( "_ResourceId" ) && !newAttribute.Key.Contains( "_LocationId" ) )
-            {
-                if ( resourceId != 0 )
-                {
-                    newAttribute.Key = String.Format( "Q{0}_ResourceId{1}", newAttribute.Order, resourceId );
-                }
-                else if ( locationId != 0 )
-                {
-                    newAttribute.Key = String.Format( "Q{0}_LocationId{1}", newAttribute.Order, locationId );
-                }
-            }
-
-            return Helper.SaveAttributeEdits( newAttribute, entityTypeId, entityTypeQualifierColumn, entityTypeQualifierValue, rockContext );
         }
 
         #endregion

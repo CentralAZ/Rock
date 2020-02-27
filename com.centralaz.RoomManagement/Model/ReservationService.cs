@@ -516,33 +516,27 @@ namespace com.centralaz.RoomManagement.Model
             var occurrences = reservation.GetReservationTimes( DateTime.MinValue, DateTime.MaxValue ).ToList();
             if ( occurrences.Count > 0 )
             {
-                if ( reservation.FirstOccurrenceStartDateTime == null )
+                var firstReservationOccurrence = occurrences.First();
+                var lastReservationOccurrence = occurrences.Last();
+
+                try
                 {
-                    var reservationOccurrence = occurrences.First();
-                    try
-                    {
-                        reservation.FirstOccurrenceStartDateTime = reservationOccurrence.StartDateTime.AddMinutes( -reservation.SetupTime ?? 0 );
-                    }
-                    catch
-                    {
-                        reservation.FirstOccurrenceStartDateTime = reservationOccurrence.StartDateTime;
-                    }
+                    reservation.FirstOccurrenceStartDateTime = firstReservationOccurrence.StartDateTime.AddMinutes( -reservation.SetupTime ?? 0 );
+                }
+                catch
+                {
+                    reservation.FirstOccurrenceStartDateTime = firstReservationOccurrence.StartDateTime;
                 }
 
-                if ( reservation.LastOccurrenceEndDateTime == null )
+                try
                 {
-                    var reservationOccurrence = occurrences.Last();
-                    try
-                    {
-                        reservation.LastOccurrenceEndDateTime = reservationOccurrence.EndDateTime.AddMinutes( reservation.CleanupTime ?? 0 );
-
-                    }
-                    catch
-                    {
-                        reservation.LastOccurrenceEndDateTime = reservationOccurrence.EndDateTime;
-
-                    }
+                    reservation.LastOccurrenceEndDateTime = lastReservationOccurrence.EndDateTime.AddMinutes( reservation.CleanupTime ?? 0 );
                 }
+                catch
+                {
+                    reservation.LastOccurrenceEndDateTime = lastReservationOccurrence.EndDateTime;
+                }
+
             }
 
             return reservation;

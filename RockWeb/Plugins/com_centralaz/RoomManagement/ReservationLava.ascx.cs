@@ -165,6 +165,9 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             scriptManager.RegisterPostBackControl( rptReports );
 
             RockPage.AddScriptLink( "~/Plugins/com_centralaz/RoomManagement/Assets/Scripts/circle-progress.js", fingerprint: false );
+            RockPage.AddScriptLink( "~/Plugins/com_centralaz/RoomManagement/Assets/Scripts/event-calendar.js", fingerprint: false );
+            RockPage.AddScriptLink( "~/Plugins/com_centralaz/RoomManagement/Assets/Scripts/moment.js", fingerprint: false );
+            RockPage.AddCSSLink( "~/Plugins/com_centralaz/RoomManagement/Assets/Styles/event-calendar.css", fingerprint: false );
         }
 
         /// <summary>
@@ -418,12 +421,14 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
         protected void dpStartDate_TextChanged( object sender, EventArgs e )
         {
+            this.SetUserPreference( PreferenceKey + "Start Date", dpStartDate.SelectedDate.ToString() );
             FilterStartDate = dpStartDate.SelectedDate;
             BindData();
         }
 
         protected void dpEndDate_TextChanged( object sender, EventArgs e )
         {
+            this.SetUserPreference( PreferenceKey + "End Date", dpEndDate.SelectedDate.ToString() );
             FilterEndDate = dpEndDate.SelectedDate;
             BindData();
         }
@@ -433,7 +438,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             var btnViewMode = sender as BootstrapButton;
             if ( btnViewMode != null )
             {
-                this.SetUserPreference( PreferenceKey + "ViewMode", btnViewMode.Text );
+                this.SetUserPreference( PreferenceKey + "ViewMode", btnViewMode.Text );              
                 ViewMode = btnViewMode.Text;
                 ResetCalendarSelection();
                 BindData();
@@ -500,6 +505,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 ReservationName = r.ReservationName,
                 ReservationType = r.ReservationType,
                 ApprovalState = r.ApprovalState.ConvertToString(),
+                ApprovalStateInt = r.ApprovalState.ConvertToInt(),
                 Locations = r.ReservationLocations.ToList(),
                 Resources = r.ReservationResources.ToList(),
                 CalendarDate = r.EventStartDateTime.ToLongDateString(),
@@ -525,6 +531,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             var mergeFields = new Dictionary<string, object>();
             mergeFields.Add( "TimeFrame", ViewMode );
+            mergeFields.Add( "FilterStartDate", FilterStartDate );
+            mergeFields.Add( "FilterEndDate", FilterEndDate );
             mergeFields.Add( "DetailsPage", LinkedPageUrl( "DetailsPage", null ) );
             mergeFields.Add( "ReservationSummaries", reservationSummaries );
             mergeFields.Add( "CurrentPerson", CurrentPerson );
@@ -834,10 +842,24 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             // Date Range Filter
             dpStartDate.Visible = GetAttributeValue( "ShowDateRangeFilter" ).AsBoolean();
-            dpStartDate.SelectedDate = FilterStartDate;
+            if ( dpStartDate.Visible && !string.IsNullOrWhiteSpace( this.GetUserPreference( PreferenceKey + "Start Date" ) ) )
+            {
+                dpStartDate.SelectedDate = this.GetUserPreference( PreferenceKey + "Start Date" ).AsDateTime();
+                if ( dpStartDate.SelectedDate.HasValue )
+                {
+                    FilterStartDate = dpStartDate.SelectedDate;
+                }
+            }
 
             dpEndDate.Visible = GetAttributeValue( "ShowDateRangeFilter" ).AsBoolean();
-            dpEndDate.SelectedDate = FilterEndDate;
+            if ( dpEndDate.Visible && !string.IsNullOrWhiteSpace( this.GetUserPreference( PreferenceKey + "End Date" ) ) )
+            {
+                dpEndDate.SelectedDate = this.GetUserPreference( PreferenceKey + "End Date" ).AsDateTime();
+                if ( dpEndDate.SelectedDate.HasValue )
+                {
+                    FilterEndDate = dpEndDate.SelectedDate;
+                }
+            }
 
             // Get the View Modes, and only show them if more than one is visible
             var viewsVisible = new List<bool> {
@@ -887,6 +909,10 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 FilterStartDate = new DateTime( RockDateTime.Today.Year, RockDateTime.Today.Month, 1 );
                 FilterEndDate = FilterStartDate.Value.AddMonths( 12 );
             }
+
+            dpStartDate.SelectedDate = dpEndDate.SelectedDate = null;
+            this.SetUserPreference( PreferenceKey + "Start Date", null );
+            this.SetUserPreference( PreferenceKey + "End Date", null );
 
             // Reset the selection
             calReservationCalendar.SelectedDates.SelectRange( FilterStartDate.Value, FilterEndDate.Value );

@@ -58,12 +58,18 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         {
             base.OnInit( e );
 
-            rGrid.DataKeyNames = new string[] { "Id" };
+            rGrid.DataKeyNames = new string[] { "QuestionId" };
             rGrid.Actions.ShowAdd = true;
 
             rGrid.Actions.AddClick += rGrid_Add;
             rGrid.GridReorder += rGrid_GridReorder;
             rGrid.GridRebind += rGrid_GridRebind;
+
+            var securityField = rGrid.ColumnsOfType<SecurityField>().FirstOrDefault();
+            if ( securityField != null )
+            {
+                securityField.EntityTypeId = EntityTypeCache.Get( typeof( Rock.Model.Attribute ) ).Id;
+            }
 
             modalDetails.OnCancelScript = string.Format( "$('#{0}').val('');", hfIdValue.ClientID );
 
@@ -484,13 +490,15 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             rGrid.DataSource = questionList.Select( q => new
             {
-                Id = q.Id,
+                Id = q.Attribute.Id,
+                QuestionId = q.Id,
                 Order = q.Attribute.Order,
                 Question = q.Attribute.Name,
                 FieldType = q.Attribute.FieldType.Name
             } )
             .OrderBy( q => q.Order )
             .ToList();
+            
 
             rGrid.DataBind();
         }

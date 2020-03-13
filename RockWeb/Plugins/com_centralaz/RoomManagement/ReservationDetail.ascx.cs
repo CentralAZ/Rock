@@ -2280,6 +2280,14 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             if ( !reservationId.Equals( 0 ) )
             {
                 reservation = reservationService.Get( reservationId );
+
+                // Clean up the EventItemOccurrence if it's been deleted
+                if ( reservation.EventItemOccurrenceId.HasValue && reservation.EventItemOccurrence == null )
+                {
+                    reservation.EventItemOccurrenceId = null;
+                    rockContext.SaveChanges();
+                }
+
                 hfReservationId.Value = reservationId.ToString();
                 pdAuditDetails.SetEntity( reservation, ResolveRockUrl( "~" ) );
 

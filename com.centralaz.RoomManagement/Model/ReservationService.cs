@@ -513,7 +513,16 @@ namespace com.centralaz.RoomManagement.Model
         /// <returns></returns>
         public Reservation SetFirstLastOccurrenceDateTimes( Reservation reservation )
         {
-            var occurrences = reservation.GetReservationTimes( DateTime.MinValue, DateTime.MaxValue ).ToList();
+            var beginDateTime = DateTime.MinValue;
+            var endDateTime = DateTime.MaxValue;
+
+            DDay.iCal.Event calEvent = reservation.Schedule.GetCalendarEvent();
+            if ( !calEvent.RecurrenceRules.Any( r => ( r.Until != null && r.Until != DateTime.MinValue ) || ( r.Count != null && r.Count != -2147483648 ) ) )
+            {
+                endDateTime = RockDateTime.Now.AddYears( 20 );
+            }
+
+            var occurrences = reservation.GetReservationTimes( beginDateTime, endDateTime ).ToList();
             if ( occurrences.Count > 0 )
             {
                 var firstReservationOccurrence = occurrences.First();

@@ -169,8 +169,8 @@
                                             </ItemTemplate>
                                         </Rock:RockTemplateField>
                                         <Rock:RockBoundField DataField="ApprovalState" HeaderText="Approved?" />
-                                        <Rock:LinkButtonField CssClass="btn btn-success btn-sm" OnClick="gViewLocations_ApproveClick" Text="<i class='fa fa-check'></i>" Visible="true" />
-                                        <Rock:LinkButtonField CssClass="btn btn-danger btn-sm" OnClick="gViewLocations_DenyClick" Text="<i class='fa fa-ban'></i>" Visible="true" />
+                                        <Rock:LinkButtonField CssClass="btn btn-success btn-sm" OnClick="gViewLocations_ApproveClick" ToolTip="Approve" Text="<i class='fa fa-check'></i>" Visible="true" />
+                                        <Rock:LinkButtonField CssClass="btn btn-danger btn-sm" OnClick="gViewLocations_DenyClick" ToolTip="Deny" Text="<i class='fa fa-ban'></i>" Visible="true" />
                                     </Columns>
                                 </Rock:Grid>
                             </div>
@@ -185,8 +185,8 @@
                                         </Rock:RockTemplateField>
                                         <Rock:RockBoundField DataField="Quantity" HeaderText="Qty" />
                                         <Rock:RockBoundField DataField="ApprovalState" HeaderText="Approved?" />
-                                        <Rock:LinkButtonField CssClass="btn btn-sm btn-success" OnClick="gViewResources_ApproveClick" Text="<i class='fa fa-check'></i>" Visible="true" />
-                                        <Rock:LinkButtonField CssClass="btn btn-sm btn-danger" OnClick="gViewResources_DenyClick" Text="<i class='fa fa-ban'></i>" Visible="true" />
+                                        <Rock:LinkButtonField CssClass="btn btn-sm btn-success" OnClick="gViewResources_ApproveClick" ToolTip="Approve"  Text="<i class='fa fa-check'></i>" Visible="true" />
+                                        <Rock:LinkButtonField CssClass="btn btn-sm btn-danger" OnClick="gViewResources_DenyClick" ToolTip="Deny" Text="<i class='fa fa-ban'></i>" Visible="true" />
                                     </Columns>
                                 </Rock:Grid>
                             </div>

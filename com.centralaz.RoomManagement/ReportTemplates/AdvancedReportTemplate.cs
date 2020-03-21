@@ -85,7 +85,7 @@ namespace com.centralaz.RoomManagement.ReportTemplates
                 EventDateTimeDescription = r.EventDateTimeDescription,
                 ReservationDateTimeDescription = r.ReservationDateTimeDescription,
                 Ministry = r.ReservationMinistry,
-                ContactInfo = String.Format( "{0} {1}", r.EventContactPersonAlias.Person.FullName, r.EventContactPhoneNumber ),
+                ContactInfo = String.Format( "{0} {1}", r.EventContactPersonAlias?.Person.FullName, r.EventContactPhoneNumber ),
                 SetupPhotoId = r.SetupPhotoId,
                 Note = r.Note
             } )

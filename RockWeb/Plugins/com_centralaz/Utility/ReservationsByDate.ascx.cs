@@ -153,7 +153,7 @@ namespace RockWeb.Plugins.com_centralaz.Utility
                 ReservationStartDateTime = r.ReservationStartDateTime,
                 ReservationEndDateTime = r.ReservationEndDateTime,
                 EventDateTimeDescription = r.EventDateTimeDescription,
-                EventContact = r.EventContactPersonAlias.Person.FullName,
+                EventContact = (r.EventContactPersonAlias != null ) ? r.EventContactPersonAlias.Person.FullName : string.Empty,
                 Notes = r.Note,
                 Setup = r.SetupPhotoId.HasValue ? string.Format("<img class='img-responsive' src='/GetImage.ashx?id={0}&width=100' />", r.SetupPhotoId.ToString() ) : "",
                 ReservationDateTimeDescription = r.ReservationDateTimeDescription +

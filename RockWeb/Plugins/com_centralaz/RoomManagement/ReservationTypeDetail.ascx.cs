@@ -329,6 +329,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 reservationType.IsNumberAttendingRequired = cbIsNumberAttendingRequired.Checked;
                 reservationType.IsSetupTimeRequired = cbIsSetupTimeRequired.Checked;
                 reservationType.DefaultSetupTime = nbDefaultSetupTime.Text.AsIntegerOrNull();
+                reservationType.DefaultCleanupTime = nbDefaultCleanupTime.Text.AsIntegerOrNull();
                 reservationType.IsReservationBookedOnApproval = cbIsReservationBookedOnApproval.Checked;
 
                 foreach ( var reservationMinistryState in ReservationMinistriesState )
@@ -1106,6 +1107,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             cbIsNumberAttendingRequired.Checked = reservationType.IsNumberAttendingRequired;
             cbIsSetupTimeRequired.Checked = reservationType.IsSetupTimeRequired;
             nbDefaultSetupTime.Text = reservationType.DefaultSetupTime.ToStringSafe();
+            nbDefaultCleanupTime.Text = reservationType.DefaultCleanupTime.ToStringSafe();
 
             LoadDropDowns();
             if ( reservationType.NotificationEmailId.HasValue )

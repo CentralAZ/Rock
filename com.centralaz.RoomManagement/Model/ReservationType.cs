@@ -122,6 +122,15 @@ namespace com.centralaz.RoomManagement.Model
         public int? DefaultSetupTime { get; set; }
 
         /// <summary>
+        /// Gets or sets the default cleanup time.
+        /// </summary>
+        /// <value>
+        /// The default cleanup time.
+        /// </value>
+        [DataMember]
+        public int? DefaultCleanupTime { get; set; }
+
+        /// <summary>
         /// Gets or sets a value indicating whether this instance is communication history saved.
         /// </summary>
         /// <value>

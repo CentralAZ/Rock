@@ -2747,21 +2747,27 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             pnEventContactPhone.Required = requireContactDetails;
             tbEventContactEmail.Required = requireContactDetails;
 
-            var defaultTime = ReservationType.DefaultSetupTime.ToString();
-            if ( defaultTime == "-1" )
+            var defaultSetupTime = ReservationType.DefaultSetupTime.ToString();
+            if ( defaultSetupTime == "-1" )
             {
-                defaultTime = string.Empty;
+                defaultSetupTime = string.Empty;
+            }
+
+            var defaultCleanupTime = ReservationType.DefaultCleanupTime.ToString();
+            if ( defaultCleanupTime == "-1" )
+            {
+                defaultCleanupTime = string.Empty;
             }
 
             if ( reservation == null )
             {
-                nbSetupTime.Text = defaultTime;
-                nbCleanupTime.Text = defaultTime;
+                nbSetupTime.Text = defaultSetupTime;
+                nbCleanupTime.Text = defaultCleanupTime;
             }
             else
             {
-                nbSetupTime.Text = reservation.SetupTime.HasValue ? reservation.SetupTime.ToString() : defaultTime;
-                nbCleanupTime.Text = reservation.CleanupTime.HasValue ? reservation.CleanupTime.ToString() : defaultTime;
+                nbSetupTime.Text = reservation.SetupTime.HasValue ? reservation.SetupTime.ToString() : defaultSetupTime;
+                nbCleanupTime.Text = reservation.CleanupTime.HasValue ? reservation.CleanupTime.ToString() : defaultCleanupTime;
             }
         }
 

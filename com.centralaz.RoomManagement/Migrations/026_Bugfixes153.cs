@@ -41,6 +41,16 @@ namespace com.centralaz.RoomManagement.Migrations
             RockMigrationHelper.AddActionTypeAttributeValue( "52520D50-9D35-4E0D-AF04-1A222B50EA91", "5D9B13B6-CD96-4C7C-86FA-4512B9D28386", @"Reservation Approved: {{Workflow | Attribute:'Reservation'}}" ); // Room Reservation Approval Notification:Notify Requester that the Reservation has been Approved:Send Email:Subject
             RockMigrationHelper.AddActionTypeAttributeValue( "78761E92-CD94-438A-A3F2-FB683C8D8054", "5D9B13B6-CD96-4C7C-86FA-4512B9D28386", @"Reservation Denied: {{Workflow | Attribute:'Reservation'}}" ); // Room Reservation Approval Notification:Notify Requester that the Reservation has been Denied:Send Email:Subject
             RockMigrationHelper.AddActionTypeAttributeValue( "FE7B413C-0DF4-4F9C-935C-8B39DA87742D", "5D9B13B6-CD96-4C7C-86FA-4512B9D28386", @"Approval Needed: {{Workflow | Attribute:'Reservation'}}" ); // Room Reservation Approval Notification:Notify Approval group that the Reservation is Pending Review:Send Email:Subject
+
+            Sql( @"
+                    ALTER TABLE [dbo].[_com_centralaz_RoomManagement_ReservationType] ADD [DefaultCleanupTime] INT NULL
+            " );
+
+            Sql( @"
+                    UPDATE [dbo].[_com_centralaz_RoomManagement_ReservationType]
+                    SET [DefaultCleanupTime] = [DefaultSetupTime]
+            " );
+            
         }
 
         /// <summary>

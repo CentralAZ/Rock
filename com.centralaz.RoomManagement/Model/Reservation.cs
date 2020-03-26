@@ -468,7 +468,7 @@ namespace com.centralaz.RoomManagement.Model
                             StartDateTime = DateTime.SpecifyKind( a.Period.StartTime.Value, DateTimeKind.Local ),
                             EndDateTime = DateTime.SpecifyKind( a.Period.EndTime.Value, DateTimeKind.Local )
                         } )
-                        .OrderBy(a=> a.StartDateTime)
+                        .OrderBy( a => a.StartDateTime )
                         .ToList();
                     {
                         // ensure the datetime is DateTimeKind.Local since iCal returns DateTimeKind.UTC
@@ -626,33 +626,49 @@ namespace com.centralaz.RoomManagement.Model
                 StringBuilder sb = new StringBuilder();
                 sb.Append( Schedule.ToFriendlyScheduleText() );
 
-                var calendarEvent = Schedule.GetCalenderEvent();
-                if ( calendarEvent != null && calendarEvent.Duration != null )
+                var calendarEvent = Schedule.GetCalendarEvent();
+                if ( calendarEvent != null )
                 {
-                    var duration = calendarEvent.Duration;
-                    if ( duration.Hours > 0 )
+                    if ( calendarEvent.Duration != null )
                     {
-                        if ( duration.Hours == 1 )
+                        var duration = calendarEvent.Duration;
+                        if ( duration.Hours > 0 )
                         {
-                            sb.AppendFormat( " for {0} hr", duration.Hours );
+                            if ( duration.Hours == 1 )
+                            {
+                                sb.AppendFormat( " for {0} hr", duration.Hours );
+                            }
+                            else
+                            {
+                                sb.AppendFormat( " for {0} hrs", duration.Hours );
+                            }
+
+                            if ( duration.Minutes > 0 )
+                            {
+                                sb.AppendFormat( " and {0} min", duration.Minutes );
+                            }
                         }
                         else
                         {
-                            sb.AppendFormat( " for {0} hrs", duration.Hours );
+                            if ( duration.Minutes > 0 )
+                            {
+                                sb.AppendFormat( " for {0} min", duration.Minutes );
+                            }
+                        }
+                    }
+                    if ( calendarEvent.RecurrenceRules.Any() )
+                    {
+                        if ( FirstOccurrenceStartDateTime.HasValue )
+                        {
+                            sb.AppendFormat( " from {0}", FirstOccurrenceStartDateTime.Value.ToShortDateString() );
                         }
 
-                        if ( duration.Minutes > 0 )
+                        if ( LastOccurrenceEndDateTime.HasValue )
                         {
-                            sb.AppendFormat( " and {0} min", duration.Minutes );
+                            sb.AppendFormat( " to {0}", LastOccurrenceEndDateTime.Value.ToShortDateString() );
                         }
                     }
-                    else
-                    {
-                        if ( duration.Minutes > 0 )
-                        {
-                            sb.AppendFormat( " for {0} min", duration.Minutes );
-                        }
-                    }
+
                 }
 
                 result = sb.ToString();

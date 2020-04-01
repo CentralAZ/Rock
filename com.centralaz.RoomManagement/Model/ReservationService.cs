@@ -562,7 +562,7 @@ namespace com.centralaz.RoomManagement.Model
         /// <param name="filterByLocations">if set to <c>true</c> [filter by locations].</param>
         /// <param name="arePotentialConflictsReturned">if set to <c>true</c> [are potential conflicts returned].</param>
         /// <returns></returns>
-        public List<int> GetReservedLocationIds( Reservation newReservation, bool filterByLocations = true, bool arePotentialConflictsReturned = false )
+        public List<int> GetReservedLocationIds( Reservation newReservation, bool filterByLocations = true, bool arePotentialConflictsReturned = false, bool areAncestorsReturned = true )
         {
             var locationService = new LocationService( new RockContext() );
 
@@ -593,8 +593,12 @@ namespace com.centralaz.RoomManagement.Model
 
             var reservedLocationAndChildIds = new List<int>();
             reservedLocationAndChildIds.AddRange( reservedLocationIds );
-            reservedLocationAndChildIds.AddRange( reservedLocationIds.SelectMany( l => locationService.GetAllAncestorIds( l ) ) );
             reservedLocationAndChildIds.AddRange( reservedLocationIds.SelectMany( l => locationService.GetAllDescendentIds( l ) ) );
+
+            if ( areAncestorsReturned )
+            {
+                reservedLocationAndChildIds.AddRange( reservedLocationIds.SelectMany( l => locationService.GetAllAncestorIds( l ) ) );
+            }
 
             return reservedLocationAndChildIds;
         }

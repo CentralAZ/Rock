@@ -93,7 +93,7 @@ namespace Rock.Rest.Controllers
             var newReservation = new Reservation() { Id = reservationId ?? 0, Schedule = ReservationService.BuildScheduleFromICalContent( iCalendarContent ), SetupTime = setupTime, CleanupTime = cleanupTime };
 
             var reservationService = new ReservationService( rockContext );
-            List<int> reservedLocationIds = reservationService.GetReservedLocationIds( newReservation, false );
+            List<int> reservedLocationIds = reservationService.GetReservedLocationIds( newReservation, false, false, false );
 
             foreach ( var location in qry.OrderBy( l => l.Name ) )
             {
@@ -103,9 +103,9 @@ namespace Rock.Rest.Controllers
                     var treeViewItem = new TreeViewItem();
                     treeViewItem.Id = location.Id.ToString();
                     treeViewItem.Name = string.Format( "{0}<small style='color:grey;'>{1}</small>", System.Web.HttpUtility.HtmlEncode( location.Name ), location.FirmRoomThreshold != null ? "\t(" + location.FirmRoomThreshold + ")" : "" );
-                    treeViewItem.IsActive = 
+                    treeViewItem.IsActive =
                         // location isnt' reserved
-                        ! ( reservedLocationIds.Contains( location.Id ))
+                        !( reservedLocationIds.Contains( location.Id ) )
                         // and the attendee count is less than or equal to the room's capacity
                         && ( attendeeCount == null || location.FirmRoomThreshold == null || attendeeCount.Value <= location.FirmRoomThreshold.Value );
                     locationNameList.Add( treeViewItem );

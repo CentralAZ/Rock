@@ -242,7 +242,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     reservationTypeService.Delete( reservationType );
                     rockContext.SaveChanges();
 
-                    ReservationWorkflowService.RemoveCachedTriggers();
+                    ReservationWorkflowTriggerService.RemoveCachedTriggers();
                 }
             }
 
@@ -398,7 +398,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     }
                 } );
 
-                ReservationWorkflowService.RemoveCachedTriggers();
+                ReservationWorkflowTriggerService.RemoveCachedTriggers();
 
                 var qryParams = new Dictionary<string, string>();
                 qryParams["ReservationTypeId"] = reservationType.Id.ToString();

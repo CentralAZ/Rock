@@ -234,12 +234,25 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                         return;
                     }
 
-                    // Currently the Cascade delete isn't working, so this is temp code to force the issue.
                     var reservationService = new ReservationService( rockContext );
-                    var reservationQry = reservationService.Queryable().Where( r => r.ReservationTypeId == reservationType.Id );
-                    reservationService.DeleteRange( reservationQry );
+                    var reservationResourceService = new ReservationResourceService( rockContext );
+                    var reservationLocationService = new ReservationLocationService( rockContext );
+                    var reservationWorkfowTriggerService = new ReservationWorkflowTriggerService( rockContext );
+                    var reservationMinistryService = new ReservationMinistryService( rockContext );
 
+                    var reservationQry = reservationService.Queryable().Where( r => r.ReservationTypeId == reservationType.Id );
+                    var reservationResourceQry = reservationResourceService.Queryable().Where( rr => rr.Reservation.ReservationTypeId == reservationType.Id );
+                    var reservationLocationQry = reservationLocationService.Queryable().Where( rl => rl.Reservation.ReservationTypeId == reservationType.Id );
+                    var reservationTriggerQry = reservationWorkfowTriggerService.Queryable().Where( rwt => rwt.ReservationTypeId == reservationType.Id );
+                    var reservationMinistryQry = reservationMinistryService.Queryable().Where( rm => rm.ReservationTypeId == reservationType.Id );
+
+                    reservationMinistryService.DeleteRange( reservationMinistryQry );
+                    reservationWorkfowTriggerService.DeleteRange( reservationTriggerQry );
+                    reservationResourceService.DeleteRange( reservationResourceQry );
+                    reservationLocationService.DeleteRange( reservationLocationQry );
+                    reservationService.DeleteRange( reservationQry );
                     reservationTypeService.Delete( reservationType );
+
                     rockContext.SaveChanges();
 
                     ReservationWorkflowTriggerService.RemoveCachedTriggers();

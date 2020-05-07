@@ -2308,6 +2308,25 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     nbError.Text = conflictInfo;
                     nbError.Visible = true;
                 }
+
+                string btnDownloadText = @"
+                        <script>function ics_click() {
+                            text = `{{ Reservation.Schedule.iCalendarContent }}`.replace('END:VEVENT', 'SUMMARY: {{ Reservation.Name }}\r\nLOCATION: {{ Reservation.ReservationLocations | Select:'Location' | Select:'Name' | Join:', ' }}\r\nEND:VEVENT');
+                            var element = document.createElement('a');
+                            element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+                            element.setAttribute('download', '{{ Reservation.Name }}.ics');
+                            element.style.display = 'none';
+                            document.body.appendChild(element);
+                            element.click();
+                            document.body.removeChild(element);
+                        }
+                        </script>
+                        <a href='' class='btn btn-default' onclick='return ics_click()' class='socialicon socialicon-calendar' title='' data-original-title='Download Event'>
+                           <i class='fa fa-download'></i>
+                        </a>";
+                var mergeFields = new Dictionary<string, object>();
+                mergeFields.Add( "Reservation", reservation );
+                btnDownload.Text = btnDownloadText.ResolveMergeFields( mergeFields );
             }
 
             if ( reservation == null )

@@ -513,7 +513,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 if ( reservation == null )
                 {
                     reservation = new Reservation { Id = 0 };
-                    reservation.ApprovalState = ReservationApprovalState.Unapproved;
+                    reservation.ApprovalState = ReservationApprovalState.PendingInitialApproval;
                     reservation.RequesterAliasId = CurrentPersonAliasId;
 
                     if ( PageParameter( "ForeignKey" ).IsNotNullOrWhiteSpace() )
@@ -756,7 +756,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     return;
                 }
 
-                reservation = reservationService.UpdateApproval( reservation, hfApprovalState.Value.ConvertToEnum<ReservationApprovalState>( ReservationApprovalState.Unapproved ) );
+                reservation = reservationService.UpdateApproval( reservation, hfApprovalState.Value.ConvertToEnum<ReservationApprovalState>( ReservationApprovalState.PendingInitialApproval ) );
                 reservation = reservationService.SetFirstLastOccurrenceDateTimes( reservation );
 
                 changes = EvaluateLocationAndResourceChanges( changes, oldReservation, reservation );
@@ -2478,8 +2478,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             canApprove = ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId )
                 || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId );
 
-            btnApprove.Visible = ( reservation.ApprovalState == ReservationApprovalState.PendingReview && ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId ) ) && !nbError.Text.IsNotNullOrWhiteSpace();
-            btnDeny.Visible = ( reservation.ApprovalState == ReservationApprovalState.PendingReview && ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId ) ) || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId );
+            btnApprove.Visible = ( reservation.ApprovalState == ReservationApprovalState.PendingFinalApproval && ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId ) ) && !nbError.Text.IsNotNullOrWhiteSpace();
+            btnDeny.Visible = ( reservation.ApprovalState == ReservationApprovalState.PendingFinalApproval && ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.FinalApprovalGroupId ) ) || ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId );
             btnOverride.Visible = ReservationTypeService.IsPersonInGroupWithId( CurrentPerson, ReservationType.SuperAdminGroupId );
 
             // Show the delete button if the person is authorized to delete it
@@ -2504,10 +2504,10 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 case ReservationApprovalState.Denied:
                     hlStatus.LabelType = LabelType.Danger;
                     break;
-                case ReservationApprovalState.PendingReview:
+                case ReservationApprovalState.PendingFinalApproval:
                     hlStatus.LabelType = LabelType.Warning;
                     break;
-                case ReservationApprovalState.Unapproved:
+                case ReservationApprovalState.PendingInitialApproval:
                     hlStatus.LabelType = LabelType.Warning;
                     break;
                 case ReservationApprovalState.ChangesNeeded:
@@ -2707,10 +2707,10 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                         case ReservationApprovalState.Denied:
                             hlStatus.LabelType = LabelType.Danger;
                             break;
-                        case ReservationApprovalState.PendingReview:
+                        case ReservationApprovalState.PendingFinalApproval:
                             hlStatus.LabelType = LabelType.Warning;
                             break;
-                        case ReservationApprovalState.Unapproved:
+                        case ReservationApprovalState.PendingInitialApproval:
                             hlStatus.LabelType = LabelType.Warning;
                             break;
                         case ReservationApprovalState.ChangesNeeded:

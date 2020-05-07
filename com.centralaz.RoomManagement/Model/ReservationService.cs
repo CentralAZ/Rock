@@ -276,7 +276,7 @@ namespace com.centralaz.RoomManagement.Model
                     }
                     else
                     {
-                        reservation.ApprovalState = ReservationApprovalState.Unapproved;
+                        reservation.ApprovalState = ReservationApprovalState.PendingInitialApproval;
                     }
                 }
                 else if ( reservationResource.ApprovalState == ReservationResourceApprovalState.Denied )
@@ -300,7 +300,7 @@ namespace com.centralaz.RoomManagement.Model
                     }
                     else
                     {
-                        reservation.ApprovalState = ReservationApprovalState.Unapproved;
+                        reservation.ApprovalState = ReservationApprovalState.PendingInitialApproval;
                     }
                 }
                 else if ( reservationLocation.ApprovalState == ReservationLocationApprovalState.Denied )
@@ -311,7 +311,7 @@ namespace com.centralaz.RoomManagement.Model
 
 
 
-            if ( reservation.ApprovalState == ReservationApprovalState.Unapproved || reservation.ApprovalState == ReservationApprovalState.PendingReview || reservation.ApprovalState == ReservationApprovalState.ChangesNeeded )
+            if ( reservation.ApprovalState == ReservationApprovalState.PendingInitialApproval || reservation.ApprovalState == ReservationApprovalState.PendingFinalApproval || reservation.ApprovalState == ReservationApprovalState.ChangesNeeded )
             {
                 if ( reservation.ReservationLocations.All( rl => rl.ApprovalState == ReservationLocationApprovalState.Approved ) && reservation.ReservationResources.All( rr => rr.ApprovalState == ReservationResourceApprovalState.Approved ) )
                 {
@@ -321,7 +321,7 @@ namespace com.centralaz.RoomManagement.Model
                     }
                     else
                     {
-                        reservation.ApprovalState = ReservationApprovalState.PendingReview;
+                        reservation.ApprovalState = ReservationApprovalState.PendingFinalApproval;
                     }
                 }
                 else
@@ -472,7 +472,7 @@ namespace com.centralaz.RoomManagement.Model
                 }
             }
 
-            if ( reservation.ApprovalState == ReservationApprovalState.Unapproved || reservation.ApprovalState == ReservationApprovalState.ChangesNeeded )
+            if ( reservation.ApprovalState == ReservationApprovalState.PendingInitialApproval || reservation.ApprovalState == ReservationApprovalState.ChangesNeeded )
             {
                 var groups = new GroupService( Context as RockContext ).GetByGuids( groupGuidList.Distinct().ToList() );
                 foreach ( var group in groups )
@@ -880,7 +880,7 @@ namespace com.centralaz.RoomManagement.Model
             newItem.ModifiedDateTime = RockDateTime.Now;
 
             // Clear the approval state since that would not be fair otherwise...
-            newItem.ApprovalState = ReservationApprovalState.Unapproved;
+            newItem.ApprovalState = ReservationApprovalState.PendingInitialApproval;
             foreach ( var rl in newItem.ReservationLocations )
             {
                 rl.ApprovalState = ReservationLocationApprovalState.Unapproved;

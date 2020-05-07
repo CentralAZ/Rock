@@ -734,9 +734,14 @@ namespace com.centralaz.RoomManagement.Model
     public enum ReservationApprovalState
     {
         /// <summary>
-        /// The unapproved
+        /// The created
         /// </summary>
-        Unapproved = 1,
+        Created = 0,
+
+        /// <summary>
+        /// The pending initial approval
+        /// </summary>
+        PendingInitialApproval = 1,
 
         /// <summary>
         /// The approved
@@ -754,9 +759,19 @@ namespace com.centralaz.RoomManagement.Model
         ChangesNeeded = 4,
 
         /// <summary>
-        /// The pending review
+        /// The pending final approval
         /// </summary>
-        PendingReview = 5
+        PendingFinalApproval = 5,
+
+        /// <summary>
+        /// The pending special approval
+        /// </summary>
+        PendingSpecialApproval = 6,
+
+        /// <summary>
+        /// The cancelled
+        /// </summary>
+        Cancelled = 7
     }
 
     #endregion

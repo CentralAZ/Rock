@@ -438,7 +438,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             var btnViewMode = sender as BootstrapButton;
             if ( btnViewMode != null )
             {
-                this.SetUserPreference( PreferenceKey + "ViewMode", btnViewMode.Text );              
+                this.SetUserPreference( PreferenceKey + "ViewMode", btnViewMode.Text );
                 ViewMode = btnViewMode.Text;
                 ResetCalendarSelection();
                 BindData();
@@ -746,6 +746,12 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
             // Get the first/last dates based on today's date and the viewmode setting
             var today = RockDateTime.Today;
+
+            if ( PageParameter( "SelectedDate" ).AsDateTime() != null )
+            {
+                today = PageParameter( "SelectedDate" ).AsDateTime().Value;
+                calReservationCalendar.VisibleDate = today;
+            }
 
             // Use the CalendarVisibleDate if it's in session.
             if ( Session["CalendarVisibleDate"] != null )

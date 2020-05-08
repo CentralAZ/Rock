@@ -101,7 +101,7 @@ namespace com.centralaz.RoomManagement.Model
         /// The super admin group identifier.
         /// </value>
         [DataMember]
-        public int? SuperAdminGroupId { get; set; }
+        public int? OverrideApprovalGroupId { get; set; }
 
         /// <summary>
         /// Gets or sets the notification email identifier.
@@ -195,7 +195,7 @@ namespace com.centralaz.RoomManagement.Model
         /// The super admin group.
         /// </value>
         [LavaInclude]
-        public virtual Group SuperAdminGroup { get; set; }
+        public virtual Group OverrideApprovalGroup { get; set; }
 
         /// <summary>
         /// Gets or sets the notification email.
@@ -282,7 +282,7 @@ namespace com.centralaz.RoomManagement.Model
         public ReservationTypeConfiguration()
         {
             this.HasOptional( r => r.FinalApprovalGroup ).WithMany().HasForeignKey( r => r.FinalApprovalGroupId ).WillCascadeOnDelete( false );
-            this.HasOptional( r => r.SuperAdminGroup ).WithMany().HasForeignKey( r => r.SuperAdminGroupId ).WillCascadeOnDelete( false );
+            this.HasOptional( r => r.OverrideApprovalGroup ).WithMany().HasForeignKey( r => r.OverrideApprovalGroupId ).WillCascadeOnDelete( false );
             this.HasOptional( r => r.NotificationEmail ).WithMany().HasForeignKey( r => r.NotificationEmailId ).WillCascadeOnDelete( false );
 
             // IMPORTANT!!

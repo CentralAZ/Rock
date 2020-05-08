@@ -96,6 +96,7 @@
     <Compile Include="Field\Types\ReservationFieldType.cs" />
     <Compile Include="Jobs\FireWorkflowFromReservationInDateRange.cs" />
     <Compile Include="Jobs\PopulateFirstLastOccurrenceDateTimes.cs" />
+    <Compile Include="Migrations\028_Rollup160.cs" />
     <Compile Include="Migrations\027_Bugfixes154.cs" />
     <Compile Include="Migrations\026_Bugfixes153.cs" />
     <Compile Include="Migrations\025_Bugfixes150.cs" />

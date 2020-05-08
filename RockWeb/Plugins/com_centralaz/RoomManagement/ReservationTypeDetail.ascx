@@ -59,7 +59,7 @@
                         <div class="col-md-6">
                             <Rock:DataTextBox ID="tbIconCssClass" runat="server" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="IconCssClass" ValidateRequestMode="Disabled" />
                             <Rock:RockDropDownList ID="ddlFinalApprovalGroup" runat="server" Label="Final Approval Group" ValidateRequestMode="Disabled" NumberType="Integer" MinimumValue="0" />
-                            <Rock:RockDropDownList ID="ddlSuperAdminGroup" runat="server" Label="Super Admin Group" ValidateRequestMode="Disabled" NumberType="Integer" MinimumValue="0" />
+                            <Rock:RockDropDownList ID="ddlSuperAdminGroup" runat="server" Label="Override Approval Group" ValidateRequestMode="Disabled" NumberType="Integer" MinimumValue="0" />
                             <Rock:RockDropDownList ID="ddlNotificationEmail" runat="server" Label="Notification Email" ValidateRequestMode="Disabled" NumberType="Integer" MinimumValue="0" />
                         </div>
                         <div class="col-md-6">

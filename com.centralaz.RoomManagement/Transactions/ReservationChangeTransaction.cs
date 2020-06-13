@@ -111,7 +111,7 @@ namespace com.centralaz.RoomManagement.Transactions
                                     }
                                 case ReservationWorkflowTriggerType.StateChanged:
                                     {
-                                        if ( State == EntityState.Modified && QualifiersMatch( rockContext, reservationWorkflowTrigger, PreviousApprovalState, ApprovalState ) )
+                                        if ( State == EntityState.Modified && PreviousApprovalState != ApprovalState && QualifiersMatch( rockContext, reservationWorkflowTrigger, PreviousApprovalState, ApprovalState ) )
                                         {
                                             LaunchWorkflow( rockContext, reservationWorkflowTrigger, "State Changed" );
                                         }

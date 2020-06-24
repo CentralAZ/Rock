@@ -6,10 +6,28 @@ overall approval team to control the approval process and/or separate groups
 to approve certain rooms &amp; resources.
 </p>
 
-<p>Room Managment release v1.5.2 is compatible with Rock v10 and has several bug fixes.</p>
+<p>Room Managment release v1.5.3 is compatible with Rock v10 and has several bug fixes.</p>
 
 <h3>Release Notes</h3>
 
+
+<ul>
+	<li> v1.5.3 - 6/23/2020
+		<ul>
+			<li>Fixed issue where people who update would get many emails because the PopulateFirstLastOccurrenceDateTimes job was modifying past reservations. (Fixes #168)</li>
+			<li>Deleting Reservation Types no longer throws errors. (Fixes #150)</li>
+			<li>Added .ics download button to ReservationDetail. (Fixes #112)</li>
+			<li>Added fix for security issues several people were encountering in the 1.5.x build.</li>
+			<li>Added SelectedDate in the page parameters.</li>
+			<li>Fixed issue with the Reservation Workflow Trigger cache not being reloaded. (Fixes #135)</li>
+			<li>Scheduled Location Picker no longer grays out parent locations (Fixes #140)</li>
+			<li>Approval Notification now uses admin contact instead of requestor.</li>
+			<li>Display start and end dates in certain places in the UI (Fixes #92, #110)</li>
+			<li>Added default Cleanup Time to ReservationTypes.</li>
+			<li>Added descriptive email Titles. (Fixes #115)</li>
+        </ul>
+    </li>
+</ul>
 
 <ul>
 	<li> v1.5.2 - 3/21/2020

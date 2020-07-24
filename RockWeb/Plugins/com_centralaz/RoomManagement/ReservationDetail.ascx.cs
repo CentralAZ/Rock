@@ -990,6 +990,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             {
                 var rlSummary = new ReservationLocationSummary();
                 rlSummary.CopyPropertiesFrom( reservationLocation );
+                rlSummary.Guid = new Guid();
                 LocationsState.Add( rlSummary );
             }
 
@@ -998,6 +999,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             {
                 var rrSummary = new ReservationResourceSummary();
                 rrSummary.CopyPropertiesFrom( reservationResource );
+                rrSummary.Guid = new Guid();
                 ResourcesState.Add( rrSummary );
             }
 

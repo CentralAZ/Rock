@@ -201,17 +201,28 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
                     rockContext.SaveChanges();
 
+                    var binaryFileService = new BinaryFileService( rockContext );
                     if ( orphanedImageId.HasValue )
                     {
-                        BinaryFileService binaryFileService = new BinaryFileService( rockContext );
                         var binaryFile = binaryFileService.Get( orphanedImageId.Value );
                         if ( binaryFile != null )
                         {
                             // marked the old images as IsTemporary so they will get cleaned up later
                             binaryFile.IsTemporary = true;
-                            rockContext.SaveChanges();
                         }
                     }
+
+                    if ( layout.LayoutPhotoId.HasValue )
+                    {
+                        var binaryFile = binaryFileService.Get( layout.LayoutPhotoId.Value );
+                        if ( binaryFile != null )
+                        {
+                            binaryFile.IsTemporary = false;
+                        }
+                    }
+
+                    rockContext.SaveChanges();
+
                 } );
 
                 hfIdValue.Value = string.Empty;

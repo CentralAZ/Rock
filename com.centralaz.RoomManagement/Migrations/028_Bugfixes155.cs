@@ -47,7 +47,7 @@ Insert into @DuplicateGuids
 Select Guid, GuidCount
 From (
 Select [Guid], count(0) as GuidCount
-From comcentralaz_RoomManagement_ReservationResource
+From _com_centralaz_RoomManagement_ReservationResource
 Group By [Guid]
 ) t1
 Where GuidCount > 1
@@ -56,16 +56,16 @@ Insert into @DuplicateGuids
 Select Guid, GuidCount
 From (
 Select [Guid], count(0) as GuidCount
-From comcentralaz_RoomManagement_ReservationLocation
+From _com_centralaz_RoomManagement_ReservationLocation
 Group By [Guid]
 ) t1
 Where GuidCount > 1
 
-Update comcentralaz_RoomManagement_ReservationResource
+Update _com_centralaz_RoomManagement_ReservationResource
 Set Guid = NewId()
 Where Guid in ( Select DuplicateGuid from @DuplicateGuids)
 
-Update comcentralaz_RoomManagement_ReservationLocation
+Update _com_centralaz_RoomManagement_ReservationLocation
 Set Guid = NewId()
 Where Guid in ( Select DuplicateGuid from @DuplicateGuids)
 

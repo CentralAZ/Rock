@@ -53,6 +53,7 @@ namespace Rock.Rest.Controllers
         /// <param name="setupTime">The setup time.</param>
         /// <param name="cleanupTime">The cleanup time.</param>
         /// <param name="attendeeCount">The attendee count.</param>
+        /// <param name="reservationTypeId">The reservation type id.</param>
         /// <returns></returns>
         [Authenticate, Secured]
         [System.Web.Http.Route( "api/com_centralaz/ScheduledLocations/GetChildren/{id}/{rootLocationId}" )]
@@ -63,10 +64,12 @@ namespace Rock.Rest.Controllers
             string iCalendarContent = "",
             int? setupTime = null,
             int? cleanupTime = null,
-            int? attendeeCount = null )
+            int? attendeeCount = null,
+            int? reservationTypeId = null )
         {
             var rockContext = new RockContext();
             var locationService = new LocationService( rockContext );
+            var reservationLocationTypeList = new List<int>();
 
             IQueryable<Location> qry;
             if ( id == 0 )
@@ -85,6 +88,12 @@ namespace Rock.Rest.Controllers
             // limit to only active, Named Locations (don't show home addresses, etc)
             qry = qry.Where( a => a.Name != null && a.Name != string.Empty && a.IsActive == true );
 
+            if ( reservationTypeId.HasValue )
+            {
+                var reservationType = new ReservationTypeService( rockContext ).Get( reservationTypeId.Value );
+                reservationLocationTypeList = reservationType.ReservationLocationTypes.Select( rlt => rlt.LocationTypeValueId ).ToList();
+            }
+
             List<Location> locationList = new List<Location>();
             List<TreeViewItem> locationNameList = new List<TreeViewItem>();
 
@@ -99,16 +108,25 @@ namespace Rock.Rest.Controllers
             {
                 if ( location.IsAuthorized( Rock.Security.Authorization.VIEW, person ) )
                 {
-                    locationList.Add( location );
-                    var treeViewItem = new TreeViewItem();
-                    treeViewItem.Id = location.Id.ToString();
-                    treeViewItem.Name = string.Format( "{0}<small style='color:grey;'>{1}</small>", System.Web.HttpUtility.HtmlEncode( location.Name ), location.FirmRoomThreshold != null ? "\t(" + location.FirmRoomThreshold + ")" : "" );
-                    treeViewItem.IsActive =
-                        // location isnt' reserved
-                        !( reservedLocationIds.Contains( location.Id ) )
-                        // and the attendee count is less than or equal to the room's capacity
-                        && ( attendeeCount == null || location.FirmRoomThreshold == null || attendeeCount.Value <= location.FirmRoomThreshold.Value );
-                    locationNameList.Add( treeViewItem );
+                    var descendantLocations = locationService.GetAllDescendents( location.Id );
+                    bool isValidLocationType = ( !reservationLocationTypeList.Any() || !location.LocationTypeValueId.HasValue || reservationLocationTypeList.Contains( location.LocationTypeValueId.Value ) );
+                    bool hasValidDescendant = ( !reservationLocationTypeList.Any() || !location.LocationTypeValueId.HasValue || descendantLocations.Any( dl => reservationLocationTypeList.Contains( dl.LocationTypeValueId.Value ) ) );
+                    if ( isValidLocationType || hasValidDescendant )
+                    {
+                        locationList.Add( location );
+                        var treeViewItem = new TreeViewItem();
+                        treeViewItem.Id = location.Id.ToString();
+                        treeViewItem.Name = string.Format( "{0}<small style='color:grey;'>{1}{2}</small>",
+                            System.Web.HttpUtility.HtmlEncode( location.Name ),
+                            location.FirmRoomThreshold != null ? "\t(" + location.FirmRoomThreshold + ")" : "",
+                             !isValidLocationType ? "\t(Non-reservable)" : "" );
+                        treeViewItem.IsActive =
+                            // location isnt' reserved
+                            !( reservedLocationIds.Contains( location.Id ) )
+                            // and the attendee count is less than or equal to the room's capacity
+                            && ( attendeeCount == null || location.FirmRoomThreshold == null || attendeeCount.Value <= location.FirmRoomThreshold.Value );
+                        locationNameList.Add( treeViewItem );
+                    }
                 }
             }
 
@@ -118,7 +136,7 @@ namespace Rock.Rest.Controllers
             var qryHasChildren = locationService.Queryable().AsNoTracking()
                 .Where( l =>
                     l.ParentLocationId.HasValue &&
-                    resultIds.Contains( l.ParentLocationId.Value ) )
+                    resultIds.Contains( l.ParentLocationId.Value ))
                 .Select( l => l.ParentLocationId.Value )
                 .Distinct()
                 .ToList();

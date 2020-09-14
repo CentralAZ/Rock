@@ -73,6 +73,7 @@
                                 <div class="col-md-6">
                                     <Rock:NumberBox ID="nbDefaultSetupTime" runat="server" Label="Default Setup Time" Help="If you wish to default to a particular setup time, you can supply a value here. (empty or -1 indicates no default value)" NumberType="Integer" MinimumValue="-1" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="DefaultSetupTime" />
                                     <Rock:NumberBox ID="nbDefaultCleanupTime" runat="server" Label="Default Cleanup Time" Help="If you wish to default to a particular cleanup time, you can supply a value here. (empty or -1 indicates no default value)" NumberType="Integer" MinimumValue="-1" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="DefaultCleanupTime" />
+                                    <Rock:DefinedValuesPicker ID="dvpReservableLocationTypes" runat="server" Label="Reservable Location Types" />
                                     <Rock:RockCheckBox ID="cbIsReservationBookedOnApproval" runat="server" Label="Is Reservation Booked On Approval" Help="Are the resources and locations in this reservation booked once it's created, or only once it's approved?" SourceTypeName="com.centralaz.RoomManagement.Model.ReservationType, com.centralaz.RoomManagement" PropertyName="IsReservationBookedOnApproval" />
                                 </div>
                             </div>

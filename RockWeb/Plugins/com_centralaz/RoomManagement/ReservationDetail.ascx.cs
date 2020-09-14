@@ -920,6 +920,8 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             BuildAttributeEdits( reservation, true );
 
             SetRequiredFieldsBasedOnReservationType( ReservationType );
+
+            LoadPickers();
         }
 
         /// <summary>
@@ -1625,10 +1627,29 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void dlgReservationLocation_SaveClick( object sender, EventArgs e )
         {
-            SaveReservationLocation();
+            bool isValidLocationType = CheckLocationTypeValidity();
 
-            dlgReservationLocation.Hide();
-            hfActiveDialog.Value = string.Empty;
+            if ( isValidLocationType )
+            {
+                SaveReservationLocation();
+
+                dlgReservationLocation.Hide();
+                hfActiveDialog.Value = string.Empty;
+            }
+        }
+
+        private bool CheckLocationTypeValidity()
+        {
+            var rockContext = new RockContext();
+            var locationId = slpLocation.SelectedValueAsId().Value;
+            var location = new LocationService( rockContext ).Get( locationId );
+
+            var reservationLocationGuid = hfAddReservationLocationGuid.Value.AsGuid();
+
+            var reservationType = new ReservationTypeService( rockContext ).Get( ddlReservationType.SelectedValueAsId().Value );
+            var reservationLocationTypeList = reservationType.ReservationLocationTypes.Select( rlt => rlt.LocationTypeValueId ).ToList();
+            bool isValidLocationType = ( !reservationLocationTypeList.Any() || !location.LocationTypeValueId.HasValue || reservationLocationTypeList.Contains( location.LocationTypeValueId.Value ) );
+            return isValidLocationType;
         }
 
         /// <summary>
@@ -1638,8 +1659,13 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
         /// <param name="e">The <see cref="EventArgs"/> instance containing the event data.</param>
         protected void dlgReservationLocation_SaveThenAddClick( object sender, EventArgs e )
         {
-            SaveReservationLocation();
-            gLocations_ShowEdit( Guid.Empty );
+            bool isValidLocationType = CheckLocationTypeValidity();
+
+            if ( isValidLocationType )
+            {
+                SaveReservationLocation();
+                gLocations_ShowEdit( Guid.Empty );
+            }
         }
 
         /// <summary>
@@ -2939,7 +2965,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             string encodedCalendarContent = Uri.EscapeUriString( sbSchedule.iCalendarContent );
             srpResource.CampusId = ddlCampus.SelectedValueAsInt();
             srpResource.ItemRestUrlExtraParams = BaseResourceRestUrl + String.Format( "&reservationId={0}&iCalendarContent={1}&setupTime={2}&cleanupTime={3}{4}", reservationId, encodedCalendarContent, nbSetupTime.Text.AsInteger(), nbCleanupTime.Text.AsInteger(), string.IsNullOrWhiteSpace( locationIds ) ? "" : "&locationIds=" + locationIds );
-            slpLocation.ItemRestUrlExtraParams = BaseLocationRestUrl + String.Format( "?reservationId={0}&iCalendarContent={1}&setupTime={2}&cleanupTime={3}&attendeeCount={4}", reservationId, encodedCalendarContent, nbSetupTime.Text.AsInteger(), nbCleanupTime.Text.AsInteger(), nbAttending.Text.AsInteger() );
+            slpLocation.ItemRestUrlExtraParams = BaseLocationRestUrl + String.Format( "?reservationId={0}&iCalendarContent={1}&setupTime={2}&cleanupTime={3}&attendeeCount={4}&reservationTypeId={5}", reservationId, encodedCalendarContent, nbSetupTime.Text.AsInteger(), nbCleanupTime.Text.AsInteger(), nbAttending.Text.AsInteger(), ddlReservationType.SelectedValueAsId() );
         }
 
         /// <summary>
@@ -3509,26 +3535,37 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 var location = new LocationService( rockContext ).Get( locationId );
 
                 var reservationLocationGuid = hfAddReservationLocationGuid.Value.AsGuid();
-                var existingResourceCount = LocationsState.Where( rl => rl.Guid != reservationLocationGuid && rl.LocationId == locationId ).Count();
-                if ( existingResourceCount > 0 )
+                var reservationType = new ReservationTypeService( rockContext ).Get( ddlReservationType.SelectedValueAsId().Value );
+                var reservationLocationTypeList = reservationType.ReservationLocationTypes.Select( rlt => rlt.LocationTypeValueId ).ToList();
+                bool isValidLocationType = ( !reservationLocationTypeList.Any() || !location.LocationTypeValueId.HasValue || reservationLocationTypeList.Contains( location.LocationTypeValueId.Value ) );
+                if ( !isValidLocationType )
                 {
-                    nbLocationConflicts.Text = string.Format( "{0} has already been added to this reservation", location.Name );
+                    nbLocationConflicts.Text = string.Format( "{0} is unable to be reserved.", location.Name );
                     nbLocationConflicts.Visible = true;
                 }
                 else
                 {
-                    int reservationId = hfReservationId.ValueAsInt();
-                    var newReservation = new Reservation() { Id = reservationId, Schedule = ReservationService.BuildScheduleFromICalContent( sbSchedule.iCalendarContent ), SetupTime = nbSetupTime.Text.AsInteger(), CleanupTime = nbCleanupTime.Text.AsInteger() };
-                    var message = new ReservationService( rockContext ).BuildLocationConflictHtmlList( newReservation, locationId, this.CurrentPageReference.Route );
-
-                    if ( message != null )
+                    var existingLocationCount = LocationsState.Where( rl => rl.Guid != reservationLocationGuid && rl.LocationId == locationId ).Count();
+                    if ( existingLocationCount > 0 )
                     {
-                        nbLocationConflicts.Text = string.Format( "{0} is already reserved for the scheduled times by the following reservations:<ul>{1}</ul>", location.Name, message );
+                        nbLocationConflicts.Text = string.Format( "{0} has already been added to this reservation", location.Name );
                         nbLocationConflicts.Visible = true;
                     }
                     else
                     {
-                        nbLocationConflicts.Visible = false;
+                        int reservationId = hfReservationId.ValueAsInt();
+                        var newReservation = new Reservation() { Id = reservationId, Schedule = ReservationService.BuildScheduleFromICalContent( sbSchedule.iCalendarContent ), SetupTime = nbSetupTime.Text.AsInteger(), CleanupTime = nbCleanupTime.Text.AsInteger() };
+                        var message = new ReservationService( rockContext ).BuildLocationConflictHtmlList( newReservation, locationId, this.CurrentPageReference.Route );
+
+                        if ( message != null )
+                        {
+                            nbLocationConflicts.Text = string.Format( "{0} is already reserved for the scheduled times by the following reservations:<ul>{1}</ul>", location.Name, message );
+                            nbLocationConflicts.Visible = true;
+                        }
+                        else
+                        {
+                            nbLocationConflicts.Visible = false;
+                        }
                     }
                 }
             }

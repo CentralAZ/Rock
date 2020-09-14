@@ -238,16 +238,19 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     var reservationResourceService = new ReservationResourceService( rockContext );
                     var reservationLocationService = new ReservationLocationService( rockContext );
                     var reservationWorkfowTriggerService = new ReservationWorkflowTriggerService( rockContext );
+                    var reservationLocationTypeService = new ReservationLocationTypeService( rockContext );
                     var reservationMinistryService = new ReservationMinistryService( rockContext );
 
                     var reservationQry = reservationService.Queryable().Where( r => r.ReservationTypeId == reservationType.Id );
                     var reservationResourceQry = reservationResourceService.Queryable().Where( rr => rr.Reservation.ReservationTypeId == reservationType.Id );
                     var reservationLocationQry = reservationLocationService.Queryable().Where( rl => rl.Reservation.ReservationTypeId == reservationType.Id );
                     var reservationTriggerQry = reservationWorkfowTriggerService.Queryable().Where( rwt => rwt.ReservationTypeId == reservationType.Id );
+                    var reservationLocationTypeQry = reservationLocationTypeService.Queryable().Where( rlt => rlt.ReservationTypeId == reservationType.Id );
                     var reservationMinistryQry = reservationMinistryService.Queryable().Where( rm => rm.ReservationTypeId == reservationType.Id );
 
                     reservationMinistryService.DeleteRange( reservationMinistryQry );
                     reservationWorkfowTriggerService.DeleteRange( reservationTriggerQry );
+                    reservationLocationTypeService.DeleteRange( reservationLocationTypeQry );
                     reservationResourceService.DeleteRange( reservationResourceQry );
                     reservationLocationService.DeleteRange( reservationLocationQry );
                     reservationService.DeleteRange( reservationQry );
@@ -300,6 +303,7 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 ReservationTypeService reservationTypeService = new ReservationTypeService( rockContext );
                 ReservationMinistryService reservationMinistryService = new ReservationMinistryService( rockContext );
                 ReservationWorkflowTriggerService reservationWorkflowTriggerService = new ReservationWorkflowTriggerService( rockContext );
+                ReservationLocationTypeService reservationLocationTypeService = new ReservationLocationTypeService( rockContext );
                 AttributeService attributeService = new AttributeService( rockContext );
                 AttributeQualifierService qualifierService = new AttributeQualifierService( rockContext );
 
@@ -326,6 +330,13 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                     {
                         reservationType.ReservationWorkflowTriggers.Remove( reservationWorkflowTrigger );
                         reservationWorkflowTriggerService.Delete( reservationWorkflowTrigger );
+                    }
+
+                    var uiLocationTypes = dvpReservableLocationTypes.SelectedValuesAsInt;
+                    foreach(var reservationLocationType in reservationType.ReservationLocationTypes.Where(rlt=> !uiLocationTypes.Contains( rlt.LocationTypeValueId ) ).ToList() )
+                    {
+                        reservationType.ReservationLocationTypes.Remove( reservationLocationType );
+                        reservationLocationTypeService.Delete( reservationLocationType );
                     }
                 }
 
@@ -374,6 +385,18 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
 
                     reservationWorkflowTrigger.CopyPropertiesFrom( reservationWorkflowTriggerState );
                     reservationWorkflowTrigger.ReservationTypeId = reservationTypeId;
+                }
+
+                foreach( var locationTypeValueId in dvpReservableLocationTypes.SelectedValuesAsInt )
+                {
+                    ReservationLocationType reservationLocationType = reservationType.ReservationLocationTypes.Where( rlt => rlt.LocationTypeValueId == locationTypeValueId ).FirstOrDefault();
+                    if(reservationLocationType == null )
+                    {
+                        reservationLocationType = new ReservationLocationType();
+                        reservationType.ReservationLocationTypes.Add( reservationLocationType );
+                    }
+                    reservationLocationType.ReservationTypeId = reservationTypeId;
+                    reservationLocationType.LocationTypeValueId = locationTypeValueId;
                 }
 
                 if ( !reservationType.IsValid )
@@ -1098,9 +1121,11 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
                 reservationType = new ReservationType();
                 reservationType.IconCssClass = "fa fa-compress";
             }
+
             if ( reservationType.Id == 0 )
             {
                 lReadOnlyTitle.Text = ActionTitle.Add( ReservationType.FriendlyTypeName ).FormatAsHtmlTitle();
+                reservationType.ReservationLocationTypes = new List<ReservationLocationType>();
             }
             else
             {
@@ -1145,6 +1170,18 @@ namespace RockWeb.Plugins.com_centralaz.RoomManagement
             BindAttributesGrid();
             BindReservationWorkflowTriggersGrid();
             BindReservationMinistriesGrid();
+
+            var locationTypeCache = DefinedTypeCache.Get( Rock.SystemGuid.DefinedType.LOCATION_TYPE );
+            dvpReservableLocationTypes.DefinedTypeId = locationTypeCache.Id;
+
+            if ( reservationType.Id == 0 )
+            {
+                dvpReservableLocationTypes.SetValues( locationTypeCache.DefinedValues.Select( dv => dv.Id ).ToList() );
+            }
+            else
+            {
+                dvpReservableLocationTypes.SetValues( reservationType.ReservationLocationTypes.Select( rlt => rlt.LocationTypeValueId ).ToList() );
+            }
         }
 
         private void LoadDropDowns()

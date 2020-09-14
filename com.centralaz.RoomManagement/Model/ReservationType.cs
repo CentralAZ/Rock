@@ -248,6 +248,21 @@ namespace com.centralaz.RoomManagement.Model
         }
         private ICollection<ReservationWorkflowTrigger> _reservationWorkflowTriggers;
 
+
+        /// <summary>
+        /// Gets or sets the reservation location types.
+        /// </summary>
+        /// <value>
+        /// The reservation location types.
+        /// </value>
+        [LavaInclude]
+        public virtual ICollection<ReservationLocationType> ReservationLocationTypes
+        {
+            get { return _reservationLocationTypes ?? ( _reservationLocationTypes = new Collection<ReservationLocationType>() ); }
+            set { _reservationLocationTypes = value; }
+        }
+        private ICollection<ReservationLocationType> _reservationLocationTypes;
+
         /// <summary>
         /// Gets the supported actions.
         /// </summary>

@@ -37,6 +37,7 @@ namespace com.centralaz.RoomManagement.Transactions
         private int ReservationTypeId;
         private ReservationApprovalState ApprovalState;
         private ReservationApprovalState PreviousApprovalState;
+        private DateTime PreviousModifiedDateTime;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ReservationChangeTransaction"/> class.
@@ -58,7 +59,13 @@ namespace com.centralaz.RoomManagement.Transactions
                     var dbStatusProperty = entry.Property( "ApprovalState" );
                     if ( dbStatusProperty != null )
                     {
-                        PreviousApprovalState = (ReservationApprovalState)dbStatusProperty.OriginalValue;
+                        PreviousApprovalState = ( ReservationApprovalState ) dbStatusProperty.OriginalValue;
+                    }
+
+                    var dbModifiedDateTimeProperty = entry.Property( "ModifiedDateTime" );
+                    if ( dbModifiedDateTimeProperty != null )
+                    {
+                        PreviousModifiedDateTime = ( DateTime ) dbModifiedDateTimeProperty.OriginalValue;
                     }
                 }
 
@@ -82,7 +89,7 @@ namespace com.centralaz.RoomManagement.Transactions
             if ( cachedWorkflowTriggers != null && cachedWorkflowTriggers.Any() )
             {
                 // Get the workflows associated to the reservation
-                var reservationWorkflowTriggers = cachedWorkflowTriggers.Where(t=> t.ReservationTypeId == ReservationTypeId).ToList();
+                var reservationWorkflowTriggers = cachedWorkflowTriggers.Where( t => t.ReservationTypeId == ReservationTypeId ).ToList();
 
                 if ( reservationWorkflowTriggers.Any() )
                 {
@@ -170,6 +177,12 @@ namespace com.centralaz.RoomManagement.Transactions
                     reservation = new ReservationService( rockContext ).Get( ReservationGuid.Value );
 
                     var workflow = Rock.Model.Workflow.Activate( workflowType, name );
+
+                    if ( PreviousModifiedDateTime != null )
+                    {
+                        workflow.SetAttributeValue( "PreviousModifiedDateTime", PreviousModifiedDateTime );
+                        workflow.SaveAttributeValue( "PreviousModifiedDateTime", rockContext );
+                    }
 
                     List<string> workflowErrors;
                     new WorkflowService( rockContext ).Process( workflow, reservation, out workflowErrors );
